@@ -32,10 +32,11 @@ When an AI agent enters this project, follow this knowledge navigation path:
 
 Agents must follow these skill protocols during work:
 
-- **[Project Logs & Memory Skill](.agents/skills/project-logs.md):**  
+- **[Project Logs & Memory Skill](.agents/skills/project-logs/SKILL.md):**  
   Memory protocol for recording what was *asked*, *decided*, and *shipped* in [`docs/PROJECT_LOGS.md`](docs/PROJECT_LOGS.md).
-- **[Roadmap Management Skill](.agents/skills/roadmap.md):**  
+- **[Roadmap Management Skill](.agents/skills/roadmap/SKILL.md):**  
   Progress tracking protocol using `[[Wiki Links]]` across Backlog, In Progress, and Done in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
 
 ---
 

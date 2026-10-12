@@ -19,3 +19,8 @@
 - **asked:** user moved markdown specs and state files to docs/, update paths to relative.
 - **decided:** use portable relative paths across BRAIN.md, AGENTS.md, skills, and docs/.
 - **shipped:** updated link references in BRAIN.md, AGENTS.md, .agents/skills/project-logs.md, and .agents/skills/roadmap.md.
+
+### [2026-10-12] Standardize Skills Directory for Gemini
+- **asked:** convert skills in .agents/skills to standard Gemini format with SKILL.md and update doc links.
+- **decided:** folder-per-skill structure (.agents/skills/<name>/SKILL.md) with YAML frontmatter and relative link references.
+- **shipped:** updated project-logs/SKILL.md, roadmap/SKILL.md, BRAIN.md, and AGENTS.md.

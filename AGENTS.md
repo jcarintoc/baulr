@@ -70,7 +70,8 @@ The project is split into distinct layers governed by specialized rules in `.age
 ## 6. Central Knowledge Hub & Agent Memory (BRAIN.md)
 
 All agents must traverse the project knowledge path starting from [`BRAIN.md`](BRAIN.md).
-- **Agent Memory:** Follow [`.agents/skills/project-logs.md`](.agents/skills/project-logs.md) to log requests, decisions, and shipped deliverables in [`docs/PROJECT_LOGS.md`](docs/PROJECT_LOGS.md).
-- **Roadmap & Sprints:** Follow [`.agents/skills/roadmap.md`](.agents/skills/roadmap.md) to manage tasks in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+- **Agent Memory:** Follow [`.agents/skills/project-logs/SKILL.md`](.agents/skills/project-logs/SKILL.md) to log requests, decisions, and shipped deliverables in [`docs/PROJECT_LOGS.md`](docs/PROJECT_LOGS.md).
+- **Roadmap & Sprints:** Follow [`.agents/skills/roadmap/SKILL.md`](.agents/skills/roadmap/SKILL.md) to manage tasks in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
 
 
