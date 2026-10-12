@@ -29,3 +29,8 @@
 - **asked:** install Rust compiler via Homebrew.
 - **decided:** use Homebrew package manager for rust/cargo toolchain on macOS.
 - **shipped:** verified rustc 1.99.0 and cargo 1.99.0 available on host.
+
+### [2026-10-12] Scaffold Tauri v2 + React 19 Project
+- **asked:** set up the app with Tauri v2, React 19, TypeScript, and modern tooling.
+- **decided:** scaffold via create-tauri-app with Tailwind v4, Zustand, Lucide icons, and strict src/lib/api/ IPC layer.
+- **shipped:** complete working frontend/backend skeleton with get_vault_quota IPC, verified with pnpm build and cargo check.

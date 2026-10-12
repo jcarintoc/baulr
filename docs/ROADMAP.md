@@ -15,3 +15,5 @@
 - [[PRD & Architecture Specifications]]
 - [[Global & Technology Rules]]
 - [[Agent Skills & BRAIN Knowledge Hub]]
+- [[Scaffold Tauri v2 + React 19 Project]]
+
