@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { VaultQuota } from "../lib/types";
+import { VaultQuota } from "../lib/bindings";
 import { fetchVaultQuota } from "../lib/api/vault";
 
 interface VaultState {

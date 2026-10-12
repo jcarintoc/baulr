@@ -1,11 +1,10 @@
-import { invoke } from "@tauri-apps/api/core";
-import { VaultQuota } from "../types";
+import { commands, VaultQuota } from "../bindings";
 
 /**
- * Strict IPC wrapper for Vault commands.
- * Never call invoke() directly inside React components.
+ * Type-safe IPC wrapper consuming auto-generated Tauri Specta bindings.
  */
-
 export async function fetchVaultQuota(): Promise<VaultQuota> {
-  return await invoke<VaultQuota>("get_vault_quota");
+  const res = await commands.getVaultQuota();
+  if (res.status === "error") throw new Error(res.error);
+  return res.data;
 }

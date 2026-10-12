@@ -39,3 +39,30 @@
 - **asked:** add shadcn into the project using preset b6t6Agpn6.
 - **decided:** use shadcn init with preset, configure @/* path aliases in Vite & TS, install button and progress components.
 - **shipped:** components.json, src/lib/utils.ts, src/components/ui/button.tsx, and src/components/ui/progress.tsx.
+
+### [2026-10-12] Implement Tauri Specta & WebKit Hardening
+- **asked:** review best practice tips and apply end-to-end type safety, WebKit hardening, and rule updates.
+- **decided:** adopt tauri-specta for auto-generating TS bindings; reject TanStack Query in favor of Zustand + event streams; harden WebKit against drop navigation.
+- **shipped:** tauri-specta in Cargo.toml, src/lib/bindings.ts, drop/contextmenu guards in src/main.tsx, updated .agents/rules/tauri-rust.md and frontend.md.
+
+### [2026-10-12] Rule Activation Mode Migrated to Glob
+- **asked:** switch rule activation mode from Always On to Glob across .agents/rules and determine appropriate glob patterns.
+- **decided:** use trigger: glob with dual globs/glob fields and domain descriptions for maximum tool compatibility across Antigravity and Cursor.
+- **shipped:** configured targeted glob patterns and descriptions across all 6 rule files in .agents/rules, fixing malformed frontmatter in test rules.
+
+### [2026-10-12] Ponytail Review Complexity Reduction
+- **asked:** review diff for over-engineering and apply simplifications.
+- **decided:** delete boilerplate greet command, remove duplicate export test, remove duplicate types, prune speculative test rules, and standardize on single globs key.
+- **shipped:** deleted test-desktop-e2e.md and test-frontend-unit.md, removed greet command and regenerated bindings, re-exported bindings in types.ts; verified via cargo test and pnpm tsc.
+
+### [2026-10-13] Install & Configure Frontend and Backend Test Suites
+- **asked:** install testing libraries for Rust backend and React frontend, configure test runners, and verify pipeline.
+- **decided:** add Vitest + React Testing Library for frontend in vite.config.ts; add tempfile and tauri test feature in Cargo.toml; reject TanStack Query as YAGNI.
+- **shipped:** src/test/setup.ts, src/test/formatters.test.ts, package.json test scripts, verified 4 frontend tests via pnpm test and 1 backend test via cargo test.
+
+### [2026-10-13] Ponytail Review Cleanup (Net -15 Lines)
+- **asked:** review diff for over-engineering and apply simplifications.
+- **decided:** remove duplicate specta export block from unit test, prune speculative tokio/tauri test features from Cargo.toml, delete redundant type re-exports in types.ts and vault.ts, and shrink error guards.
+- **shipped:** trimmed 15 lines across lib.rs, Cargo.toml, vault.ts, and types.ts; verified all tests and production builds pass.
+
+

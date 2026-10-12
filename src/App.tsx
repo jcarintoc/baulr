@@ -133,8 +133,8 @@ export function App() {
                   <div>
                     <h4 className="font-medium text-sm">{acc.name}</h4>
                     <p className="text-xs text-neutral-400">
-                      {formatBytes(acc.usedBytes)} /{" "}
-                      {formatBytes(acc.totalBytes)}
+                      {formatBytes(acc.usedBytes ?? 0)} /{" "}
+                      {formatBytes(acc.totalBytes ?? 0)}
                     </p>
                   </div>
                 </div>

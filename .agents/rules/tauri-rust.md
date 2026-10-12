@@ -1,14 +1,20 @@
+---
+trigger: glob
+globs: "src-tauri/**/*.{rs,toml,json}"
+---
+
 # Technology Rules: Tauri v2 & Rust Backend
 
 **File:** `.agents/rules/tauri-rust.md`  
 **Scope:** Applied to all files under `src-tauri/`  
-**Audience:** AI agents writing or modifying Rust code  
+**Audience:** AI agents writing or modifying Rust code
 
 ---
 
 ## 1. Core Persona: The "Boring Rust" BFF
 
 The Rust backend in Baulr is a **Backend-For-Frontend (BFF)** bridge. Its only jobs are:
+
 1. Spawning and monitoring the Rclone daemon sidecar.
 2. Interfacing with native OS APIs (Keychains, File Dialogs, Trash).
 3. Streaming files from the local LAN HTTP server (for mobile QR upload).
@@ -20,6 +26,7 @@ The Rust backend in Baulr is a **Backend-For-Frontend (BFF)** bridge. Its only j
 ## 2. The Zero-Panic Invariant
 
 Panicking in Rust instantly terminates the desktop application without warning.
+
 - **NEVER use `.unwrap()` or `.expect()` in production code.**
 - Prohibited:
   ```rust
@@ -38,6 +45,7 @@ Panicking in Rust instantly terminates the desktop application without warning.
 ## 3. Tauri v2 Command Architecture
 
 ### 3.1 Commands Are Thin Routers
+
 Tauri commands (`#[tauri::command]`) must only validate input, delegate to an internal service module, and return a serialized result. Never write heavy business logic inside the command function itself.
 
 ```rust
@@ -51,11 +59,25 @@ pub async fn get_vault_quota(
 ```
 
 ### 3.2 Error Return Types
+
 All commands must return `Result<T, String>` or `Result<T, AppError>` where `AppError: serde::Serialize`. Never swallow errors or return untyped empty options when something fails.
 
 ### 3.3 Asynchronous Non-Blocking I/O
+
 - Every command that touches disk, network, or IPC **must be `async`**.
 - Never block the Tokio async runtime with blocking std calls. Use `tokio::fs` instead of `std::fs` for file reads in async commands.
+
+### 3.4 Automatic TypeScript Bindings (tauri-specta)
+
+- All shared IPC structs must derive `specta::Type` alongside `Serialize` and `Deserialize`.
+- All commands must be annotated with `#[specta::specta]` and registered via `tauri_specta::collect_commands![]`.
+- Never manually hand-write TypeScript interfaces for IPC; let Specta generate `src/lib/bindings.ts`.
+- When serializing byte-size integers (`u64`), annotate with `#[specta(type = f64)]` to prevent JavaScript BigInt precision runtime rejections.
+
+### 3.5 Event Streams & Payload Hygiene
+
+- **Event Streams Over Polling:** For live metrics or file transfer progress, do not poll `invoke()`. Have Rust push events to the webview via `app_handle.emit("event-name", payload)` and subscribe in React via `listen()`.
+- **Pass Paths, Never Raw Bytes:** Never pass heavy binary files or video buffers over IPC JSON. Pass system file paths (`String` / `PathBuf`) and perform all reading/writing natively in Rust and Rclone.
 
 ---
 
@@ -107,6 +129,7 @@ src-tauri/src/
 ## 7. Verification Checklist Before Completion
 
 Before claiming any Rust task is done, the agent must run:
+
 1. `cargo check` (must pass with 0 errors).
 2. `cargo clippy -- -D warnings` (must pass with 0 warnings).
 3. `cargo test` (all unit tests must pass).
