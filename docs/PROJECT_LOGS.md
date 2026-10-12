@@ -24,3 +24,8 @@
 - **asked:** convert skills in .agents/skills to standard Gemini format with SKILL.md and update doc links.
 - **decided:** folder-per-skill structure (.agents/skills/<name>/SKILL.md) with YAML frontmatter and relative link references.
 - **shipped:** updated project-logs/SKILL.md, roadmap/SKILL.md, BRAIN.md, and AGENTS.md.
+
+### [2026-10-12] Rust Environment Installed
+- **asked:** install Rust compiler via Homebrew.
+- **decided:** use Homebrew package manager for rust/cargo toolchain on macOS.
+- **shipped:** verified rustc 1.99.0 and cargo 1.99.0 available on host.
