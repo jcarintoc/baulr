@@ -65,4 +65,10 @@
 - **decided:** remove duplicate specta export block from unit test, prune speculative tokio/tauri test features from Cargo.toml, delete redundant type re-exports in types.ts and vault.ts, and shrink error guards.
 - **shipped:** trimmed 15 lines across lib.rs, Cargo.toml, vault.ts, and types.ts; verified all tests and production builds pass.
 
+### [2026-10-13] Component Architecture Rules & Testing Foundation Committed
+- **asked:** record component pattern rules and commit type-safe IPC & testing foundations.
+- **decided:** add component-pattern.md with composition-over-configuration standards and glob triggers; commit verified test suites and type-safe specta bridge.
+- **shipped:** .agents/rules/component-pattern.md, commit a59e301 (20 files, +1142/-58), verified with cargo test, pnpm test, and pnpm build.
+
+
 

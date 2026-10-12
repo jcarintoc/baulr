@@ -16,4 +16,6 @@
 - [[Global & Technology Rules]]
 - [[Agent Skills & BRAIN Knowledge Hub]]
 - [[Scaffold Tauri v2 + React 19 Project]]
+- [[Type Safety & Test Suites Foundation]]
+
 
