@@ -34,3 +34,8 @@
 - **asked:** set up the app with Tauri v2, React 19, TypeScript, and modern tooling.
 - **decided:** scaffold via create-tauri-app with Tailwind v4, Zustand, Lucide icons, and strict src/lib/api/ IPC layer.
 - **shipped:** complete working frontend/backend skeleton with get_vault_quota IPC, verified with pnpm build and cargo check.
+
+### [2026-10-12] Initialize shadcn with Preset
+- **asked:** add shadcn into the project using preset b6t6Agpn6.
+- **decided:** use shadcn init with preset, configure @/* path aliases in Vite & TS, install button and progress components.
+- **shipped:** components.json, src/lib/utils.ts, src/components/ui/button.tsx, and src/components/ui/progress.tsx.

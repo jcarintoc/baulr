@@ -1,7 +1,14 @@
 import { useEffect } from "react";
 import { useVaultStore } from "./store/useVaultStore";
 import { formatBytes } from "./lib/formatters";
-import { HardDrive, Cloud, ArrowUpCircle, CheckCircle2, ShieldCheck, RefreshCw } from "lucide-react";
+import {
+  HardDrive,
+  Cloud,
+  ArrowUpCircle,
+  CheckCircle2,
+  ShieldCheck,
+  RefreshCw,
+} from "lucide-react";
 
 export function App() {
   const { quota, isLoading, error, loadQuota } = useVaultStore();
@@ -24,8 +31,12 @@ export function App() {
             <HardDrive className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-semibold text-lg tracking-tight leading-tight">Baulr</h1>
-            <p className="text-xs text-neutral-400">Local-First Unified Cloud Vault</p>
+            <h1 className="font-semibold text-lg tracking-tight leading-tight">
+              Baulr
+            </h1>
+            <p className="text-xs text-neutral-400">
+              Local-First Unified Cloud Vault
+            </p>
           </div>
         </div>
 
@@ -35,7 +46,9 @@ export function App() {
             disabled={isLoading}
             className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white px-3 py-1.5 rounded-lg border border-neutral-800 hover:border-neutral-700 transition"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
+            />
             Sync
           </button>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -57,16 +70,24 @@ export function App() {
         <section className="p-6 rounded-2xl bg-neutral-900/60 border border-neutral-800 shadow-xl flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase font-medium tracking-wider text-neutral-400">Combined Storage Pool</p>
+              <p className="text-xs uppercase font-medium tracking-wider text-neutral-400">
+                Combined Storage Pool
+              </p>
               <h2 className="text-2xl font-bold tracking-tight mt-0.5">
-                {formatBytes(free)} <span className="text-sm font-normal text-neutral-400">available</span>
+                {formatBytes(free)}{" "}
+                <span className="text-sm font-normal text-neutral-400">
+                  available
+                </span>
               </h2>
             </div>
             <div className="text-right">
               <p className="text-sm font-medium text-neutral-300">
-                {formatBytes(used)} <span className="text-neutral-500">/</span> {formatBytes(total)}
+                {formatBytes(used)} <span className="text-neutral-500">/</span>{" "}
+                {formatBytes(total)}
               </p>
-              <p className="text-xs text-neutral-400 mt-0.5">{usedPercent}% utilized</p>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {usedPercent}% utilized
+              </p>
             </div>
           </div>
 
@@ -96,7 +117,9 @@ export function App() {
 
         {/* Connected Cloud Accounts */}
         <section className="flex flex-col gap-3">
-          <h3 className="text-xs uppercase font-medium tracking-wider text-neutral-400">Connected Accounts</h3>
+          <h3 className="text-xs uppercase font-medium tracking-wider text-neutral-400">
+            Connected Accounts
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {quota?.accounts.map((acc) => (
               <div
@@ -110,7 +133,8 @@ export function App() {
                   <div>
                     <h4 className="font-medium text-sm">{acc.name}</h4>
                     <p className="text-xs text-neutral-400">
-                      {formatBytes(acc.usedBytes)} / {formatBytes(acc.totalBytes)}
+                      {formatBytes(acc.usedBytes)} /{" "}
+                      {formatBytes(acc.totalBytes)}
                     </p>
                   </div>
                 </div>
@@ -129,9 +153,12 @@ export function App() {
             <ArrowUpCircle className="w-7 h-7" />
           </div>
           <div>
-            <h4 className="font-medium text-base text-neutral-200">Drag and drop folders or files here to offload</h4>
+            <h4 className="font-medium text-base text-neutral-200">
+              Drag and drop folders or files here to offload
+            </h4>
             <p className="text-xs text-neutral-400 mt-1">
-              Files are securely transferred to your pooled cloud vault and verified before local cleanup.
+              Files are securely transferred to your pooled cloud vault and
+              verified before local cleanup.
             </p>
           </div>
           <button className="mt-2 text-xs font-medium px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition shadow-lg shadow-sky-600/20">
