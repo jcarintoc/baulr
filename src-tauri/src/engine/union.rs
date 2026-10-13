@@ -18,13 +18,16 @@ pub fn build_union_upstreams(
             continue;
         }
 
-        if let Some(rtype_val) = params.get("type") {
-            if let Some(rtype) = rtype_val.as_str() {
-                if SUPPORTED_TYPES.contains(&rtype) {
-                    upstreams.push(format!("{name}:{VAULT_SUBDIR}"));
-                }
-            }
+        if params
+            .get("type")
+            .and_then(|v| v.as_str())
+            .is_some_and(|rtype| SUPPORTED_TYPES.contains(&rtype))
+        {
+            upstreams.push(format!("{name}:{VAULT_SUBDIR}"));
         }
+
+
+
     }
 
     upstreams.sort();

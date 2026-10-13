@@ -46,3 +46,29 @@ pub struct OAuthStatus {
     pub auth_url: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudAccount {
+    pub name: String,
+    pub provider: String,
+    #[specta(type = f64)]
+    pub used_bytes: u64,
+    #[specta(type = f64)]
+    pub total_bytes: u64,
+    pub is_connected: bool,
+    pub needs_auth: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultQuota {
+    #[specta(type = f64)]
+    pub total_bytes: u64,
+    #[specta(type = f64)]
+    pub used_bytes: u64,
+    #[specta(type = f64)]
+    pub free_bytes: u64,
+    pub accounts: Vec<CloudAccount>,
+}
+
+

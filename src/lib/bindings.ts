@@ -7,6 +7,9 @@ export const commands = {
 	getVaultQuota: () => typedError<VaultQuota, string>(__TAURI_INVOKE("get_vault_quota")),
 	getDaemonStatus: () => typedError<DaemonStatus, string>(__TAURI_INVOKE("get_daemon_status")),
 	getCoreStats: () => typedError<CoreStats, string>(__TAURI_INVOKE("get_core_stats")),
+	connectAccount: (provider: string) => typedError<VaultQuota, string>(__TAURI_INVOKE("connect_account", { provider })),
+	disconnectAccount: (provider: string) => typedError<VaultQuota, string>(__TAURI_INVOKE("disconnect_account", { provider })),
+	cancelOauth: () => typedError<null, string>(__TAURI_INVOKE("cancel_oauth")),
 };
 
 /* Types */

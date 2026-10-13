@@ -1,71 +1,21 @@
+pub mod commands;
 pub mod engine;
 
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use tauri::Manager;
 use tauri_specta::{collect_commands, Builder};
 use tokio::sync::RwLock;
 
+use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_account};
+use crate::commands::vault::get_vault_quota;
+pub use crate::engine::{CloudAccount, VaultQuota};
 use crate::engine::{CoreStats, DaemonStatus, RcloneClient, RcloneDaemon};
+
 
 #[derive(Default, Clone)]
 pub struct AppState {
     pub daemon: Arc<RwLock<Option<RcloneDaemon>>>,
     pub client: Arc<RwLock<Option<RcloneClient>>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct CloudAccount {
-    pub name: String,
-    pub provider: String,
-    #[specta(type = f64)]
-    pub used_bytes: u64,
-    #[specta(type = f64)]
-    pub total_bytes: u64,
-    pub is_connected: bool,
-    pub needs_auth: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct VaultQuota {
-    #[specta(type = f64)]
-    pub total_bytes: u64,
-    #[specta(type = f64)]
-    pub used_bytes: u64,
-    #[specta(type = f64)]
-    pub free_bytes: u64,
-    pub accounts: Vec<CloudAccount>,
-}
-
-#[tauri::command]
-#[specta::specta]
-fn get_vault_quota() -> Result<VaultQuota, String> {
-    Ok(VaultQuota {
-        total_bytes: 20 * 1024 * 1024 * 1024,
-        used_bytes: 5 * 1024 * 1024 * 1024,
-        free_bytes: 15 * 1024 * 1024 * 1024,
-        accounts: vec![
-            CloudAccount {
-                name: "Google Drive".into(),
-                provider: "gdrive".into(),
-                used_bytes: 3 * 1024 * 1024 * 1024,
-                total_bytes: 15 * 1024 * 1024 * 1024,
-                is_connected: true,
-                needs_auth: false,
-            },
-            CloudAccount {
-                name: "OneDrive".into(),
-                provider: "onedrive".into(),
-                used_bytes: 2 * 1024 * 1024 * 1024,
-                total_bytes: 5 * 1024 * 1024 * 1024,
-                is_connected: true,
-                needs_auth: false,
-            },
-        ],
-    })
 }
 
 #[tauri::command]
@@ -96,14 +46,24 @@ async fn get_core_stats(
     client.get_stats().await
 }
 
+pub fn create_specta_builder() -> Builder<tauri::Wry> {
+    Builder::<tauri::Wry>::new().commands(collect_commands![
+        get_vault_quota,
+        get_daemon_status,
+        get_core_stats,
+        connect_account,
+        disconnect_account,
+        cancel_oauth
+    ])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = AppState::default();
     let daemon_holder = app_state.daemon.clone();
     let client_holder = app_state.client.clone();
 
-    let specta_builder = Builder::<tauri::Wry>::new()
-        .commands(collect_commands![get_vault_quota, get_daemon_status, get_core_stats]);
+    let specta_builder = create_specta_builder();
 
     #[cfg(debug_assertions)]
     specta_builder
@@ -149,10 +109,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_vault_quota_returns_data() {
-        let quota = get_vault_quota().expect("get_vault_quota failed");
-        assert_eq!(quota.total_bytes, 20 * 1024 * 1024 * 1024);
-        assert!(!quota.accounts.is_empty());
+    fn test_specta_builder_creation_and_export() {
+        let builder = create_specta_builder();
+        let export_res = builder.export(
+            specta_typescript::Typescript::default(),
+            "../src/lib/bindings.ts",
+        );
+        assert!(export_res.is_ok());
     }
 
     #[tokio::test]

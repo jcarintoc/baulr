@@ -1,0 +1,168 @@
+use std::collections::HashMap;
+use crate::engine::{AboutFs, CloudAccount, RcloneClient, VaultQuota, VAULT_UNION_NAME};
+use crate::AppState;
+
+/// Provider specification for supported cloud accounts
+struct KnownProvider {
+    name: &'static str,
+    id: &'static str,
+}
+
+const KNOWN_PROVIDERS: &[KnownProvider] = &[
+    KnownProvider {
+        name: "Google Drive",
+        id: "gdrive",
+    },
+    KnownProvider {
+        name: "OneDrive",
+        id: "onedrive",
+    },
+];
+
+/// Pure calculation helper to construct VaultQuota from dumped config and about metrics
+pub fn calculate_vault_quota(
+    config: &HashMap<String, HashMap<String, serde_json::Value>>,
+    about_map: &HashMap<String, Result<AboutFs, String>>,
+) -> VaultQuota {
+    let mut accounts = Vec::new();
+
+    for provider in KNOWN_PROVIDERS {
+        let is_configured = config.contains_key(provider.id);
+
+        let (is_connected, needs_auth, used_bytes, total_bytes) = if is_configured {
+            match about_map.get(provider.id) {
+                Some(Ok(about)) => (
+                    true,
+                    false,
+                    about.used.unwrap_or(0),
+                    about.total.unwrap_or(0),
+                ),
+                _ => (false, true, 0, 0),
+            }
+        } else {
+            (false, false, 0, 0)
+        };
+
+        accounts.push(CloudAccount {
+            name: provider.name.to_string(),
+            provider: provider.id.to_string(),
+            used_bytes,
+            total_bytes,
+            is_connected,
+            needs_auth,
+        });
+    }
+
+    // Vault pool aggregated metrics
+    let (total_bytes, used_bytes, free_bytes) = match about_map.get(VAULT_UNION_NAME) {
+        Some(Ok(about)) => (
+            about.total.unwrap_or(0),
+            about.used.unwrap_or(0),
+            about.free.unwrap_or(0),
+        ),
+        _ => {
+            let total: u64 = accounts.iter().filter(|a| a.is_connected).map(|a| a.total_bytes).sum();
+            let used: u64 = accounts.iter().filter(|a| a.is_connected).map(|a| a.used_bytes).sum();
+            let free = total.saturating_sub(used);
+            (total, used, free)
+        }
+    };
+
+    VaultQuota {
+        total_bytes,
+        used_bytes,
+        free_bytes,
+        accounts,
+    }
+}
+
+pub async fn fetch_vault_quota_internal(client: &RcloneClient) -> Result<VaultQuota, String> {
+    let config = client.dump_config().await?;
+
+    let mut about_map = HashMap::new();
+
+    // Query about for each configured provider
+    for provider in KNOWN_PROVIDERS {
+        if config.contains_key(provider.id) {
+            let res = client.get_about(&format!("{}:", provider.id)).await;
+            about_map.insert(provider.id.to_string(), res);
+        }
+    }
+
+    // Query about for union remote if configured
+    if config.contains_key(VAULT_UNION_NAME) {
+        let res = client.get_about(&format!("{}:", VAULT_UNION_NAME)).await;
+        about_map.insert(VAULT_UNION_NAME.to_string(), res);
+    }
+
+    Ok(calculate_vault_quota(&config, &about_map))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_vault_quota(
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultQuota, String> {
+    let client_guard = state.client.read().await;
+    let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
+    fetch_vault_quota_internal(client).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_vault_quota_empty_when_no_config() {
+        let config = HashMap::new();
+        let about_map = HashMap::new();
+
+        let quota = calculate_vault_quota(&config, &about_map);
+        assert_eq!(quota.total_bytes, 0);
+        assert_eq!(quota.used_bytes, 0);
+        assert_eq!(quota.free_bytes, 0);
+        assert_eq!(quota.accounts.len(), 2);
+        assert!(!quota.accounts[0].is_connected);
+        assert!(!quota.accounts[0].needs_auth);
+        assert!(!quota.accounts[1].is_connected);
+    }
+
+    #[test]
+    fn test_calculate_vault_quota_with_connected_account() {
+        let mut config = HashMap::new();
+        config.insert("gdrive".to_string(), HashMap::new());
+
+        let mut about_map = HashMap::new();
+        about_map.insert(
+            "gdrive".to_string(),
+            Ok(AboutFs {
+                total: Some(15 * 1024 * 1024 * 1024),
+                used: Some(5 * 1024 * 1024 * 1024),
+                free: Some(10 * 1024 * 1024 * 1024),
+                trashed: None,
+                other: None,
+            }),
+        );
+
+        let quota = calculate_vault_quota(&config, &about_map);
+        assert_eq!(quota.total_bytes, 15 * 1024 * 1024 * 1024);
+        assert_eq!(quota.used_bytes, 5 * 1024 * 1024 * 1024);
+        assert_eq!(quota.free_bytes, 10 * 1024 * 1024 * 1024);
+        assert!(quota.accounts[0].is_connected);
+        assert_eq!(quota.accounts[0].used_bytes, 5 * 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_calculate_vault_quota_with_needs_auth_account() {
+        let mut config = HashMap::new();
+        config.insert("onedrive".to_string(), HashMap::new());
+
+        let mut about_map = HashMap::new();
+        about_map.insert("onedrive".to_string(), Err("Token expired".into()));
+
+        let quota = calculate_vault_quota(&config, &about_map);
+        let onedrive = quota.accounts.iter().find(|a| a.provider == "onedrive").unwrap();
+        assert!(!onedrive.is_connected);
+        assert!(onedrive.needs_auth);
+    }
+}

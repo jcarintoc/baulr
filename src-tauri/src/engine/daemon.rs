@@ -64,17 +64,13 @@ impl RcloneDaemon {
                 .ok();
 
             let mut port_sent = false;
-            for line_res in reader.lines() {
-                if let Ok(line) = line_res {
-                    if let Some(ref mut f) = log_file {
-                        let _ = writeln!(f, "{line}");
-                    }
-                    if !port_sent {
-                        if let Some(port) = extract_port_from_log_line(&line) {
-                            let _ = tx.send(port);
-                            port_sent = true;
-                        }
-                    }
+            for line in reader.lines().map_while(Result::ok) {
+                if let Some(ref mut f) = log_file {
+                    let _ = writeln!(f, "{line}");
+                }
+                if let Some(port) = extract_port_from_log_line(&line).filter(|_| !port_sent) {
+                    let _ = tx.send(port);
+                    port_sent = true;
                 }
             }
         });
