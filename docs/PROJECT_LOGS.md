@@ -104,5 +104,11 @@
 - **decided:** add Section 4 (Preserving Default Styles) and Section 5 (SVG Icon Rules) to component-shadcn.md; update code-styling-tailwind.md rules and snippets to enforce size-<n> and omit redundant child icon dimensions.
 - **shipped:** updated .agents/rules/component-shadcn.md and .agents/rules/code-styling-tailwind.md; verified typecheck and vitest suite pass.
 
+### [2026-10-13] Milestone 2: OAuth & Cloud Union Management
+- **asked:** implement Milestone 2 connecting Google Drive and OneDrive via Rclone loopback JSON-RPC, automated virtual union pool (baulr_vault), live quota telemetry, and account management commands.
+- **decided:** use Rclone loopback OAuth listener (127.0.0.1:53682) with 180s client timeout and cancel_oauth stop endpoint; dynamically rebuild baulr_vault with mfs policy on account changes; calculate live telemetry from /operations/about and /config/dump; compose OAuthModal and AccountCard with shadcn Button, Badge, and AlertDialog under 150 lines.
+- **shipped:** src-tauri/src/engine/ (models.rs, client.rs, union.rs), src-tauri/src/commands/ (accounts.rs, vault.rs), src/lib/api/accounts.ts, updated useVaultStore, AccountCard, OAuthModal, App.tsx; verified via 14/14 cargo tests, 20/20 frontend vitest tests, and pnpm build.
+
+
 
 

@@ -7,7 +7,6 @@
 - [[Bandwidth Throttler]]
 
 ## In Progress
-- [[Milestone 2: OAuth & Cloud Union Management]]
 - [[Vault Sync]]
 
 ## Done
@@ -19,6 +18,8 @@
 - [[Type Safety & Test Suites Foundation]]
 - [[Rclone Sidecar Supervisor]]
 - [[Desktop Vault UI (The Obsidian Vault)]]
+- [[Milestone 2: OAuth & Cloud Union Management]]
+
 
 
 
