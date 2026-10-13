@@ -7,6 +7,7 @@
 - [[Bandwidth Throttler]]
 
 ## In Progress
+- [[Milestone 2: OAuth & Cloud Union Management]]
 - [[Vault Sync]]
 
 ## Done
@@ -17,6 +18,7 @@
 - [[Scaffold Tauri v2 + React 19 Project]]
 - [[Type Safety & Test Suites Foundation]]
 - [[Rclone Sidecar Supervisor]]
+- [[Desktop Vault UI (The Obsidian Vault)]]
 
 
 

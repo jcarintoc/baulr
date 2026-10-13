@@ -70,6 +70,18 @@
 - **decided:** stream rclone stderr to dynamic port parser and local log file, poll /rc/noop for readiness, manage child process in AppState with graceful shutdown, derive Default on AppState, and cut 25 lines of duplicate constructor/port logic via ponytail review.
 - **shipped:** src-tauri/src/engine/ (daemon.rs, client.rs, models.rs), bundled aarch64 binary in externalBin, added useDaemonStore, AccountCard, StoragePoolBar, verified 4/4 cargo tests and 4/4 frontend tests.
 
+### [2026-10-13] Establish Design System via Impeccable (PRODUCT.md & DESIGN.md)
+- **asked:** run /impeccable init and document to establish project truth and formal design system.
+- **decided:** anchor aesthetic on "The Obsidian Vault" North Star; codify Ultra-Flat planar depth with The Zero-Shadow Rule, Earthen Obsidian palette, and Tabular Number formatting.
+- **shipped:** PRODUCT.md, DESIGN.md (with normative YAML frontmatter tokens), and .impeccable/design.json sidecar with drop-in component snippets and tonal ramps.
+
+### [2026-10-13] Implement Shaped Desktop Vault UI & Impeccable Craft Sweep
+- **asked:** shape and implement the complete desktop vault interface according to DESIGN.md and Milestone 2 prerequisites.
+- **decided:** dual-view toggle ("Offload & Capacity" vs "Vault Files"), modular components strictly under 150 lines, Zero-Shadow planar depth with 1px ghost borders, tabular numbers on all metrics, and 100% craft floor pass rate via impeccable detect.
+- **shipped:** src/components/ (ViewToggle, OffloadWorkspace, VaultBrowserTable, DropzoneCard, TransferQueue, ReclaimBanner, OnboardingPrompt), App.tsx shell, Zustand stores (useViewStore, useTransferStore, useRemoteFilesStore), stores.test.ts; verified via 8/8 tests, pnpm tsc, pnpm build, and 4/4 cargo tests.
+
+
+
 
 
 
