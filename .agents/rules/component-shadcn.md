@@ -70,7 +70,56 @@ pnpm dlx shadcn@latest add <component-name>
 
 ---
 
-## 4. Custom Component Fallback Rules (Step 4)
+---
+
+## 4. Preserving Default shadcn Styling & Design
+
+- **Do Not Modify Default Styles:** Always use shadcn components with their default styling, spacing, borders, typography, and color tokens. Do not inject custom `className` overrides that alter the component's core design aesthetic.
+- **Rely on Official Props & Variants:** Always use built-in variants and props (e.g., `variant="outline"`, `size="sm"`) rather than stacking ad-hoc utility overrides (e.g., do not pass `className="bg-blue-600 rounded-none px-6 py-2"` to `<Button>`).
+
+---
+
+## 5. SVG Icon Rules (Tabler Icons & shadcn Integration)
+
+When using SVG icons (such as `@tabler/icons-react` or `lucide-react`) alongside shadcn components:
+
+### 5.1 Components with Built-in Icon Sizing (Omit Dimensions)
+Shadcn components like `Button`, `Tabs` (`TabsTrigger`), `Badge`, `Alert`, `Toast`, and `DropdownMenuItem` already define default icon sizing, spacing, and pointer-event rules (e.g. `[&_svg:not([class*='size-'])]:size-3.5`, `[&>svg]:size-2.5!`).
+- **Do NOT specify icon dimensions:** Omit `size={...}`, `width={...}`, `height={...}`, and manual `className="size-..."` or `className="w-4 h-4"`. Let the parent component manage the SVG size and alignment.
+- **Example:**
+  ```tsx
+  // ✅ Good: Button automatically applies correct icon size
+  <Button variant="outline">
+    <IconDownload />
+    <span>Export Vault</span>
+  </Button>
+
+  // ❌ Bad: Redundant manual icon dimensions
+  <Button variant="outline">
+    <IconDownload className="w-4 h-4" size={16} />
+    <span>Export Vault</span>
+  </Button>
+  ```
+
+### 5.2 Components Without Built-in Icon Sizing (Use `size-` Utility)
+Components like `Card`, `CardHeader`, or standalone structural `<div>` elements do **not** supply automatic SVG sizing rules.
+- **Always use `size-<n>`:** When manual icon sizing is required, use Tailwind's `size-<n>` utility (e.g. `size-4`, `size-5`, `size-6`).
+- **Never use paired `w-<n> h-<n>`:** Avoid redundant width and height utility pairs.
+- **Example:**
+  ```tsx
+  // ✅ Good: Use size- inside Card or standalone containers
+  <CardHeader>
+    <IconShieldCheck className="size-5 text-emerald-500" />
+    <CardTitle>Vault Health</CardTitle>
+  </CardHeader>
+
+  // ❌ Bad: Separate w- and h- classes
+  <IconShieldCheck className="w-5 h-5 text-emerald-500" />
+  ```
+
+---
+
+## 6. Custom Component Fallback Rules (Step 4)
 
 A new custom component may **only** be created if it represents complex, specialized composite UI that does not exist in shadcn.
 
@@ -91,11 +140,14 @@ A new custom component may **only** be created if it represents complex, special
 
 ---
 
-## 5. Quick Reference & Anti-Patterns
+## 7. Quick Reference & Anti-Patterns
 
 | Action | ❌ Anti-Pattern | ✅ Correct Pattern |
 | :--- | :--- | :--- |
 | **New Dialog/Modal** | Writing a custom `<div className="fixed inset-0 ...">` | Use `src/components/ui/alert-dialog.tsx` or `dialog.tsx` |
 | **Missing Slider/Select** | Coding a custom `<select>` or drag range input | Search shadcn MCP (`select`, `slider`) and install via `pnpm dlx shadcn@latest add select` |
+| **Custom Styling** | Passing `className="bg-blue-600 px-6 rounded-none"` to a `Button` | Use default style & native variants: `<Button variant="outline">` |
+| **Icons in Buttons/Tabs/Badges** | `<Button><IconCheck className="w-4 h-4" /></Button>` | `<Button><IconCheck /> Save</Button>` (automatic icon sizing) |
+| **Icons in Card/Wrappers** | `<IconFolder className="w-5 h-5" />` | `<IconFolder className="size-5" />` (use `size-` instead of `w-` and `h-`) |
 | **Complex Dropzone** | Reinventing button styles and card containers | Build `DropzoneCard` using shadcn `Card` + `Button` + Lucide icons |
 | **Action Confirmation** | Writing custom confirmation popup | Use `@/components/ui/alert-dialog` |

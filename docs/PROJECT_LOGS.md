@@ -99,4 +99,10 @@
 - **decided:** establish .agents/rules/component-shadcn.md with a strict 4-step decision gate (local check -> MCP registry query -> CLI install -> custom fallback), linked across frontend.md, component-pattern.md, BRAIN.md, and AGENTS.md.
 - **shipped:** .agents/rules/component-shadcn.md, updated frontend.md, component-pattern.md, BRAIN.md, and AGENTS.md.
 
+### [2026-10-13] Codify shadcn Default Styling & SVG Icon Sizing Rules
+- **asked:** add rules forbidding modifications to default shadcn styling/design and enforcing SVG icon sizing rules (omit dimensions in auto-sized shadcn components, use size-<n> over w-/h- in Card/wrappers).
+- **decided:** add Section 4 (Preserving Default Styles) and Section 5 (SVG Icon Rules) to component-shadcn.md; update code-styling-tailwind.md rules and snippets to enforce size-<n> and omit redundant child icon dimensions.
+- **shipped:** updated .agents/rules/component-shadcn.md and .agents/rules/code-styling-tailwind.md; verified typecheck and vitest suite pass.
+
+
 
