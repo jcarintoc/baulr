@@ -4,4 +4,4 @@ pub mod models;
 
 pub use client::RcloneClient;
 pub use daemon::RcloneDaemon;
-pub use models::{CoreStats, DaemonStatus};
+pub use models::{AboutFs, CoreStats, DaemonStatus, OAuthStatus};

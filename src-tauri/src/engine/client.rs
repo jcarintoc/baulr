@@ -1,11 +1,13 @@
+use std::collections::HashMap;
 use std::time::Duration;
-use crate::engine::models::CoreStats;
+use crate::engine::models::{AboutFs, CoreStats, OAuthStatus};
 
 #[derive(Debug, Clone)]
 pub struct RcloneClient {
     port: u16,
     base_url: String,
     http: reqwest::Client,
+    http_oauth: reqwest::Client,
 }
 
 impl RcloneClient {
@@ -15,10 +17,16 @@ impl RcloneClient {
             .build()
             .unwrap_or_default();
 
+        let http_oauth = reqwest::Client::builder()
+            .timeout(Duration::from_secs(180))
+            .build()
+            .unwrap_or_default();
+
         Self {
             port,
             base_url: format!("http://127.0.0.1:{port}"),
             http,
+            http_oauth,
         }
     }
 
@@ -58,6 +66,162 @@ impl RcloneClient {
             .map_err(|e| format!("Failed to parse core stats response: {e}"))
     }
 
+    pub async fn create_remote(
+        &self,
+        name: &str,
+        remote_type: &str,
+        parameters: &HashMap<String, String>,
+    ) -> Result<(), String> {
+        let url = format!("{}/config/create", self.base_url);
+        let payload = serde_json::json!({
+            "name": name,
+            "type": remote_type,
+            "parameters": parameters,
+        });
+
+        let resp = self
+            .http
+            .post(&url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to create remote '{name}': {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Failed to create remote '{name}': {body}"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn create_oauth_remote(
+        &self,
+        name: &str,
+        remote_type: &str,
+        parameters: &HashMap<String, String>,
+    ) -> Result<(), String> {
+        let url = format!("{}/config/create", self.base_url);
+        let payload = serde_json::json!({
+            "name": name,
+            "type": remote_type,
+            "parameters": parameters,
+        });
+
+        let resp = self
+            .http_oauth
+            .post(&url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| format!("Authentication request failed for '{name}': {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Authentication failed for '{name}': {body}"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_remote(&self, name: &str) -> Result<(), String> {
+        let url = format!("{}/config/delete", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "name": name }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to delete remote '{name}': {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Failed to delete remote '{name}': {body}"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn dump_config(
+        &self,
+    ) -> Result<HashMap<String, HashMap<String, serde_json::Value>>, String> {
+        let url = format!("{}/config/dump", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({}))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to query remote config: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Config query failed: {body}"));
+        }
+
+        resp.json::<HashMap<String, HashMap<String, serde_json::Value>>>()
+            .await
+            .map_err(|e| format!("Failed to parse config dump: {e}"))
+    }
+
+    pub async fn get_about(&self, fs: &str) -> Result<AboutFs, String> {
+        let url = format!("{}/operations/about", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "fs": fs }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to query storage quota for '{fs}': {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Storage quota query failed for '{fs}': {body}"));
+        }
+
+        resp.json::<AboutFs>()
+            .await
+            .map_err(|e| format!("Failed to parse storage quota for '{fs}': {e}"))
+    }
+
+    pub async fn get_oauth_status(&self) -> Result<OAuthStatus, String> {
+        let url = format!("{}/config/oauthstatus", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({}))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to query authentication status: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Authentication status query failed: {body}"));
+        }
+
+        resp.json::<OAuthStatus>()
+            .await
+            .map_err(|e| format!("Failed to parse authentication status: {e}"))
+    }
+
+    pub async fn stop_oauth(&self) -> Result<(), String> {
+        let url = format!("{}/config/oauthstop", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({}))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to stop authentication server: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Stopping authentication server failed: {body}"));
+        }
+
+        Ok(())
+    }
+
     pub async fn quit(&self) -> Result<(), String> {
         let url = format!("{}/core/quit", self.base_url);
         let _ = self
@@ -67,5 +231,24 @@ impl RcloneClient {
             .send()
             .await;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_models_deserialization() {
+        let json = r#"{"total": 15000000000, "used": 5000000000, "free": 10000000000}"#;
+        let about: AboutFs = serde_json::from_str(json).expect("deserialize about");
+        assert_eq!(about.total, Some(15000000000));
+        assert_eq!(about.used, Some(5000000000));
+        assert_eq!(about.free, Some(10000000000));
+
+        let oauth_json = r#"{"status": "running", "authUrl": "http://127.0.0.1:53682/auth"}"#;
+        let oauth: OAuthStatus = serde_json::from_str(oauth_json).expect("deserialize oauth");
+        assert_eq!(oauth.status, "running");
+        assert_eq!(oauth.auth_url.as_deref(), Some("http://127.0.0.1:53682/auth"));
     }
 }

@@ -22,3 +22,27 @@ pub struct CoreStats {
     pub errors: u64,
     pub fatal_error: bool,
 }
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AboutFs {
+    #[specta(type = Option<f64>)]
+    pub total: Option<u64>,
+    #[specta(type = Option<f64>)]
+    pub used: Option<u64>,
+    #[specta(type = Option<f64>)]
+    pub free: Option<u64>,
+    #[specta(type = Option<f64>)]
+    pub trashed: Option<u64>,
+    #[specta(type = Option<f64>)]
+    pub other: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct OAuthStatus {
+    pub status: String,
+    #[serde(default)]
+    pub auth_url: Option<String>,
+}
+
