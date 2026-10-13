@@ -27,7 +27,7 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
       </div>
 
       {isConnected ? (
-        <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+        <div className="flex items-center gap-1.5 text-xs text-vault-accent-text bg-vault-accent-muted px-2.5 py-1 rounded-full border border-vault-accent-border">
           <CheckCircle2 className="w-3.5 h-3.5" />
           <span>Connected</span>
         </div>

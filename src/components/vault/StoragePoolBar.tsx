@@ -39,14 +39,14 @@ export function StoragePoolBar({ quota }: StoragePoolBarProps) {
       {/* Progress Bar */}
       <div className="w-full h-3 bg-neutral-800 rounded-full overflow-hidden p-0.5 border border-neutral-700/40">
         <div
-          className="h-full bg-sky-500 rounded-full transition-all duration-500 ease-out"
+          className="h-full bg-vault-accent rounded-full transition-all duration-500 ease-out"
           style={{ width: `${usedPercent}%` }}
         />
       </div>
 
       <div className="flex items-center gap-6 pt-1 text-xs text-neutral-400">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
+          <span className="w-2.5 h-2.5 rounded-full bg-vault-accent" />
           <span className="tabular-nums">Used: {formatBytes(used)}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export function StoragePoolBar({ quota }: StoragePoolBarProps) {
           <span className="tabular-nums">Remaining: {formatBytes(free)}</span>
         </div>
         <div className="ml-auto flex items-center gap-1.5 text-neutral-400">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <ShieldCheck className="w-4 h-4 text-vault-accent-text" />
           <span>Safe backup verification enabled</span>
         </div>
       </div>

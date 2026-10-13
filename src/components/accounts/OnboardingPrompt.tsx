@@ -53,7 +53,7 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
       </div>
 
       <div className="flex items-center gap-1.5 text-xs text-neutral-400 pt-1">
-        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+        <ShieldCheck className="w-4 h-4 text-vault-accent-text" />
         <span>Direct loopback connection. Credentials never leave your computer.</span>
       </div>
     </section>

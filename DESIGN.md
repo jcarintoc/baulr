@@ -93,15 +93,23 @@ The interface is built around high-clarity telemetry: bold storage meters, disti
 
 ## Colors
 
-The palette is rooted in an earthen dark world—deep obsidian foundations layered with smoked charcoal surfaces, lichen olive accents, and vivid status signals.
+## Colors & Themes
 
-### Primary
-- **Lichen Olive** (`oklch(0.448 0.119 151.328)`): The primary brand anchor. Used for brand icons, key actionable highlights, and grounded focal points.
+Baulr provides 3 pre-made themes that unify all primary accents under a single coherent chromatic temperature. Instead of conflicting simultaneous hues (e.g. blue and green clashing), all accents, telemetry meters, and active signals adapt dynamically to the user's selected theme via CSS variable tokens defined in `src/App.css`.
 
-### Secondary
-- **Beacon Cyan** (`oklch(0.65 0.18 230)`): Dedicated capacity and transfer accent. Highlights storage utilization meters and offload actions.
+### Available Themes
+1. **Obsidian (Default):** Emerald accent (`oklch(0.627 0.194 149.2)`). The signature vault aesthetic—grounded, organic, and calm.
+2. **Titanium:** Arctic Cyan accent (`oklch(0.65 0.18 230)`). Precision graphite and cool telemetry, ideal for clean industrial workflows.
+3. **Bronze:** Warm Amber accent (`oklch(0.72 0.18 65)`). Archival darks with warm amber highlights, reminiscent of antique vault machinery.
 
-### Neutral
+### Semantic CSS Tokens (`src/App.css`)
+- `--vault-accent`: Core vibrant highlight for buttons, gauges, and active states.
+- `--vault-accent-hover`: Slightly deeper tone for hover states.
+- `--vault-accent-muted`: 12% alpha fill for pills, callouts, and secondary indicators.
+- `--vault-accent-border`: 25% alpha stroke for accent containers.
+- `--vault-accent-text`: High-legibility text tone for badges, labels, and telemetry text.
+
+### Neutral Foundations
 - **Obsidian Ground** (`oklch(0.153 0.006 107.1)`): Base background canvas for the entire application window.
 - **Smoked Charcoal** (`oklch(0.228 0.013 107.4)`): Elevated surface fill for cards, pool containers, and account cards.
 - **Muted Ghost** (`oklch(0.286 0.016 107.4)`): Secondary container backgrounds and inactive gauge rails.
@@ -110,14 +118,16 @@ The palette is rooted in an earthen dark world—deep obsidian foundations layer
 - **Muted Slate Text** (`oklch(0.737 0.021 106.9)`): Secondary descriptive labels, byte metrics, and subtexts.
 
 ### Status Signals
-- **Vault Green** (`oklch(0.627 0.194 149.214)`): Indicates verified transfers, healthy daemon, and active cloud remotes.
+- **Status Accent** (`var(--vault-accent)`): Verified transfers, healthy daemon, and active cloud remotes match the current theme palette.
 - **Warning Amber** (`oklch(0.75 0.18 70)`): Indicates initializing background processes or transient sync states.
 - **Hazard Coral** (`oklch(0.704 0.191 22.216)`): Indicates disconnected remotes or critical errors.
 
 ### Named Rules
+**The Single-Accent Harmonization Rule.** Never pair clashing accent families (e.g. bright sky-blue alongside emerald-green). All accent-level visual signals route through `--vault-accent` tokens so the entire interface shifts seamlessly between Obsidian, Titanium, and Bronze.
+
 **The Zero-Shadow Rule.** Surfaces stay strictly flat at rest. Depth is established purely through tonal background contrast and 1px ghost borders (`oklch(1 0 0 / 10%)`). Drop shadows are banned.
 
-**The Semantic Signal Rule.** Bright saturated colors (green, cyan, amber, coral) are reserved exclusively for status metrics and telemetry; decorative illustration gradients must not mimic system status indicators.
+**The Semantic Signal Rule.** Saturated accent colors are reserved exclusively for status metrics and telemetry; decorative illustration gradients must not mimic system status indicators.
 
 ## Typography
 

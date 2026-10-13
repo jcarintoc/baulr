@@ -5,6 +5,7 @@ import { useViewStore } from "./store/useViewStore";
 import { AccountCard } from "./components/accounts/AccountCard";
 import { StoragePoolBar } from "./components/vault/StoragePoolBar";
 import { ViewToggle } from "./components/common/ViewToggle";
+import { ThemeSelector } from "./components/common/ThemeSelector";
 import { OffloadWorkspace } from "./components/offloader/OffloadWorkspace";
 import { VaultBrowserTable } from "./components/browser/VaultBrowserTable";
 import { Vault, RefreshCw } from "lucide-react";
@@ -32,7 +33,7 @@ export function App() {
       {/* Titlebar / Header */}
       <header className="border-b border-neutral-800 px-6 py-4 flex items-center justify-between bg-neutral-900/60 backdrop-blur sticky top-0 z-10">
         <div data-tauri-drag-region className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-vault-accent-muted text-vault-accent-text border border-vault-accent-border flex items-center justify-center">
             <Vault className="w-4 h-4" />
           </div>
           <div>
@@ -45,7 +46,9 @@ export function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <ThemeSelector />
+
           <button
             onClick={() => {
               loadQuota();
@@ -61,8 +64,8 @@ export function App() {
           </button>
 
           {daemonStatus?.isRunning ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-vault-accent-muted text-vault-accent-text border border-vault-accent-border">
+              <span className="w-1.5 h-1.5 rounded-full bg-vault-accent" />
               <span>Vault engine active</span>
             </div>
           ) : (

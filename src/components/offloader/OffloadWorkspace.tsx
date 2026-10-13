@@ -101,14 +101,14 @@ export function OffloadWorkspace({
           className="p-3.5 px-4 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between text-xs"
         >
           <div className="flex items-center gap-2 text-neutral-300">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-vault-accent-text shrink-0" />
             <span>
               Freed up <strong className="text-white tabular-nums">{formatBytes(undoToast.bytes)}</strong>. Local files moved to your computer's Trash.
             </span>
           </div>
           <button
             onClick={handleUndo}
-            className="flex items-center gap-1 text-sky-400 hover:text-sky-300 font-medium px-2.5 py-1 rounded-md hover:bg-neutral-800 transition cursor-pointer"
+            className="flex items-center gap-1 text-vault-accent-text hover:text-white font-medium px-2.5 py-1 rounded-md hover:bg-neutral-800 transition cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Undo</span>

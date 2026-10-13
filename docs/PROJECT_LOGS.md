@@ -83,3 +83,15 @@
 - **asked:** critique Offload Workspace (color overload, generic icons, ReclaimBanner layout collapse), then execute refinements one at a time.
 - **decided:** adopt Quiet Obsidian earthen palette, enforce Semantic Signal Rule (reserve emerald for safety, cyan for capacity), replace generic icons with custom Google Drive/OneDrive SVG glyphs and Vault mark, eliminate CLI jargon, refactor ReclaimBanner responsive layout with mobile button stacking, and add 5-second Undo space recovery toast.
 - **shipped:** src/components/offloader/ (ReclaimBanner.tsx, OffloadWorkspace.tsx, DropzoneCard.tsx, TransferQueue.tsx), ProviderIcons.tsx, updated AccountCard.tsx, OnboardingPrompt.tsx, StoragePoolBar.tsx, App.tsx; verified via pnpm tsc, pnpm test (8/8), cargo test (4/4), and 0 detector issues.
+
+### [2026-10-13] Multi-Theme Architecture & Semantic CSS Tokens
+- **asked:** de-hardcode colors like bg-green-600/bg-sky-500 into App.css tokens and add a theme switcher feature with 3 pre-made themes.
+- **decided:** implement 3 pre-made themes (Obsidian, Titanium, Bronze) using Tailwind v4 @theme inline tokens (--vault-accent, --vault-accent-hover, --vault-accent-muted, --vault-accent-border, --vault-accent-text); unify all visual accents to eliminate clashing blue/green combinations; persist active theme to localStorage and html[data-theme]; keep all components under 150 lines and zero detector violations.
+- **shipped:** src/App.css, src/store/useThemeStore.ts, src/components/common/ThemeSelector.tsx, updated App.tsx, StoragePoolBar.tsx, TransferQueue.tsx, ReclaimBanner.tsx, OffloadWorkspace.tsx, AccountCard.tsx, OnboardingPrompt.tsx, VaultBrowserTable.tsx, DESIGN.md; verified via 11 vitest tests, 4 cargo tests, pnpm build, and 0 detector findings.
+
+### [2026-10-13] Ponytail Review Cleanup (Net -39 Lines)
+- **asked:** review diff for over-engineering and apply simplifications.
+- **decided:** remove duplicate obsidian CSS selector block and redundant .dark qualifiers in App.css, prune unused description property in ThemeConfig, eliminate redundant useEffect in App.tsx, inline single-caller handleSelect in ThemeSelector.tsx, and shrink getInitialTheme validation to 1 line.
+- **shipped:** net -39 lines across src/App.css, src/App.tsx, src/components/common/ThemeSelector.tsx, and src/store/useThemeStore.ts; verified 11/11 vitest, 4/4 cargo test, pnpm build, and 0 detector findings.
+
+

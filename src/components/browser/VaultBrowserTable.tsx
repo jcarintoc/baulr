@@ -35,7 +35,7 @@ export function VaultBrowserTable() {
       {/* Search and Summary Bar */}
       <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <FolderArchive className="w-5 h-5 text-sky-400" />
+          <FolderArchive className="w-5 h-5 text-vault-accent-text" />
           <div>
             <h3 className="font-semibold text-sm text-neutral-100">
               Vault Directory ({files.length} {files.length === 1 ? "file" : "files"})
@@ -88,7 +88,7 @@ export function VaultBrowserTable() {
                     className="hover:bg-neutral-900/50 transition group"
                   >
                     <td className="py-3 px-4 text-neutral-200 font-medium flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-sky-400/80 shrink-0" />
+                      <FileText className="w-4 h-4 text-neutral-400 shrink-0" />
                       <span className="truncate max-w-xs">{file.name}</span>
                     </td>
                     <td className="py-3 px-4 text-neutral-300 tabular-nums">
@@ -96,7 +96,7 @@ export function VaultBrowserTable() {
                     </td>
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-neutral-800 text-neutral-300 border border-neutral-700/50">
-                        <Cloud className="w-3 h-3 text-sky-400" />
+                        <Cloud className="w-3 h-3 text-vault-accent-text" />
                         <span>{file.provider}</span>
                       </span>
                     </td>
@@ -131,7 +131,7 @@ export function VaultBrowserTable() {
 
       {/* Non-destructive Trash Safety Callout */}
       <div className="flex items-center gap-2 text-xs text-neutral-500 px-1">
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/80" />
+        <ShieldCheck className="w-3.5 h-3.5 text-vault-accent-text" />
         <span>
           Zero-loss invariant: Deleting files moves them to your provider’s Cloud Trash bin.
         </span>

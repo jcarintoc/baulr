@@ -15,7 +15,7 @@ export function TransferQueue({ items }: TransferQueueProps) {
         <h3 className="font-semibold text-sm text-neutral-200">
           Active Offload Queue ({items.length})
         </h3>
-        <div className="flex items-center gap-1.5 text-xs text-sky-400">
+        <div className="flex items-center gap-1.5 text-xs text-vault-accent-text">
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
           <span>Backing up to Cloud Vault</span>
         </div>
@@ -47,7 +47,7 @@ export function TransferQueue({ items }: TransferQueueProps) {
               {/* Progress bar */}
               <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-sky-500 rounded-full transition-all duration-300 ease-out"
+                  className="h-full bg-vault-accent rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${percent}%` }}
                 />
               </div>
@@ -56,7 +56,7 @@ export function TransferQueue({ items }: TransferQueueProps) {
                 <span>
                   {formatBytes(item.transferredBytes)} / {formatBytes(item.sizeBytes)} ({percent}%)
                 </span>
-                <span className="flex items-center gap-1 text-emerald-400">
+                <span className="flex items-center gap-1 text-vault-accent-text">
                   <CheckCircle2 className="w-3 h-3" />
                   <span>Integrity verified</span>
                 </span>

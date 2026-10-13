@@ -8,6 +8,11 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Manrope Variable', sans-serif;
+    --color-vault-accent: var(--vault-accent);
+    --color-vault-accent-hover: var(--vault-accent-hover);
+    --color-vault-accent-muted: var(--vault-accent-muted);
+    --color-vault-accent-border: var(--vault-accent-border);
+    --color-vault-accent-text: var(--vault-accent-text);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -55,8 +60,8 @@
     --card-foreground: oklch(0.153 0.006 107.1);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.153 0.006 107.1);
-    --primary: oklch(0.527 0.154 150.069);
-    --primary-foreground: oklch(0.982 0.018 155.826);
+    --primary: var(--vault-accent);
+    --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.967 0.001 286.375);
     --secondary-foreground: oklch(0.21 0.006 285.885);
     --muted: oklch(0.966 0.005 106.5);
@@ -75,12 +80,35 @@
     --radius: 0.875rem;
     --sidebar: oklch(0.988 0.003 106.5);
     --sidebar-foreground: oklch(0.153 0.006 107.1);
-    --sidebar-primary: oklch(0.627 0.194 149.214);
-    --sidebar-primary-foreground: oklch(0.982 0.018 155.826);
+    --sidebar-primary: var(--vault-accent);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.966 0.005 106.5);
     --sidebar-accent-foreground: oklch(0.228 0.013 107.4);
     --sidebar-border: oklch(0.93 0.007 106.5);
     --sidebar-ring: oklch(0.737 0.021 106.9);
+
+    /* Theme: Obsidian (Default Emerald Vault) */
+    --vault-accent: oklch(0.627 0.194 149.2);
+    --vault-accent-hover: oklch(0.55 0.18 149.2);
+    --vault-accent-muted: oklch(0.627 0.194 149.2 / 12%);
+    --vault-accent-border: oklch(0.627 0.194 149.2 / 25%);
+    --vault-accent-text: oklch(0.72 0.18 149.2);
+}
+
+:root[data-theme="titanium"] {
+    --vault-accent: oklch(0.65 0.18 230);
+    --vault-accent-hover: oklch(0.58 0.17 230);
+    --vault-accent-muted: oklch(0.65 0.18 230 / 12%);
+    --vault-accent-border: oklch(0.65 0.18 230 / 25%);
+    --vault-accent-text: oklch(0.75 0.16 230);
+}
+
+:root[data-theme="bronze"] {
+    --vault-accent: oklch(0.72 0.18 65);
+    --vault-accent-hover: oklch(0.65 0.17 65);
+    --vault-accent-muted: oklch(0.72 0.18 65 / 12%);
+    --vault-accent-border: oklch(0.72 0.18 65 / 25%);
+    --vault-accent-text: oklch(0.80 0.16 65);
 }
 
 .dark {
@@ -90,8 +118,8 @@
     --card-foreground: oklch(0.988 0.003 106.5);
     --popover: oklch(0.228 0.013 107.4);
     --popover-foreground: oklch(0.988 0.003 106.5);
-    --primary: oklch(0.448 0.119 151.328);
-    --primary-foreground: oklch(0.982 0.018 155.826);
+    --primary: var(--vault-accent);
+    --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.274 0.006 286.033);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.286 0.016 107.4);
@@ -109,8 +137,8 @@
     --chart-5: oklch(0.286 0.016 107.4);
     --sidebar: oklch(0.228 0.013 107.4);
     --sidebar-foreground: oklch(0.988 0.003 106.5);
-    --sidebar-primary: oklch(0.723 0.219 149.579);
-    --sidebar-primary-foreground: oklch(0.982 0.018 155.826);
+    --sidebar-primary: var(--vault-accent);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.286 0.016 107.4);
     --sidebar-accent-foreground: oklch(0.988 0.003 106.5);
     --sidebar-border: oklch(1 0 0 / 10%);

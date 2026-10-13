@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { useViewStore } from "@/store/useViewStore";
 import { useTransferStore } from "@/store/useTransferStore";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
+import { useThemeStore } from "@/store/useThemeStore";
 
 describe("useViewStore", () => {
   beforeEach(() => {
@@ -53,3 +54,30 @@ describe("useRemoteFilesStore", () => {
     expect(useRemoteFilesStore.getState().files.some((f) => f.id === fileId)).toBe(false);
   });
 });
+
+describe("useThemeStore", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useThemeStore.getState().setTheme("obsidian");
+  });
+
+  it("defaults to obsidian theme and syncs html attribute", () => {
+    expect(useThemeStore.getState().theme).toBe("obsidian");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("obsidian");
+  });
+
+  it("switches theme to titanium and persists to localStorage", () => {
+    useThemeStore.getState().setTheme("titanium");
+    expect(useThemeStore.getState().theme).toBe("titanium");
+    expect(localStorage.getItem("baulr-theme")).toBe("titanium");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("titanium");
+  });
+
+  it("switches theme to bronze and persists to localStorage", () => {
+    useThemeStore.getState().setTheme("bronze");
+    expect(useThemeStore.getState().theme).toBe("bronze");
+    expect(localStorage.getItem("baulr-theme")).toBe("bronze");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("bronze");
+  });
+});
+
