@@ -5,15 +5,8 @@ use crate::AppState;
 
 pub fn resolve_provider_config(provider: &str) -> Result<(&'static str, &'static str, HashMap<String, String>), String> {
     match provider.to_lowercase().as_str() {
-        "gdrive" | "drive" | "google" => {
-            let mut params = HashMap::new();
-            params.insert("scope".to_string(), "drive".to_string());
-            Ok(("gdrive", "drive", params))
-        }
-        "onedrive" | "microsoft" => {
-            let params = HashMap::new();
-            Ok(("onedrive", "onedrive", params))
-        }
+        "gdrive" | "drive" | "google" => Ok(("gdrive", "drive", HashMap::from([("scope".into(), "drive".into())]))),
+        "onedrive" | "microsoft" => Ok(("onedrive", "onedrive", HashMap::new())),
         other => Err(format!("Unsupported cloud provider: '{other}'")),
     }
 }
@@ -24,11 +17,7 @@ pub async fn connect_account(
     state: tauri::State<'_, AppState>,
     provider: String,
 ) -> Result<VaultQuota, String> {
-    let client = {
-        let guard = state.client.read().await;
-        guard.as_ref().cloned().ok_or_else(|| "Vault engine is not running".to_string())?
-    };
-
+    let client = state.client.read().await.clone().ok_or("Vault engine is not running")?;
     let (name, remote_type, params) = resolve_provider_config(&provider)?;
 
     client.create_oauth_remote(name, remote_type, &params).await?;
@@ -43,11 +32,7 @@ pub async fn disconnect_account(
     state: tauri::State<'_, AppState>,
     provider: String,
 ) -> Result<VaultQuota, String> {
-    let client = {
-        let guard = state.client.read().await;
-        guard.as_ref().cloned().ok_or_else(|| "Vault engine is not running".to_string())?
-    };
-
+    let client = state.client.read().await.clone().ok_or("Vault engine is not running")?;
     let (name, _, _) = resolve_provider_config(&provider)?;
 
     client.delete_remote(name).await?;
@@ -61,17 +46,12 @@ pub async fn disconnect_account(
 pub async fn cancel_oauth(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let client_opt = {
-        let guard = state.client.read().await;
-        guard.as_ref().cloned()
-    };
-
-    if let Some(client) = client_opt {
+    if let Some(client) = state.client.read().await.as_ref() {
         let _ = client.stop_oauth().await;
     }
-
     Ok(())
 }
+
 
 #[cfg(test)]
 mod tests {

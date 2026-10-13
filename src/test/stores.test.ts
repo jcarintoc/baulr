@@ -135,15 +135,8 @@ describe("useVaultStore", () => {
     expect(useVaultStore.getState().isAuthenticating).toBe(false);
     expect(useVaultStore.getState().authenticatingProvider).toBeNull();
   });
-
-
-  it("clears errors with clearError", () => {
-    useVaultStore.setState({ error: "Network error" });
-    expect(useVaultStore.getState().error).toBe("Network error");
-    useVaultStore.getState().clearError();
-    expect(useVaultStore.getState().error).toBeNull();
-  });
 });
+
 
 
 

@@ -17,7 +17,6 @@ interface VaultState {
   connectAccount: (provider: string) => Promise<void>;
   disconnectAccount: (provider: string) => Promise<void>;
   cancelOAuth: () => Promise<void>;
-  clearError: () => void;
 }
 
 export const useVaultStore = create<VaultState>((set) => ({
@@ -26,8 +25,8 @@ export const useVaultStore = create<VaultState>((set) => ({
   isAuthenticating: false,
   authenticatingProvider: null,
   error: null,
-  clearError: () => set({ error: null }),
   loadQuota: async () => {
+
     set({ isLoading: true, error: null });
     try {
       const quota = await fetchVaultQuota();

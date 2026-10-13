@@ -2,21 +2,9 @@ use std::collections::HashMap;
 use crate::engine::{AboutFs, CloudAccount, RcloneClient, VaultQuota, VAULT_UNION_NAME};
 use crate::AppState;
 
-/// Provider specification for supported cloud accounts
-struct KnownProvider {
-    name: &'static str,
-    id: &'static str,
-}
-
-const KNOWN_PROVIDERS: &[KnownProvider] = &[
-    KnownProvider {
-        name: "Google Drive",
-        id: "gdrive",
-    },
-    KnownProvider {
-        name: "OneDrive",
-        id: "onedrive",
-    },
+const KNOWN_PROVIDERS: &[(&str, &str)] = &[
+    ("Google Drive", "gdrive"),
+    ("OneDrive", "onedrive"),
 ];
 
 /// Pure calculation helper to construct VaultQuota from dumped config and about metrics
@@ -26,11 +14,11 @@ pub fn calculate_vault_quota(
 ) -> VaultQuota {
     let mut accounts = Vec::new();
 
-    for provider in KNOWN_PROVIDERS {
-        let is_configured = config.contains_key(provider.id);
+    for &(name, id) in KNOWN_PROVIDERS {
+        let is_configured = config.contains_key(id);
 
         let (is_connected, needs_auth, used_bytes, total_bytes) = if is_configured {
-            match about_map.get(provider.id) {
+            match about_map.get(id) {
                 Some(Ok(about)) => (
                     true,
                     false,
@@ -44,14 +32,15 @@ pub fn calculate_vault_quota(
         };
 
         accounts.push(CloudAccount {
-            name: provider.name.to_string(),
-            provider: provider.id.to_string(),
+            name: name.to_string(),
+            provider: id.to_string(),
             used_bytes,
             total_bytes,
             is_connected,
             needs_auth,
         });
     }
+
 
     // Vault pool aggregated metrics
     let (total_bytes, used_bytes, free_bytes) = match about_map.get(VAULT_UNION_NAME) {
@@ -82,12 +71,13 @@ pub async fn fetch_vault_quota_internal(client: &RcloneClient) -> Result<VaultQu
     let mut about_map = HashMap::new();
 
     // Query about for each configured provider
-    for provider in KNOWN_PROVIDERS {
-        if config.contains_key(provider.id) {
-            let res = client.get_about(&format!("{}:", provider.id)).await;
-            about_map.insert(provider.id.to_string(), res);
+    for &(_name, id) in KNOWN_PROVIDERS {
+        if config.contains_key(id) {
+            let res = client.get_about(&format!("{}:", id)).await;
+            about_map.insert(id.to_string(), res);
         }
     }
+
 
     // Query about for union remote if configured
     if config.contains_key(VAULT_UNION_NAME) {

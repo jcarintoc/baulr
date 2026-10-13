@@ -29,11 +29,11 @@ export function OAuthModal({ isOpen, provider, onCancel }: OAuthModalProps) {
     <AlertDialog open={isOpen}>
       <AlertDialogContent className="max-w-md bg-neutral-900 border border-neutral-800 text-neutral-100 p-6 rounded-2xl">
         <AlertDialogHeader className="flex flex-col items-center text-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-neutral-800 border border-neutral-700/50 flex items-center justify-center text-neutral-200">
+          <div className="size-12 rounded-xl bg-neutral-800 border border-neutral-700/50 flex items-center justify-center text-neutral-200">
             {isGoogle ? (
-              <GoogleDriveIcon className="w-6 h-6" />
+              <GoogleDriveIcon className="size-6" />
             ) : (
-              <OneDriveIcon className="w-6 h-6" />
+              <OneDriveIcon className="size-6" />
             )}
           </div>
 
@@ -52,7 +52,8 @@ export function OAuthModal({ isOpen, provider, onCancel }: OAuthModalProps) {
           <span>Waiting for authorization in browser</span>
         </div>
 
-        <AlertDialogFooter className="flex justify-center sm:justify-center">
+        <AlertDialogFooter className="flex justify-center">
+
           <Button
             variant="outline"
             size="sm"

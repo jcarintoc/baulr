@@ -25,11 +25,11 @@ export function AccountCard({
   return (
     <div className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-800 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700/50 flex items-center justify-center">
+        <div className="size-10 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700/50 flex items-center justify-center">
           {isGoogle ? (
-            <GoogleDriveIcon className="w-5 h-5" />
+            <GoogleDriveIcon className="size-5" />
           ) : (
-            <OneDriveIcon className="w-5 h-5" />
+            <OneDriveIcon className="size-5" />
           )}
         </div>
         <div>
@@ -55,7 +55,7 @@ export function AccountCard({
             className="text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 text-xs px-2 cursor-pointer"
             title="Disconnect account"
           >
-            <Unlink className="w-3.5 h-3.5" />
+            <Unlink />
             <span>Disconnect</span>
           </Button>
         </div>
@@ -66,7 +66,7 @@ export function AccountCard({
           onClick={() => onConnect?.(account.provider)}
           className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 gap-1.5 cursor-pointer"
         >
-          <AlertCircle className="w-3.5 h-3.5" />
+          <AlertCircle />
           <span>Re-authenticate</span>
         </Button>
       ) : (
@@ -77,9 +77,10 @@ export function AccountCard({
           className="gap-1.5 text-neutral-300 hover:text-white cursor-pointer"
         >
           <span>Connect</span>
-          <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+          <ExternalLink className="text-neutral-400" />
         </Button>
       )}
     </div>
   );
 }
+
