@@ -3,6 +3,7 @@ import { useVaultStore } from "./store/useVaultStore";
 import { useDaemonStore } from "./store/useDaemonStore";
 import { useViewStore } from "./store/useViewStore";
 import { AccountCard } from "./components/accounts/AccountCard";
+import { OAuthModal } from "./components/accounts/OAuthModal";
 import { StoragePoolBar } from "./components/vault/StoragePoolBar";
 import { ViewToggle } from "./components/common/ViewToggle";
 import { ThemeSelector } from "./components/common/ThemeSelector";
@@ -11,8 +12,19 @@ import { VaultBrowserTable } from "./components/browser/VaultBrowserTable";
 import { Vault, RefreshCw } from "lucide-react";
 
 export function App() {
-  const { quota, isLoading, error, loadQuota } = useVaultStore();
-  const { status: daemonStatus, loadStatus: loadDaemonStatus } = useDaemonStore();
+  const {
+    quota,
+    isLoading,
+    isAuthenticating,
+    authenticatingProvider,
+    error,
+    loadQuota,
+    connectAccount,
+    disconnectAccount,
+    cancelOAuth,
+  } = useVaultStore();
+  const { status: daemonStatus, loadStatus: loadDaemonStatus } =
+    useDaemonStore();
   const { activeView } = useViewStore();
 
   useEffect(() => {
@@ -23,10 +35,6 @@ export function App() {
   const hasConnectedAccounts = Boolean(
     quota?.accounts && quota.accounts.some((a) => a.isConnected)
   );
-
-  const handleConnectProvider = (provider: string) => {
-    console.log("Connect provider requested:", provider);
-  };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans select-none">
@@ -95,20 +103,19 @@ export function App() {
             {/* Storage Pool Telemetry */}
             <StoragePoolBar quota={quota} />
 
-            {/* Connected Cloud Accounts */}
+            {/* Cloud Accounts Management */}
             {hasConnectedAccounts && (
               <section className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm text-neutral-200">
-                    Connected Accounts ({quota?.accounts.length ?? 0})
-                  </h3>
-                </div>
+                <h3 className="font-semibold text-sm text-neutral-200">
+                  Cloud Accounts ({quota?.accounts.filter((a) => a.isConnected).length ?? 0} connected)
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {quota?.accounts.map((acc) => (
                     <AccountCard
                       key={acc.name}
                       account={acc}
-                      onConnect={handleConnectProvider}
+                      onConnect={connectAccount}
+                      onDisconnect={disconnectAccount}
                     />
                   ))}
                 </div>
@@ -118,13 +125,20 @@ export function App() {
             {/* Offload Workspace */}
             <OffloadWorkspace
               hasConnectedAccounts={hasConnectedAccounts}
-              onConnectDrive={handleConnectProvider}
+              onConnectDrive={connectAccount}
             />
           </div>
         ) : (
           <VaultBrowserTable />
         )}
       </main>
+
+      {/* OAuth Authorization Modal */}
+      <OAuthModal
+        isOpen={isAuthenticating}
+        provider={authenticatingProvider}
+        onCancel={cancelOAuth}
+      />
     </div>
   );
 }
