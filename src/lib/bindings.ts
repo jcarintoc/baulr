@@ -5,6 +5,8 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 /** Commands */
 export const commands = {
 	getVaultQuota: () => typedError<VaultQuota, string>(__TAURI_INVOKE("get_vault_quota")),
+	getDaemonStatus: () => typedError<DaemonStatus, string>(__TAURI_INVOKE("get_daemon_status")),
+	getCoreStats: () => typedError<CoreStats, string>(__TAURI_INVOKE("get_core_stats")),
 };
 
 /* Types */
@@ -15,6 +17,20 @@ export type CloudAccount = {
 	totalBytes: number | null,
 	isConnected: boolean,
 	needsAuth: boolean,
+};
+
+export type CoreStats = {
+	bytes: number | null,
+	speed: number | null,
+	transfers: number | null,
+	totalBytes: number | null,
+	errors: number | null,
+	fatalError: boolean,
+};
+
+export type DaemonStatus = {
+	isRunning: boolean,
+	port: number,
 };
 
 export type VaultQuota = {

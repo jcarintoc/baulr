@@ -65,10 +65,12 @@
 - **decided:** remove duplicate specta export block from unit test, prune speculative tokio/tauri test features from Cargo.toml, delete redundant type re-exports in types.ts and vault.ts, and shrink error guards.
 - **shipped:** trimmed 15 lines across lib.rs, Cargo.toml, vault.ts, and types.ts; verified all tests and production builds pass.
 
-### [2026-10-13] Component Architecture Rules & Testing Foundation Committed
-- **asked:** record component pattern rules and commit type-safe IPC & testing foundations.
-- **decided:** add component-pattern.md with composition-over-configuration standards and glob triggers; commit verified test suites and type-safe specta bridge.
-- **shipped:** .agents/rules/component-pattern.md, commit a59e301 (20 files, +1142/-58), verified with cargo test, pnpm test, and pnpm build.
+### [2026-10-13] Milestone 1: Rclone Sidecar Supervisor & Loopback JSON-RPC
+- **asked:** install rclone, bundle sidecar binary, and implement daemon supervisor and JSON-RPC client.
+- **decided:** stream rclone stderr to dynamic port parser and local log file, poll /rc/noop for readiness, manage child process in AppState with graceful shutdown, derive Default on AppState, and cut 25 lines of duplicate constructor/port logic via ponytail review.
+- **shipped:** src-tauri/src/engine/ (daemon.rs, client.rs, models.rs), bundled aarch64 binary in externalBin, added useDaemonStore, AccountCard, StoragePoolBar, verified 4/4 cargo tests and 4/4 frontend tests.
+
+
 
 
 
