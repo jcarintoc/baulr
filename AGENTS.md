@@ -56,6 +56,7 @@ The project is split into distinct layers governed by specialized rules in `.age
    - React 19 + TypeScript + Tailwind CSS + Zustand.
    - Strict API boundary (`src/lib/api/`) separating UI from Tauri IPC.
    - Modular components under 150 lines.
+   - Strict shadcn-first protocol ([`.agents/rules/component-shadcn.md`](.agents/rules/component-shadcn.md)): local check -> MCP registry -> install -> custom fallback.
 
 ---
 

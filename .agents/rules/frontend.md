@@ -17,7 +17,7 @@ globs: "src/**/*.{ts,tsx,css,html}, index.html, vite.config.ts"
 - **Styling:** Tailwind CSS (Utility-first, responsive, dark-mode aware)
 - **State Management:** Zustand (Single-purpose stores under `src/store/`)
 - **Icons:** `lucide-react` (Standardized, tree-shakeable)
-- **Component Primitives:** Radix UI / headless primitives for accessible modals and dialogs
+- **Component Primitives:** shadcn/ui + Radix / Base UI (Governed by [`.agents/rules/component-shadcn.md`](./component-shadcn.md))
 
 ---
 
@@ -64,10 +64,12 @@ export async function fetchVaultQuota(): Promise<VaultQuota> {
    ```
    src/
    ├── components/
-   │   ├── common/          # Button, Modal, ProgressBar, Toast
-   │   ├── vault/           # StorageMeter, CapacityBreakdown
-   │   ├── accounts/        # AccountList, ConnectModal, AccountCard
-   │   └── offloader/       # Dropzone, TransferQueue, VerifyModal
+   │   ├── ui/              # Official shadcn/ui primitives (button, card, dialog, toast, etc.)
+   │   ├── common/          # ThemeSelector, ViewToggle, ProviderIcons
+   │   ├── vault/           # StoragePoolBar
+   │   ├── accounts/        # AccountCard, OnboardingPrompt
+   │   ├── offloader/       # DropzoneCard, TransferQueue, ReclaimBanner
+   │   └── browser/         # VaultBrowserTable
    ├── store/               # Zustand stores (useVaultStore, useTransferStore)
    ├── lib/
    │   ├── api/             # Typed Tauri IPC wrappers
@@ -75,7 +77,8 @@ export async function fetchVaultQuota(): Promise<VaultQuota> {
    ├── App.tsx              # Main layout shell
    └── main.tsx             # DOM mount point
    ```
-3. **No Premature Optimization:** Avoid gratuitous `useCallback` and `useMemo` on cheap calculations. Only memoize when profiling proves a re-render bottleneck.
+3. **shadcn-First Protocol:** Follow [`.agents/rules/component-shadcn.md`](./component-shadcn.md). Always check `src/components/ui/` first. If missing, query the shadcn registry via MCP (`search_items_in_registries`), install with `pnpm dlx shadcn@latest add <component>`, and only author custom components if absent from the registry.
+4. **No Premature Optimization:** Avoid gratuitous `useCallback` and `useMemo` on cheap calculations. Only memoize when profiling proves a re-render bottleneck.
 
 ---
 

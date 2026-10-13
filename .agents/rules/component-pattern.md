@@ -43,6 +43,7 @@ globs: "src/**/*.tsx, src/components/**/*.{ts,tsx}, src/hooks/**/*.{ts,tsx}"
 - **Never declare components inside components:** Defining a child component inside a parent function creates a new function reference every render, destroying child state and remounting the DOM subtree.
 - **Keep user actions in event handlers:** Run mutations and analytics directly inside `onClick` or `onSubmit` callbacks rather than setting state flags for an effect to catch.
 - **Extend native HTML attributes on primitives:** Base UI components (`Button`, `Input`) must forward refs and spread native HTML props via `ComponentProps` so consumers get focus and accessibility support automatically.
+- **Never reinvent existing UI primitives:** Always follow [`.agents/rules/component-shadcn.md`](./component-shadcn.md) (check `src/components/ui/`, then shadcn MCP registry, install before authoring custom components).
 
 ---
 

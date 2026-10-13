@@ -94,4 +94,9 @@
 - **decided:** remove duplicate obsidian CSS selector block and redundant .dark qualifiers in App.css, prune unused description property in ThemeConfig, eliminate redundant useEffect in App.tsx, inline single-caller handleSelect in ThemeSelector.tsx, and shrink getInitialTheme validation to 1 line.
 - **shipped:** net -39 lines across src/App.css, src/App.tsx, src/components/common/ThemeSelector.tsx, and src/store/useThemeStore.ts; verified 11/11 vitest, 4/4 cargo test, pnpm build, and 0 detector findings.
 
+### [2026-10-13] Establish shadcn Component Adoption & MCP Registry Rule
+- **asked:** create a new rule requiring agents to always use shadcn components, check the local ui folder first, search the shadcn MCP registry and install missing components, and only create custom components when unavailable in shadcn.
+- **decided:** establish .agents/rules/component-shadcn.md with a strict 4-step decision gate (local check -> MCP registry query -> CLI install -> custom fallback), linked across frontend.md, component-pattern.md, BRAIN.md, and AGENTS.md.
+- **shipped:** .agents/rules/component-shadcn.md, updated frontend.md, component-pattern.md, BRAIN.md, and AGENTS.md.
+
 

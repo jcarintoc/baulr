@@ -61,3 +61,6 @@ Agents must follow these skill protocols during work:
 - **[Rust & Tauri Rules](.agents/rules/tauri-rust.md):** Thin Rust BFF, zero `.unwrap()`, typed IPC.
 - **[Rclone Engine Rules](.agents/rules/rclone.md):** Daemon `rcd` on `127.0.0.1:0`, zero CLI execs, no chunker.
 - **[Frontend Rules](.agents/rules/frontend.md):** Strict IPC boundary (`src/lib/api/`), Zustand, <150 line components.
+- **[shadcn/ui Component Rules](.agents/rules/component-shadcn.md):** shadcn-first protocol, local ui check, MCP registry search, strict fallback.
+- **[Component Pattern Rules](.agents/rules/component-pattern.md):** Composition over configuration, 150-line limit, custom hooks.
+- **[Tailwind Styling Rules](.agents/rules/code-styling-tailwind.md):** Parent-driven styling, data-state attributes, no child class duplication.
