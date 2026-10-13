@@ -1,5 +1,8 @@
-import { ShieldCheck, Sparkles } from "lucide-react";
+import { IconShieldCheck, IconSparkles } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface ReclaimBannerProps {
   totalReclaimBytes: number;
@@ -17,45 +20,50 @@ export function ReclaimBanner({
   const itemLabel = itemCount === 1 ? "file" : "files";
 
   return (
-    <section className="p-5 sm:p-6 rounded-2xl bg-neutral-900 border border-vault-accent-border flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-      <div className="flex items-start gap-3.5 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-vault-accent-muted text-vault-accent-text border border-vault-accent-border flex items-center justify-center shrink-0 mt-0.5">
-          <ShieldCheck className="w-5 h-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold text-sm text-white">
-              {itemCount} {itemLabel} safely backed up
-            </h3>
-            <span className="text-xs bg-vault-accent-muted text-vault-accent-text px-2 py-0.5 rounded-full border border-vault-accent-border font-medium">
-              Ready to clean
-            </span>
+    <Card className="bg-card/90 border-vault-accent-border">
+      <CardContent className="p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="flex items-start gap-3.5 min-w-0">
+          <div className="size-10 rounded-xl bg-vault-accent-muted text-vault-accent-text border border-vault-accent-border flex items-center justify-center shrink-0 mt-0.5">
+            <IconShieldCheck className="size-5" />
           </div>
-          <p className="text-xs text-neutral-400 mt-1 max-w-xl leading-relaxed">
-            These files are saved to your cloud. You can now remove the copies on this computer to reclaim{" "}
-            <strong className="text-neutral-200 tabular-nums">
-              {formatBytes(totalReclaimBytes)}
-            </strong>{" "}
-            of drive space.
-          </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-semibold text-sm text-foreground">
+                {itemCount} {itemLabel} safely backed up
+              </h3>
+              <Badge variant="outline" className="border-vault-accent-border text-vault-accent-text bg-vault-accent-muted">
+                Ready to clean
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xl leading-relaxed">
+              These files are saved to your cloud. You can now remove the copies on this computer to reclaim{" "}
+              <strong className="text-foreground tabular-nums">
+                {formatBytes(totalReclaimBytes)}
+              </strong>{" "}
+              of drive space.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 shrink-0 w-full lg:w-auto pt-3 lg:pt-0 border-t border-neutral-800/60 lg:border-t-0">
-        <button
-          onClick={onDismiss}
-          className="text-xs text-neutral-400 hover:text-white px-3.5 py-2 rounded-lg border border-neutral-800 hover:border-neutral-700 transition cursor-pointer text-center w-full sm:w-auto"
-        >
-          Keep on this computer
-        </button>
-        <button
-          onClick={onReclaim}
-          className="text-xs font-semibold px-4 py-2 rounded-lg bg-vault-accent hover:bg-vault-accent-hover text-white transition flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Free up {formatBytes(totalReclaimBytes)}</span>
-        </button>
-      </div>
-    </section>
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 shrink-0 w-full lg:w-auto pt-3 lg:pt-0 border-t border-border lg:border-t-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDismiss}
+            className="w-full sm:w-auto"
+          >
+            Keep on this computer
+          </Button>
+          <Button
+            size="sm"
+            onClick={onReclaim}
+            className="w-full sm:w-auto"
+          >
+            <IconSparkles />
+            <span>Free up {formatBytes(totalReclaimBytes)}</span>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

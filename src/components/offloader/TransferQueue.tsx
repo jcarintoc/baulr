@@ -1,6 +1,13 @@
 import { formatBytes, formatSpeed, formatDuration } from "@/lib/formatters";
-import { Loader2, CheckCircle2, ArrowUpRight } from "lucide-react";
+import {
+  IconLoader2,
+  IconCircleCheck,
+  IconArrowUpRight,
+} from "@tabler/icons-react";
 import type { TransferQueueItem } from "@/store/useTransferStore";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 interface TransferQueueProps {
   items: TransferQueueItem[];
@@ -10,18 +17,18 @@ export function TransferQueue({ items }: TransferQueueProps) {
   if (items.length === 0) return null;
 
   return (
-    <section className="p-6 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm text-neutral-200">
+    <Card className="bg-card/75 border-border">
+      <CardHeader className="flex flex-row items-center justify-between p-6 pb-4">
+        <CardTitle className="font-semibold text-sm text-foreground">
           Active Offload Queue ({items.length})
-        </h3>
-        <div className="flex items-center gap-1.5 text-xs text-vault-accent-text">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        </CardTitle>
+        <Badge variant="outline" className="border-vault-accent-border text-vault-accent-text bg-vault-accent-muted gap-1.5">
+          <IconLoader2 className="animate-spin" />
           <span>Backing up to Cloud Vault</span>
-        </div>
-      </div>
+        </Badge>
+      </CardHeader>
 
-      <div className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-3 p-6 pt-0">
         {items.map((item) => {
           const percent = Math.min(
             100,
@@ -29,42 +36,36 @@ export function TransferQueue({ items }: TransferQueueProps) {
           );
 
           return (
-            <div
+            <Card
               key={item.id}
-              className="p-4 rounded-xl bg-neutral-900 border border-neutral-800/80 flex flex-col gap-2.5"
+              className="p-4 bg-muted/40 border-border flex flex-col gap-2.5"
             >
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <ArrowUpRight className="w-4 h-4 text-neutral-400" />
-                  <span className="font-medium text-neutral-200">{item.name}</span>
+                  <IconArrowUpRight className="size-4 text-muted-foreground" />
+                  <span className="font-medium text-foreground">{item.name}</span>
                 </div>
-                <div className="flex items-center gap-3 text-neutral-400 tabular-nums">
+                <div className="flex items-center gap-3 text-muted-foreground tabular-nums">
                   <span>{formatSpeed(item.speedBytesPerSec)}</span>
                   <span>ETA: {formatDuration(item.etaSeconds)}</span>
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-vault-accent rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
+              <Progress value={percent} className="w-full" />
 
-              <div className="flex items-center justify-between text-xs text-neutral-400 tabular-nums pt-0.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums pt-0.5">
                 <span>
                   {formatBytes(item.transferredBytes)} / {formatBytes(item.sizeBytes)} ({percent}%)
                 </span>
                 <span className="flex items-center gap-1 text-vault-accent-text">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Integrity verified</span>
+                  <IconCircleCheck className="size-3" />
+                  <span>Safely backed up</span>
                 </span>
               </div>
-            </div>
+            </Card>
           );
         })}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

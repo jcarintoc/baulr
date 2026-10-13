@@ -1,5 +1,15 @@
-import { ShieldCheck, ArrowRight } from "lucide-react";
-import { GoogleDriveIcon, OneDriveIcon } from "@/components/common/ProviderIcons";
+import { IconArrowRight, IconShieldCheck } from "@tabler/icons-react";
+import {
+  GoogleDriveIcon,
+  OneDriveIcon,
+} from "@/components/common/ProviderIcons";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 
 interface OnboardingPromptProps {
   onConnectDrive: (provider: string) => void;
@@ -7,55 +17,60 @@ interface OnboardingPromptProps {
 
 export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
   return (
-    <section className="p-8 rounded-2xl border border-neutral-800 bg-neutral-900/40 flex flex-col items-center text-center gap-6">
-      <div className="max-w-md">
-        <h3 className="text-xl font-bold tracking-tight text-white">
-          Initialize Your Cloud Vault
-        </h3>
-        <p className="text-xs text-neutral-400 mt-2 leading-relaxed">
-          Baulr connects your existing free cloud storage tiers into one unified virtual
-          drive with zero monthly fees. Connect at least one account to start offloading.
-        </p>
-      </div>
+    <Card className="border-border bg-card/75">
+      <CardHeader>
+        <CardTitle>Initialize Your Cloud Vault</CardTitle>
+        <CardDescription>
+          Baulr connects your existing free cloud storage tiers into one unified
+          virtual drive with zero monthly fees. Connect at least one account to
+          start offloading.
+        </CardDescription>
+      </CardHeader>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
-        <button
-          onClick={() => onConnectDrive("gdrive")}
-          className="p-4 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900/60 hover:bg-neutral-800/50 flex flex-col items-start text-left gap-3 transition cursor-pointer group"
-        >
-          <div className="w-9 h-9 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700/50 flex items-center justify-center">
-            <GoogleDriveIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-semibold text-sm text-neutral-200 group-hover:text-white flex items-center gap-1.5">
-              <span>Google Drive</span>
-              <ArrowRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
-            </div>
-            <p className="text-xs text-neutral-400 mt-0.5">15 GB free storage</p>
-          </div>
-        </button>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          {[
+            {
+              id: "gdrive",
+              name: "Google Drive",
+              size: "15 GB free storage",
+              Icon: GoogleDriveIcon,
+            },
+            {
+              id: "onedrive",
+              name: "OneDrive",
+              size: "5 GB free storage",
+              Icon: OneDriveIcon,
+            },
+          ].map(({ id, name, size, Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onConnectDrive(id)}
+              className="p-4 rounded-xl border border-border hover:border-vault-accent-border bg-muted/40 hover:bg-muted/70 flex flex-col items-start text-left gap-3 transition cursor-pointer group"
+            >
+              <div className="size-9 rounded-lg bg-card text-foreground border border-border flex items-center justify-center">
+                <Icon className="size-5" />
+              </div>
+              <div>
+                <div className="font-semibold text-sm text-foreground group-hover:text-vault-accent-text flex items-center gap-1.5 transition-colors">
+                  <span>{name}</span>
+                  <IconArrowRight className="size-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{size}</p>
+              </div>
+            </button>
+          ))}
+        </div>
 
-        <button
-          onClick={() => onConnectDrive("onedrive")}
-          className="p-4 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900/60 hover:bg-neutral-800/50 flex flex-col items-start text-left gap-3 transition cursor-pointer group"
-        >
-          <div className="w-9 h-9 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700/50 flex items-center justify-center">
-            <OneDriveIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-semibold text-sm text-neutral-200 group-hover:text-white flex items-center gap-1.5">
-              <span>OneDrive</span>
-              <ArrowRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
-            </div>
-            <p className="text-xs text-neutral-400 mt-0.5">5 GB free storage</p>
-          </div>
-        </button>
-      </div>
-
-      <div className="flex items-center gap-1.5 text-xs text-neutral-400 pt-1">
-        <ShieldCheck className="w-4 h-4 text-vault-accent-text" />
-        <span>Direct loopback connection. Credentials never leave your computer.</span>
-      </div>
-    </section>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+          <IconShieldCheck className="size-4 text-vault-accent-text" />
+          <span>
+            Direct and private connection. Account keys never leave your
+            computer.
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

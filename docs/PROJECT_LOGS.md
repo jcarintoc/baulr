@@ -112,7 +112,27 @@
 - **decided:** replace 15-line KnownProvider struct with tuple slice, inline client state unwrapping, borrow in cancel_oauth, use inline HashMap::from, remove redundant wildcard re-exports in commands/mod.rs, prune dead clearError store action, adopt size- utilities and omit manual icon dimensions in AccountCard.
 - **shipped:** net -38 lines across src-tauri/src/commands/ (accounts.rs, vault.rs, mod.rs), src/components/accounts/ (AccountCard.tsx, OAuthModal.tsx), src/store/useVaultStore.ts, and src/test/stores.test.ts; verified 14/14 cargo tests, 19/19 vitest tests, and pnpm build.
 
+### [2026-10-13] Frontend Component Rules Harmonization & Refactoring
+- **asked:** refactor existing components and App.tsx to adhere strictly to the newly added component, shadcn, tailwind styling, and UI copy rules.
+- **decided:** install shadcn input and table via CLI; replace custom dropdown with DropdownMenu, custom tabs with Tabs, custom progress with Progress, custom modal/banner with AlertDialog/Card/Button; enforce size- icon utility rules and 150-line file limit across all components.
+- **shipped:** refactored App.tsx and all 11 component files under src/components/, added AppHeader to keep all files under 150 lines; verified via pnpm tsc, 19 vitest tests, 14 cargo tests, and pnpm build.
 
+### [2026-10-13] Ponytail Review Cleanup (Net -180 Lines)
+- **asked:** review diff for over-engineering and apply simplifications.
+- **decided:** inline handleSync in App.tsx, unify daemon status Badge in AppHeader.tsx, map over provider options in OnboardingPrompt.tsx, inline AlertDialog in OffloadWorkspace.tsx and TableRow in VaultBrowserTable.tsx (deleting ReclaimConfirmModal.tsx and VaultFileRow.tsx), and simplify ProviderIcons.tsx to compact 24x24 vector paths.
+- **shipped:** net -180 lines across App.tsx, AppHeader.tsx, OnboardingPrompt.tsx, OffloadWorkspace.tsx, VaultBrowserTable.tsx, and ProviderIcons.tsx; verified via 19 vitest tests, 14 cargo tests, and pnpm build.
 
+### [2026-10-13] Fix ThemeSelector Dropdown Blackout & Onboarding Title Width
+- **asked:** fix theme dropdown causing black screen when clicked, and relieve tight width on "Initialize your cloud vault" card title.
+- **decided:** replace `@base-ui/react` `MenuPrimitive.GroupLabel` in `DropdownMenuLabel` with a standard styled `div` (eliminating the unhandled `MenuGroupContext is missing` error); relax `max-w-md` to `w-full max-w-xl` on `OnboardingPrompt` header.
+- **shipped:** fixed `src/components/ui/dropdown-menu.tsx`, updated `src/components/accounts/OnboardingPrompt.tsx`, added `src/test/theme.test.tsx`; verified 20/20 vitest tests, 14/14 cargo tests, and production build.
 
+### [2026-10-13] Dynamic Theme Palette & Tabler Icons Migration
+- **asked:** eliminate hardcoded colors across components, make App.css and shadcn Card/surface colors dynamic per theme, replace Lucide React with Tabler Icons, and uninstall lucide-react.
+- **decided:** replace hardcoded olive OKLCH tones in App.css with `--theme-hue` variable driven by `data-theme` (obsidian=149.2, titanium=230, bronze=65); replace all hardcoded `neutral-*` classes across components with semantic tokens (`bg-card`, `bg-muted`, `border-border`, `text-foreground`, `text-muted-foreground`); replace all Lucide icons with `@tabler/icons-react`; uninstall `lucide-react`.
+- **shipped:** updated `src/App.css`, `src/App.tsx`, and all 7 component files; uninstalled `lucide-react`; updated `.agents/rules/frontend.md`; verified 20/20 vitest tests, 14/14 cargo tests, and production build.
 
+### [2026-10-13] Ponytail Review Cleanup (Net -25 Lines)
+- **asked:** review diff for over-engineering and apply simplifications.
+- **decided:** eliminate redundant obsidian `:root` override block in `src/App.css`, inline `--theme-hue` directly into `[data-theme]` blocks, use nullish coalescing in `ThemeSelector.tsx`, and compact toast markup in `OffloadWorkspace.tsx`.
+- **shipped:** net -25 lines across `src/App.css`, `src/components/common/ThemeSelector.tsx`, and `src/components/offloader/OffloadWorkspace.tsx`; verified via 20/20 vitest tests, 14/14 cargo tests, and production build.

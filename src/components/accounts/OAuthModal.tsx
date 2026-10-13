@@ -27,9 +27,9 @@ export function OAuthModal({ isOpen, provider, onCancel }: OAuthModalProps) {
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="max-w-md bg-neutral-900 border border-neutral-800 text-neutral-100 p-6 rounded-2xl">
+      <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader className="flex flex-col items-center text-center gap-3">
-          <div className="size-12 rounded-xl bg-neutral-800 border border-neutral-700/50 flex items-center justify-center text-neutral-200">
+          <div className="size-12 rounded-xl bg-muted border border-border/50 flex items-center justify-center text-foreground">
             {isGoogle ? (
               <GoogleDriveIcon className="size-6" />
             ) : (
@@ -37,28 +37,26 @@ export function OAuthModal({ isOpen, provider, onCancel }: OAuthModalProps) {
             )}
           </div>
 
-          <AlertDialogTitle className="text-base font-semibold text-white">
+          <AlertDialogTitle className="text-base font-semibold">
             Connecting to {providerLabel}
           </AlertDialogTitle>
 
-          <AlertDialogDescription className="text-xs text-neutral-400 max-w-xs leading-relaxed">
+          <AlertDialogDescription className="text-xs text-muted-foreground max-w-xs leading-relaxed">
             We opened your browser to sign in. Finish signing in to connect
             your storage to Baulr.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="my-4 p-3 rounded-lg bg-neutral-950/60 border border-neutral-800/80 flex items-center justify-center gap-2.5 text-xs text-neutral-300">
+        <div className="my-4 p-3 rounded-lg bg-input/20 border border-border/50 flex items-center justify-center gap-2.5 text-xs text-muted-foreground">
           <Spinner className="text-vault-accent" />
           <span>Waiting for authorization in browser</span>
         </div>
 
-        <AlertDialogFooter className="flex justify-center">
-
+        <AlertDialogFooter className="sm:justify-center">
           <Button
             variant="outline"
             size="sm"
             onClick={onCancel}
-            className="border-neutral-700 hover:bg-neutral-800 text-neutral-300"
           >
             Cancel
           </Button>

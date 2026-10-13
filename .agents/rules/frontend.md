@@ -16,7 +16,7 @@ globs: "src/**/*.{ts,tsx,css,html}, index.html, vite.config.ts"
 - **Framework:** React 19 + TypeScript (Strict Mode) + Vite
 - **Styling:** Tailwind CSS (Utility-first, responsive, dark-mode aware)
 - **State Management:** Zustand (Single-purpose stores under `src/store/`)
-- **Icons:** `lucide-react` (Standardized, tree-shakeable)
+- **Icons:** `@tabler/icons-react` (Standardized, tree-shakeable)
 - **Component Primitives:** shadcn/ui + Radix / Base UI (Governed by [`.agents/rules/component-shadcn.md`](./component-shadcn.md))
 
 ---

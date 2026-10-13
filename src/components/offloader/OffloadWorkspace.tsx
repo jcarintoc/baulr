@@ -4,8 +4,20 @@ import { DropzoneCard } from "./DropzoneCard";
 import { TransferQueue } from "./TransferQueue";
 import { ReclaimBanner } from "./ReclaimBanner";
 import { OnboardingPrompt } from "../accounts/OnboardingPrompt";
-import { CheckCircle2, RotateCcw } from "lucide-react";
+import { IconCircleCheck, IconRotateClockwise } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 interface OffloadWorkspaceProps {
   hasConnectedAccounts: boolean;
@@ -25,6 +37,7 @@ export function OffloadWorkspace({
     markItemVerified,
   } = useTransferStore();
 
+  const [isConfirmingReclaim, setIsConfirmingReclaim] = useState(false);
   const [undoToast, setUndoToast] = useState<{
     bytes: number;
     count: number;
@@ -33,29 +46,17 @@ export function OffloadWorkspace({
 
   useEffect(() => {
     return () => {
-      if (undoTimeoutRef.current) {
-        clearTimeout(undoTimeoutRef.current);
-      }
+      if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
     };
   }, []);
 
   const handleSelectFolder = (name: string, sizeBytes: number) => {
     enqueueTransfer(name, sizeBytes);
-
-    // Progressive simulated transfer sequence for immediate UX feedback
     const queueId = useTransferStore.getState().items.slice(-1)[0]?.id;
     if (queueId) {
-      setTimeout(() => {
-        updateItemProgress(queueId, sizeBytes * 0.45, 1024 * 1024 * 16.5, 3);
-      }, 700);
-
-      setTimeout(() => {
-        updateItemProgress(queueId, sizeBytes, 1024 * 1024 * 18.2, 0);
-      }, 1500);
-
-      setTimeout(() => {
-        markItemVerified(queueId);
-      }, 2300);
+      setTimeout(() => updateItemProgress(queueId, sizeBytes * 0.45, 1024 * 1024 * 16.5, 3), 700);
+      setTimeout(() => updateItemProgress(queueId, sizeBytes, 1024 * 1024 * 18.2, 0), 1500);
+      setTimeout(() => markItemVerified(queueId), 2300);
     }
   };
 
@@ -63,29 +64,20 @@ export function OffloadWorkspace({
     .filter((i) => i.status === "verified")
     .reduce((acc, i) => acc + i.sizeBytes, 0);
 
-  const handleReclaim = () => {
+  const confirmReclaim = () => {
     const bytes = totalReclaimBytes;
     const count = items.length;
+    setIsConfirmingReclaim(false);
     clearCompleted();
 
     setUndoToast({ bytes, count });
-    if (undoTimeoutRef.current) {
-      clearTimeout(undoTimeoutRef.current);
-    }
-    undoTimeoutRef.current = setTimeout(() => {
-      setUndoToast(null);
-    }, 5000);
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    undoTimeoutRef.current = setTimeout(() => setUndoToast(null), 5000);
   };
 
   const handleUndo = () => {
-    if (undoTimeoutRef.current) {
-      clearTimeout(undoTimeoutRef.current);
-    }
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
     setUndoToast(null);
-  };
-
-  const handleDismiss = () => {
-    clearCompleted();
   };
 
   if (!hasConnectedAccounts) {
@@ -94,43 +86,53 @@ export function OffloadWorkspace({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 5-second Undo Feedback Toast */}
       {undoToast && (
-        <aside
-          aria-live="polite"
-          className="p-3.5 px-4 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between text-xs"
-        >
-          <div className="flex items-center gap-2 text-neutral-300">
-            <CheckCircle2 className="w-4 h-4 text-vault-accent-text shrink-0" />
-            <span>
-              Freed up <strong className="text-white tabular-nums">{formatBytes(undoToast.bytes)}</strong>. Local files moved to your computer's Trash.
-            </span>
+        <Card className="p-3 px-4 flex items-center justify-between text-xs bg-card border-border">
+          <div className="flex items-center gap-2 text-foreground/90">
+            <IconCircleCheck className="size-4 text-vault-accent-text shrink-0" />
+            <span>Freed up <strong className="text-foreground tabular-nums">{formatBytes(undoToast.bytes)}</strong>. Files removed from this computer.</span>
           </div>
-          <button
-            onClick={handleUndo}
-            className="flex items-center gap-1 text-vault-accent-text hover:text-white font-medium px-2.5 py-1 rounded-md hover:bg-neutral-800 transition cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="sm" onClick={handleUndo}>
+            <IconRotateClockwise />
             <span>Undo</span>
-          </button>
-        </aside>
+          </Button>
+        </Card>
       )}
 
-      {/* Verified Space Reclaim Banner */}
       {isVerified && totalReclaimBytes > 0 && (
         <ReclaimBanner
           totalReclaimBytes={totalReclaimBytes}
           itemCount={items.length}
-          onReclaim={handleReclaim}
-          onDismiss={handleDismiss}
+          onReclaim={() => setIsConfirmingReclaim(true)}
+          onDismiss={clearCompleted}
         />
       )}
 
-      {/* Live Offload Transfer Queue */}
       {items.length > 0 && <TransferQueue items={items} />}
-
-      {/* Primary Dropzone */}
       <DropzoneCard onSelectFolder={handleSelectFolder} />
+
+      <AlertDialog open={isConfirmingReclaim}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Free up {formatBytes(totalReclaimBytes)}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {items.length} {items.length === 1 ? "file is" : "files are"}{" "}
+              saved to your cloud. You can now remove them from this computer to
+              reclaim drive space.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsConfirmingReclaim(false)}>
+              Keep on this computer
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReclaim}>
+              Free up space
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
