@@ -55,7 +55,7 @@ export function StoragePoolBar({ quota }: StoragePoolBarProps) {
         </div>
         <div className="ml-auto flex items-center gap-1.5 text-neutral-400">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Zero-loss cryptographic verify enabled</span>
+          <span>Safe backup verification enabled</span>
         </div>
       </div>
     </section>

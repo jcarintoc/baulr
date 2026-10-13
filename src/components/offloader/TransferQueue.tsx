@@ -1,5 +1,5 @@
 import { formatBytes, formatSpeed, formatDuration } from "@/lib/formatters";
-import { Loader2, ShieldCheck, ArrowUpRight } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowUpRight } from "lucide-react";
 import type { TransferQueueItem } from "@/store/useTransferStore";
 
 interface TransferQueueProps {
@@ -17,7 +17,7 @@ export function TransferQueue({ items }: TransferQueueProps) {
         </h3>
         <div className="flex items-center gap-1.5 text-xs text-sky-400">
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          <span>Transferring to baulr_vault:</span>
+          <span>Backing up to Cloud Vault</span>
         </div>
       </div>
 
@@ -35,7 +35,7 @@ export function TransferQueue({ items }: TransferQueueProps) {
             >
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <ArrowUpRight className="w-4 h-4 text-sky-400" />
+                  <ArrowUpRight className="w-4 h-4 text-neutral-400" />
                   <span className="font-medium text-neutral-200">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-3 text-neutral-400 tabular-nums">
@@ -57,8 +57,8 @@ export function TransferQueue({ items }: TransferQueueProps) {
                   {formatBytes(item.transferredBytes)} / {formatBytes(item.sizeBytes)} ({percent}%)
                 </span>
                 <span className="flex items-center gap-1 text-emerald-400">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>Real-time QuickXOR / SHA-1 hashing active</span>
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Integrity verified</span>
                 </span>
               </div>
             </div>

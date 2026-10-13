@@ -1,4 +1,5 @@
-import { Cloud, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { GoogleDriveIcon, OneDriveIcon } from "@/components/common/ProviderIcons";
 import { formatBytes } from "@/lib/formatters";
 import type { CloudAccount } from "@/lib/bindings";
 
@@ -14,12 +15,8 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
   return (
     <div className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-800 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div
-          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            isGoogle ? "bg-amber-500/10 text-amber-400" : "bg-sky-500/10 text-sky-400"
-          }`}
-        >
-          <Cloud className="w-5 h-5" />
+        <div className="w-10 h-10 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700/50 flex items-center justify-center">
+          {isGoogle ? <GoogleDriveIcon className="w-5 h-5" /> : <OneDriveIcon className="w-5 h-5" />}
         </div>
         <div>
           <h4 className="font-medium text-sm text-neutral-100">{account.name}</h4>
@@ -45,10 +42,10 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
       ) : (
         <button
           onClick={() => onConnect?.(account.provider)}
-          className="flex items-center gap-1 text-xs text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 px-3 py-1 rounded-full border border-sky-500/30 transition cursor-pointer"
+          className="flex items-center gap-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 px-3 py-1.5 rounded-lg border border-neutral-700 transition cursor-pointer"
         >
           <span>Connect</span>
-          <ExternalLink className="w-3 h-3" />
+          <ExternalLink className="w-3 h-3 text-neutral-400" />
         </button>
       )}
     </div>

@@ -78,11 +78,8 @@
 ### [2026-10-13] Implement Shaped Desktop Vault UI & Impeccable Craft Sweep
 - **asked:** shape and implement the complete desktop vault interface according to DESIGN.md and Milestone 2 prerequisites.
 - **decided:** dual-view toggle ("Offload & Capacity" vs "Vault Files"), modular components strictly under 150 lines, Zero-Shadow planar depth with 1px ghost borders, tabular numbers on all metrics, and 100% craft floor pass rate via impeccable detect.
-- **shipped:** src/components/ (ViewToggle, OffloadWorkspace, VaultBrowserTable, DropzoneCard, TransferQueue, ReclaimBanner, OnboardingPrompt), App.tsx shell, Zustand stores (useViewStore, useTransferStore, useRemoteFilesStore), stores.test.ts; verified via 8/8 tests, pnpm tsc, pnpm build, and 4/4 cargo tests.
 
-
-
-
-
-
-
+### [2026-10-13] Offload Workspace Impeccable Critique & Refinement Pass
+- **asked:** critique Offload Workspace (color overload, generic icons, ReclaimBanner layout collapse), then execute refinements one at a time.
+- **decided:** adopt Quiet Obsidian earthen palette, enforce Semantic Signal Rule (reserve emerald for safety, cyan for capacity), replace generic icons with custom Google Drive/OneDrive SVG glyphs and Vault mark, eliminate CLI jargon, refactor ReclaimBanner responsive layout with mobile button stacking, and add 5-second Undo space recovery toast.
+- **shipped:** src/components/offloader/ (ReclaimBanner.tsx, OffloadWorkspace.tsx, DropzoneCard.tsx, TransferQueue.tsx), ProviderIcons.tsx, updated AccountCard.tsx, OnboardingPrompt.tsx, StoragePoolBar.tsx, App.tsx; verified via pnpm tsc, pnpm test (8/8), cargo test (4/4), and 0 detector issues.

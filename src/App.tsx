@@ -7,7 +7,7 @@ import { StoragePoolBar } from "./components/vault/StoragePoolBar";
 import { ViewToggle } from "./components/common/ViewToggle";
 import { OffloadWorkspace } from "./components/offloader/OffloadWorkspace";
 import { VaultBrowserTable } from "./components/browser/VaultBrowserTable";
-import { HardDrive, RefreshCw } from "lucide-react";
+import { Vault, RefreshCw } from "lucide-react";
 
 export function App() {
   const { quota, isLoading, error, loadQuota } = useVaultStore();
@@ -33,13 +33,13 @@ export function App() {
       <header className="border-b border-neutral-800 px-6 py-4 flex items-center justify-between bg-neutral-900/60 backdrop-blur sticky top-0 z-10">
         <div data-tauri-drag-region className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
-            <HardDrive className="w-4 h-4" />
+            <Vault className="w-4 h-4" />
           </div>
           <div>
             <h1 className="font-semibold text-base tracking-tight leading-tight text-white">
               Baulr
             </h1>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-neutral-300">
               Local-First Unified Cloud Vault
             </p>
           </div>
@@ -61,14 +61,14 @@ export function App() {
           </button>
 
           {daemonStatus?.isRunning ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 tabular-nums">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Daemon active (Port {daemonStatus.port})</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Vault engine active</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              <span>Daemon Initializing</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span>Vault engine starting</span>
             </div>
           )}
         </div>

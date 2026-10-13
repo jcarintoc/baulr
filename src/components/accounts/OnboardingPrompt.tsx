@@ -1,4 +1,5 @@
-import { Cloud, ShieldCheck, ArrowRight } from "lucide-react";
+import { ShieldCheck, ArrowRight } from "lucide-react";
+import { GoogleDriveIcon, OneDriveIcon } from "@/components/common/ProviderIcons";
 
 interface OnboardingPromptProps {
   onConnectDrive: (provider: string) => void;
@@ -20,10 +21,10 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
         <button
           onClick={() => onConnectDrive("gdrive")}
-          className="p-4 rounded-xl border border-neutral-800 hover:border-amber-500/40 bg-neutral-900/60 hover:bg-amber-500/5 flex flex-col items-start text-left gap-3 transition cursor-pointer group"
+          className="p-4 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900/60 hover:bg-neutral-800/50 flex flex-col items-start text-left gap-3 transition cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-            <Cloud className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700/50 flex items-center justify-center">
+            <GoogleDriveIcon className="w-5 h-5" />
           </div>
           <div>
             <div className="font-semibold text-sm text-neutral-200 group-hover:text-white flex items-center gap-1.5">
@@ -36,10 +37,10 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
 
         <button
           onClick={() => onConnectDrive("onedrive")}
-          className="p-4 rounded-xl border border-neutral-800 hover:border-sky-500/40 bg-neutral-900/60 hover:bg-sky-500/5 flex flex-col items-start text-left gap-3 transition cursor-pointer group"
+          className="p-4 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900/60 hover:bg-neutral-800/50 flex flex-col items-start text-left gap-3 transition cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
-            <Cloud className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700/50 flex items-center justify-center">
+            <OneDriveIcon className="w-5 h-5" />
           </div>
           <div>
             <div className="font-semibold text-sm text-neutral-200 group-hover:text-white flex items-center gap-1.5">
@@ -53,7 +54,7 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
 
       <div className="flex items-center gap-1.5 text-xs text-neutral-400 pt-1">
         <ShieldCheck className="w-4 h-4 text-emerald-400" />
-        <span>Direct loopback OAuth. Tokens never leave your local machine.</span>
+        <span>Direct loopback connection. Credentials never leave your computer.</span>
       </div>
     </section>
   );

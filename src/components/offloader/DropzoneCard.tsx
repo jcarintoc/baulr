@@ -26,32 +26,34 @@ export function DropzoneCard({ onSelectFolder }: DropzoneCardProps) {
 
   return (
     <section
+      role="region"
+      aria-label="File offloader drop zone"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`p-10 rounded-2xl border-2 border-dashed transition flex flex-col items-center justify-center gap-3 text-center cursor-pointer group ${
+      className={`p-10 rounded-2xl border-2 border-dashed transition flex flex-col items-center justify-center gap-3.5 text-center group ${
         isDragging
-          ? "border-sky-500 bg-sky-500/10"
-          : "border-neutral-800 hover:border-sky-500/50 bg-neutral-900/20 hover:bg-sky-500/5"
+          ? "border-neutral-500 bg-neutral-900/80"
+          : "border-neutral-800 hover:border-neutral-700 bg-neutral-900/30 hover:bg-neutral-900/50"
       }`}
     >
-      <div className="w-14 h-14 rounded-2xl bg-neutral-800 group-hover:bg-sky-500/20 text-neutral-400 group-hover:text-sky-400 flex items-center justify-center transition">
-        <ArrowUpCircle className="w-7 h-7" />
+      <div className="w-12 h-12 rounded-xl bg-neutral-800/80 text-neutral-400 group-hover:text-neutral-200 border border-neutral-700/40 flex items-center justify-center transition">
+        <ArrowUpCircle className="w-6 h-6" />
       </div>
       <div>
-        <h3 className="font-semibold text-base text-neutral-200">
+        <h3 className="font-semibold text-sm text-neutral-200">
           Drag and drop folders or files here to offload
         </h3>
-        <p className="text-xs text-neutral-400 mt-1 max-w-md">
-          Files are transferred to your pooled cloud vault, verified cryptographically,
-          and safely moved to your Trash to reclaim SSD space.
+        <p className="text-xs text-neutral-400 mt-1 max-w-md leading-relaxed">
+          Files are backed up to your unified cloud vault and removed from this computer once safely saved.
         </p>
       </div>
       <button
+        type="button"
         onClick={() => onSelectFolder("Family_Photos_Archive", 1024 * 1024 * 1024 * 3.1)}
-        className="mt-2 text-xs font-semibold px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition flex items-center gap-2 cursor-pointer"
+        className="mt-1 text-xs font-medium px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-100 hover:text-white border border-neutral-700 transition flex items-center gap-2 cursor-pointer"
       >
-        <Folder className="w-3.5 h-3.5" />
+        <Folder className="w-3.5 h-3.5 text-neutral-400" />
         <span>Select Folder to Free Up Space</span>
       </button>
     </section>
