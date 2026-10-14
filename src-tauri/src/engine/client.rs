@@ -228,31 +228,39 @@ impl RcloneClient {
         Ok(())
     }
 
-    pub async fn start_copy(&self, src_fs: &str, dst_fs: &str) -> Result<u64, String> {
-        let url = format!("{}/sync/copy", self.base_url);
-        let payload = serde_json::json!({
-            "srcFs": src_fs,
-            "dstFs": dst_fs,
-            "_async": true,
-        });
-
+    async fn post_job(
+        &self,
+        endpoint: &str,
+        payload: serde_json::Value,
+        label: &str,
+    ) -> Result<u64, String> {
+        let url = format!("{}/{endpoint}", self.base_url);
         let resp = self
             .http
             .post(&url)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| format!("Failed to initiate folder transfer: {e}"))?;
+            .map_err(|e| format!("Failed to initiate {label}: {e}"))?;
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(format!("Folder transfer failed: {body}"));
+            return Err(format!("{label} failed: {body}"));
         }
 
         resp.json::<JobIdResponse>()
             .await
             .map(|r| r.jobid)
-            .map_err(|e| format!("Failed to parse transfer job response: {e}"))
+            .map_err(|e| format!("Failed to parse {label} response: {e}"))
+    }
+
+    pub async fn start_copy(&self, src_fs: &str, dst_fs: &str) -> Result<u64, String> {
+        self.post_job(
+            "sync/copy",
+            serde_json::json!({ "srcFs": src_fs, "dstFs": dst_fs, "_async": true }),
+            "folder transfer",
+        )
+        .await
     }
 
     pub async fn start_copy_file(
@@ -262,32 +270,18 @@ impl RcloneClient {
         dst_fs: &str,
         dst_remote: &str,
     ) -> Result<u64, String> {
-        let url = format!("{}/operations/copyfile", self.base_url);
-        let payload = serde_json::json!({
-            "srcFs": src_fs,
-            "srcRemote": src_remote,
-            "dstFs": dst_fs,
-            "dstRemote": dst_remote,
-            "_async": true,
-        });
-
-        let resp = self
-            .http
-            .post(&url)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| format!("Failed to initiate file transfer: {e}"))?;
-
-        if !resp.status().is_success() {
-            let body = resp.text().await.unwrap_or_default();
-            return Err(format!("File transfer failed: {body}"));
-        }
-
-        resp.json::<JobIdResponse>()
-            .await
-            .map(|r| r.jobid)
-            .map_err(|e| format!("Failed to parse file transfer response: {e}"))
+        self.post_job(
+            "operations/copyfile",
+            serde_json::json!({
+                "srcFs": src_fs,
+                "srcRemote": src_remote,
+                "dstFs": dst_fs,
+                "dstRemote": dst_remote,
+                "_async": true
+            }),
+            "file transfer",
+        )
+        .await
     }
 
     pub async fn get_job_status(&self, job_id: u64) -> Result<JobStatus, String> {

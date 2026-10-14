@@ -5,34 +5,16 @@ import { Button } from "@/components/ui/button";
 import { selectOffloadFolder } from "@/lib/api/offload";
 
 interface DropzoneCardProps {
-  onSelectPath?: (path: string) => void;
-  onSelectFolder?: (name: string, sizeBytes: number) => void;
+  onSelectPath: (path: string) => void;
   disabled?: boolean;
 }
 
-export function DropzoneCard({
-  onSelectPath,
-  onSelectFolder,
-  disabled,
-}: DropzoneCardProps) {
+export function DropzoneCard({ onSelectPath, disabled }: DropzoneCardProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleSelectFolder = async () => {
-    try {
-      const selected = await selectOffloadFolder();
-      if (selected) {
-        if (onSelectPath) {
-          onSelectPath(selected.path);
-        } else if (onSelectFolder) {
-          onSelectFolder(selected.name, selected.sizeBytes ?? 0);
-        }
-      }
-    } catch {
-      // Fallback for tests or when dialog is cancelled
-      if (onSelectFolder) {
-        onSelectFolder("Selected_Folder", 1024 * 1024 * 10);
-      }
-    }
+    const selected = await selectOffloadFolder().catch(() => null);
+    if (selected) onSelectPath(selected.path);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -49,19 +31,8 @@ export function DropzoneCard({
     setIsDragging(false);
     if (disabled) return;
 
-    if (e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      const fullPath = (file as unknown as { path?: string }).path;
-      if (fullPath && onSelectPath) {
-        onSelectPath(fullPath);
-        return;
-      }
-    }
-
-    // Fallback if dropped in test or browser without path property
-    if (onSelectFolder) {
-      onSelectFolder("Family_Vacation_2025", 1024 * 1024 * 1024 * 2.4);
-    }
+    const path = (e.dataTransfer.files[0] as unknown as { path?: string })?.path;
+    if (path) onSelectPath(path);
   };
 
   return (

@@ -48,7 +48,8 @@ describe("Offloader Components", () => {
   });
 
   it("renders dropzone card and handles drag over", () => {
-    render(<DropzoneCard onSelectPath={vi.fn()} />);
+    const onSelectPath = vi.fn();
+    render(<DropzoneCard onSelectPath={onSelectPath} />);
     const zone = screen.getByRole("region", { name: "File offloader drop zone" });
     expect(zone).toBeInTheDocument();
 
@@ -57,5 +58,10 @@ describe("Offloader Components", () => {
 
     fireEvent.dragLeave(zone);
     expect(zone).not.toHaveAttribute("data-dragging");
+
+    const file = new File(["dummy"], "vacation.zip");
+    Object.defineProperty(file, "path", { value: "/home/user/vacation.zip" });
+    fireEvent.drop(zone, { dataTransfer: { files: [file] } });
+    expect(onSelectPath).toHaveBeenCalledWith("/home/user/vacation.zip");
   });
 });
