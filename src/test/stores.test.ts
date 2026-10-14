@@ -44,6 +44,48 @@ describe("useTransferStore", () => {
     expect(useTransferStore.getState().isVerified).toBe(true);
     expect(useTransferStore.getState().isTransferring).toBe(false);
   });
+
+  it("updates item on live progress event", () => {
+    useTransferStore.getState().enqueueTransfer("Photos", 1000, 42, "/path/Photos");
+
+    useTransferStore.getState().handleProgress({
+      jobId: 42,
+      name: "Photos",
+      transferredBytes: 500,
+      totalBytes: 1000,
+      speedBytesPerSec: 250,
+      etaSeconds: 2,
+      status: "uploading",
+      error: null,
+    });
+
+    const item = useTransferStore.getState().items.find((i) => i.jobId === 42);
+    expect(item).toBeDefined();
+    expect(item?.transferredBytes).toBe(500);
+    expect(item?.status).toBe("uploading");
+    expect(item?.speedBytesPerSec).toBe(250);
+  });
+
+  it("marks verified when offload progress completes", () => {
+    useTransferStore.getState().enqueueTransfer("Photos", 1000, 42, "/path/Photos");
+
+    useTransferStore.getState().handleProgress({
+      jobId: 42,
+      name: "Photos",
+      transferredBytes: 1000,
+      totalBytes: 1000,
+      speedBytesPerSec: 0,
+      etaSeconds: 0,
+      status: "completed",
+      error: null,
+    });
+
+    const state = useTransferStore.getState();
+    const item = state.items.find((i) => i.jobId === 42);
+    expect(item?.status).toBe("verified");
+    expect(state.isVerified).toBe(true);
+    expect(state.isTransferring).toBe(false);
+  });
 });
 
 describe("useRemoteFilesStore", () => {
