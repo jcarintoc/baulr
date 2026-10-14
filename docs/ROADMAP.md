@@ -7,7 +7,7 @@
 - [[Bandwidth Throttler]]
 
 ## In Progress
-- [[Vault Sync]]
+- [[Integrity Verification & Safe Reclamation]]
 
 ## Done
 - [[Decision log]]
@@ -19,6 +19,7 @@
 - [[Rclone Sidecar Supervisor]]
 - [[Desktop Vault UI (The Obsidian Vault)]]
 - [[Milestone 2: OAuth & Cloud Union Management]]
+- [[Vault Sync]]
 
 
 

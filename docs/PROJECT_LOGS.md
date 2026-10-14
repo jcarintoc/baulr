@@ -152,5 +152,11 @@
 - **decided:** prune unused speculative `TransferringFile` struct and deserialization test; extract `JobIdResponse` in `RcloneClient` for `start_copy`/`start_copy_file`; eliminate redundant `p.exists()` filesystem stat in `inspect_path`; unify terminal progress emission in `start_offload`; compact `pick_offload_folder` with `let Some(...) else`; remove unused public re-exports in `lib.rs`.
 - **shipped:** net -89 lines across `src-tauri/src/engine/` (`client.rs`, `models.rs`, `mod.rs`), `src-tauri/src/commands/offload.rs`, `src-tauri/src/lib.rs`, and `src/lib/bindings.ts`; verified via 25/25 vitest tests, 19/19 cargo tests, and production build.
 
+### [2026-10-14] Milestone 3: Real Offload Engine & Vault Sync Pipeline
+- **asked:** implement Milestone 3 (real offload execution, capacity gate, live telemetry, and native folder selection).
+- **decided:** wire Tauri backend to Rclone async transfer RPC (`sync/copy`, `operations/copyfile`); enforce zero-loss capacity gate (`file_size <= remaining_vault_space`); stream live telemetry events (`vault://offload-progress`) via Tauri event bus; integrate `tauri-plugin-dialog` for native OS folder picker; connect Zustand `useTransferStore` and React UI components.
+- **shipped:** `src-tauri/src/commands/offload.rs`, `src/lib/api/offload.ts`, updated `DropzoneCard.tsx`, `TransferQueue.tsx`, `OffloadWorkspace.tsx`, and `useTransferStore.ts`; added 10 unit/component tests in `stores.test.ts`, `offload-api.test.ts`, and `offloader.test.tsx`; verified via 30/30 vitest tests, 19/19 cargo tests, and production build.
+
+
 
 
