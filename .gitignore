@@ -26,3 +26,7 @@ dist-ssr
 # Tauri sidecar binaries (large executables)
 src-tauri/binaries/*
 !src-tauri/binaries/.gitkeep
+
+# Local plan files
+docs/superpowers/
+

@@ -10,6 +10,20 @@ pub struct DaemonStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
+pub struct TransferringFile {
+    pub name: String,
+    #[specta(type = f64)]
+    pub bytes: u64,
+    #[specta(type = f64)]
+    pub size: u64,
+    pub speed: f64,
+    #[specta(type = Option<f64>)]
+    pub eta: Option<u64>,
+    pub percentage: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct CoreStats {
     #[specta(type = f64)]
     pub bytes: u64,
@@ -21,6 +35,20 @@ pub struct CoreStats {
     #[specta(type = f64)]
     pub errors: u64,
     pub fatal_error: bool,
+    #[specta(type = Option<f64>)]
+    pub eta: Option<u64>,
+    pub transferring: Option<Vec<TransferringFile>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct JobStatus {
+    #[specta(type = f64)]
+    pub id: u64,
+    pub finished: bool,
+    pub success: bool,
+    pub error: String,
+    pub duration: f64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Type)]
