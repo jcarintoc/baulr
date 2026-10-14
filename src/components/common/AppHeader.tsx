@@ -1,4 +1,4 @@
-import { IconVault, IconRefresh } from "@tabler/icons-react";
+import { IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeSelector } from "./ThemeSelector";
@@ -10,17 +10,11 @@ interface AppHeaderProps {
   onSync: () => void;
 }
 
-export function AppHeader({
-  isLoading,
-  daemonStatus,
-  onSync,
-}: AppHeaderProps) {
+export function AppHeader({ isLoading, daemonStatus, onSync }: AppHeaderProps) {
   return (
     <header className="border-b border-border px-6 py-4 flex items-center justify-between bg-card/60 backdrop-blur sticky top-0 z-10">
       <div data-tauri-drag-region className="flex items-center gap-3">
-        <div className="size-8 rounded-lg bg-vault-accent-muted text-vault-accent-text border border-vault-accent-border flex items-center justify-center">
-          <IconVault className="size-4" />
-        </div>
+        <img src="/baulr.svg" alt="Baulr" className="size-10 object-contain" />
         <div>
           <h1 className="font-semibold text-base tracking-tight leading-tight text-foreground">
             Baulr

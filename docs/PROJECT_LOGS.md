@@ -136,3 +136,15 @@
 - **asked:** review diff for over-engineering and apply simplifications.
 - **decided:** eliminate redundant obsidian `:root` override block in `src/App.css`, inline `--theme-hue` directly into `[data-theme]` blocks, use nullish coalescing in `ThemeSelector.tsx`, and compact toast markup in `OffloadWorkspace.tsx`.
 - **shipped:** net -25 lines across `src/App.css`, `src/components/common/ThemeSelector.tsx`, and `src/components/offloader/OffloadWorkspace.tsx`; verified via 20/20 vitest tests, 14/14 cargo tests, and production build.
+
+### [2026-10-14] Update App Logo to Baulr SVG
+- **asked:** change app logo to `public/baulr.svg`.
+- **decided:** render `baulr.svg` directly inside `AppHeader` brand badge and update browser favicon in `index.html`.
+- **shipped:** updated `src/components/common/AppHeader.tsx` and `index.html`; verified via 20/20 vitest tests, 14/14 cargo tests, and production build.
+
+### [2026-10-14] Update Tauri Desktop Application Icon
+- **asked:** use `dist/baulr.png` for Tauri application icon.
+- **decided:** preserve source icon at `app-icon.png` and `public/baulr.png`; regenerate complete desktop icon bundle (`icon.icns`, `icon.ico`, `32x32.png`, `128x128.png`, `128x128@2x.png`, `StoreLogo.png`, `Square*.png`) via `tauri icon`.
+- **shipped:** updated `src-tauri/icons/` desktop icons and added `app-icon.png` / `public/baulr.png`; verified via vitest, cargo test, and production build.
+
+
