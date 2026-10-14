@@ -9,7 +9,6 @@ use tokio::sync::RwLock;
 use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_account};
 use crate::commands::offload::{cancel_offload, inspect_path, pick_offload_folder, start_offload};
 use crate::commands::vault::get_vault_quota;
-pub use crate::commands::offload::{InspectPathResult, OffloadJobInfo, OffloadProgress};
 pub use crate::engine::{CloudAccount, VaultQuota};
 use crate::engine::{CoreStats, DaemonStatus, RcloneClient, RcloneDaemon};
 

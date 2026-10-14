@@ -39,7 +39,6 @@ export type CoreStats = {
 	errors: number | null,
 	fatalError: boolean,
 	eta: number | null,
-	transferring: TransferringFile[] | null,
 };
 
 export type DaemonStatus = {
@@ -59,15 +58,6 @@ export type OffloadJobInfo = {
 	path: string,
 	name: string,
 	sizeBytes: number | null,
-};
-
-export type TransferringFile = {
-	name: string,
-	bytes: number | null,
-	size: number | null,
-	speed: number | null,
-	eta: number | null,
-	percentage: number,
 };
 
 export type VaultQuota = {

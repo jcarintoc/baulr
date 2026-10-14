@@ -86,16 +86,11 @@ pub fn check_capacity(required_bytes: u64, available_bytes: u64) -> Result<(), S
 #[specta::specta]
 pub async fn inspect_path(path: String) -> Result<InspectPathResult, String> {
     let p = PathBuf::from(&path);
-    if !p.exists() {
-        return Err(format!("Path does not exist: {path}"));
-    }
-
+    let (size_bytes, is_dir) = calculate_path_size(&p)?;
     let name = p
         .file_name()
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "Unknown".to_string());
-
-    let (size_bytes, is_dir) = calculate_path_size(&p)?;
 
     Ok(InspectPathResult {
         path,
@@ -155,52 +150,34 @@ pub async fn start_offload(
             let job_status_res = client_clone.get_job_status(job_info_clone.job_id).await;
             let stats_res = client_clone.get_stats().await;
 
-            match job_status_res {
-                Ok(status) => {
-                    if status.finished {
-                        let final_status = if status.success {
-                            "completed"
-                        } else {
-                            "error"
-                        };
-                        let error = if !status.success {
-                            Some(status.error)
-                        } else {
-                            None
-                        };
+            let terminal = match job_status_res {
+                Ok(status) if status.finished => {
+                    let (st, err) = if status.success {
+                        ("completed", None)
+                    } else {
+                        ("error", Some(status.error))
+                    };
+                    Some((st, job_info_clone.size_bytes, err))
+                }
+                Err(err) => Some(("error", 0, Some(err))),
+                _ => None,
+            };
 
-                        let _ = app_handle.emit(
-                            "vault://offload-progress",
-                            OffloadProgress {
-                                job_id: job_info_clone.job_id,
-                                name: job_info_clone.name.clone(),
-                                transferred_bytes: job_info_clone.size_bytes,
-                                total_bytes: job_info_clone.size_bytes,
-                                speed_bytes_per_sec: 0.0,
-                                eta_seconds: 0,
-                                status: final_status.to_string(),
-                                error,
-                            },
-                        );
-                        break;
-                    }
-                }
-                Err(err) => {
-                    let _ = app_handle.emit(
-                        "vault://offload-progress",
-                        OffloadProgress {
-                            job_id: job_info_clone.job_id,
-                            name: job_info_clone.name.clone(),
-                            transferred_bytes: 0,
-                            total_bytes: job_info_clone.size_bytes,
-                            speed_bytes_per_sec: 0.0,
-                            eta_seconds: 0,
-                            status: "error".to_string(),
-                            error: Some(err),
-                        },
-                    );
-                    break;
-                }
+            if let Some((status, transferred, error)) = terminal {
+                let _ = app_handle.emit(
+                    "vault://offload-progress",
+                    OffloadProgress {
+                        job_id: job_info_clone.job_id,
+                        name: job_info_clone.name.clone(),
+                        transferred_bytes: transferred,
+                        total_bytes: job_info_clone.size_bytes,
+                        speed_bytes_per_sec: 0.0,
+                        eta_seconds: 0,
+                        status: status.to_string(),
+                        error,
+                    },
+                );
+                break;
             }
 
             if let Ok(stats) = stats_res {
@@ -255,17 +232,10 @@ pub async fn pick_offload_folder(
     .await
     .map_err(|e| format!("Dialog task failed: {e}"))?;
 
-    match folder_opt {
-        Some(file_path) => {
-            let path_str = file_path
-                .as_path()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|| file_path.to_string());
-            let inspected = inspect_path(path_str).await?;
-            Ok(Some(inspected))
-        }
-        None => Ok(None),
-    }
+    let Some(file_path) = folder_opt else {
+        return Ok(None);
+    };
+    inspect_path(file_path.to_string()).await.map(Some)
 }
 
 #[cfg(test)]

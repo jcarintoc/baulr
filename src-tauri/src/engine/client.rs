@@ -1,6 +1,12 @@
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
 use crate::engine::models::{AboutFs, CoreStats, JobStatus, OAuthStatus};
+
+#[derive(Deserialize)]
+struct JobIdResponse {
+    jobid: u64,
+}
 
 #[derive(Debug, Clone)]
 pub struct RcloneClient {
@@ -243,14 +249,10 @@ impl RcloneClient {
             return Err(format!("Folder transfer failed: {body}"));
         }
 
-        let data = resp
-            .json::<serde_json::Value>()
+        resp.json::<JobIdResponse>()
             .await
-            .map_err(|e| format!("Failed to parse transfer job response: {e}"))?;
-
-        data.get("jobid")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| "Missing jobid in Rclone sync response".to_string())
+            .map(|r| r.jobid)
+            .map_err(|e| format!("Failed to parse transfer job response: {e}"))
     }
 
     pub async fn start_copy_file(
@@ -282,14 +284,10 @@ impl RcloneClient {
             return Err(format!("File transfer failed: {body}"));
         }
 
-        let data = resp
-            .json::<serde_json::Value>()
+        resp.json::<JobIdResponse>()
             .await
-            .map_err(|e| format!("Failed to parse file transfer response: {e}"))?;
-
-        data.get("jobid")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| "Missing jobid in Rclone copyfile response".to_string())
+            .map(|r| r.jobid)
+            .map_err(|e| format!("Failed to parse file transfer response: {e}"))
     }
 
     pub async fn get_job_status(&self, job_id: u64) -> Result<JobStatus, String> {
@@ -375,35 +373,5 @@ mod tests {
         assert!(status.success);
         assert_eq!(status.error, "");
         assert_eq!(status.duration, 4.125);
-    }
-
-    #[test]
-    fn test_core_stats_with_transferring_deserialization() {
-        let json = r#"{
-            "bytes": 5242880,
-            "speed": 1048576.0,
-            "transfers": 1,
-            "totalBytes": 10485760,
-            "errors": 0,
-            "fatalError": false,
-            "eta": 5,
-            "transferring": [
-                {
-                    "name": "archive.zip",
-                    "bytes": 5242880,
-                    "size": 10485760,
-                    "speed": 1048576.0,
-                    "eta": 5,
-                    "percentage": 50
-                }
-            ]
-        }"#;
-        let stats: CoreStats = serde_json::from_str(json).expect("deserialize core stats");
-        assert_eq!(stats.bytes, 5242880);
-        assert_eq!(stats.eta, Some(5));
-        let files = stats.transferring.expect("transferring files list");
-        assert_eq!(files.len(), 1);
-        assert_eq!(files[0].name, "archive.zip");
-        assert_eq!(files[0].percentage, 50);
     }
 }

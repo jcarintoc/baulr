@@ -147,4 +147,10 @@
 - **decided:** preserve source icon at `app-icon.png` and `public/baulr.png`; regenerate complete desktop icon bundle (`icon.icns`, `icon.ico`, `32x32.png`, `128x128.png`, `128x128@2x.png`, `StoreLogo.png`, `Square*.png`) via `tauri icon`.
 - **shipped:** updated `src-tauri/icons/` desktop icons and added `app-icon.png` / `public/baulr.png`; verified via vitest, cargo test, and production build.
 
+### [2026-10-14] Ponytail Review Cleanup (Net -89 Lines)
+- **asked:** review diff across Milestone 3 offload pipeline commits for over-engineering and apply simplifications.
+- **decided:** prune unused speculative `TransferringFile` struct and deserialization test; extract `JobIdResponse` in `RcloneClient` for `start_copy`/`start_copy_file`; eliminate redundant `p.exists()` filesystem stat in `inspect_path`; unify terminal progress emission in `start_offload`; compact `pick_offload_folder` with `let Some(...) else`; remove unused public re-exports in `lib.rs`.
+- **shipped:** net -89 lines across `src-tauri/src/engine/` (`client.rs`, `models.rs`, `mod.rs`), `src-tauri/src/commands/offload.rs`, `src-tauri/src/lib.rs`, and `src/lib/bindings.ts`; verified via 25/25 vitest tests, 19/19 cargo tests, and production build.
+
+
 
