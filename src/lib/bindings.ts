@@ -13,6 +13,12 @@ export const commands = {
 	inspectPath: (path: string) => typedError<InspectPathResult, string>(__TAURI_INVOKE("inspect_path", { path })),
 	startOffload: (localPath: string) => typedError<OffloadJobInfo, string>(__TAURI_INVOKE("start_offload", { localPath })),
 	cancelOffload: (jobId: number) => typedError<null, string>(__TAURI_INVOKE("cancel_offload", { jobId })),
+	pickOffloadFolder: () => typedError<{
+	path: string,
+	name: string,
+	sizeBytes: number | null,
+	isDir: boolean,
+} | null, string>(__TAURI_INVOKE("pick_offload_folder")),
 };
 
 /* Types */

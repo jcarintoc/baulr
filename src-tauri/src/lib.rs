@@ -7,7 +7,7 @@ use tauri_specta::{collect_commands, Builder};
 use tokio::sync::RwLock;
 
 use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_account};
-use crate::commands::offload::{cancel_offload, inspect_path, start_offload};
+use crate::commands::offload::{cancel_offload, inspect_path, pick_offload_folder, start_offload};
 use crate::commands::vault::get_vault_quota;
 pub use crate::commands::offload::{InspectPathResult, OffloadJobInfo, OffloadProgress};
 pub use crate::engine::{CloudAccount, VaultQuota};
@@ -58,7 +58,8 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         cancel_oauth,
         inspect_path,
         start_offload,
-        cancel_offload
+        cancel_offload,
+        pick_offload_folder
     ])
 }
 
@@ -80,6 +81,7 @@ pub fn run() {
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .setup(move |app| {
             let app_handle = app.handle().clone();

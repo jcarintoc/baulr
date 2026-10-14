@@ -3,6 +3,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::Emitter;
+use tauri_plugin_dialog::DialogExt;
 
 use crate::commands::vault::fetch_vault_quota_internal;
 use crate::engine::VAULT_UNION_NAME;
@@ -236,6 +237,35 @@ pub async fn cancel_offload(
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
     client.stop_job(job_id as u64).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn pick_offload_folder(
+    app: tauri::AppHandle,
+) -> Result<Option<InspectPathResult>, String> {
+    let dialog_app = app.clone();
+    let folder_opt = tokio::task::spawn_blocking(move || {
+        dialog_app
+            .dialog()
+            .file()
+            .set_title("Select Folder to Free Up Space")
+            .blocking_pick_folder()
+    })
+    .await
+    .map_err(|e| format!("Dialog task failed: {e}"))?;
+
+    match folder_opt {
+        Some(file_path) => {
+            let path_str = file_path
+                .as_path()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| file_path.to_string());
+            let inspected = inspect_path(path_str).await?;
+            Ok(Some(inspected))
+        }
+        None => Ok(None),
+    }
 }
 
 #[cfg(test)]
