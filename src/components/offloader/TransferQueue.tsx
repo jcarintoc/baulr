@@ -3,17 +3,20 @@ import {
   IconLoader2,
   IconCircleCheck,
   IconArrowUpRight,
+  IconX,
 } from "@tabler/icons-react";
 import type { TransferQueueItem } from "@/store/useTransferStore";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface TransferQueueProps {
   items: TransferQueueItem[];
+  onCancel?: (jobId: number) => void;
 }
 
-export function TransferQueue({ items }: TransferQueueProps) {
+export function TransferQueue({ items, onCancel }: TransferQueueProps) {
   if (items.length === 0) return null;
 
   return (
@@ -22,7 +25,10 @@ export function TransferQueue({ items }: TransferQueueProps) {
         <CardTitle className="font-semibold text-sm text-foreground">
           Active Offload Queue ({items.length})
         </CardTitle>
-        <Badge variant="outline" className="border-vault-accent-border text-vault-accent-text bg-vault-accent-muted gap-1.5">
+        <Badge
+          variant="outline"
+          className="border-vault-accent-border text-vault-accent-text bg-vault-accent-muted gap-1.5"
+        >
           <IconLoader2 className="animate-spin" />
           <span>Backing up to Cloud Vault</span>
         </Badge>
@@ -32,7 +38,7 @@ export function TransferQueue({ items }: TransferQueueProps) {
         {items.map((item) => {
           const percent = Math.min(
             100,
-            Math.round((item.transferredBytes / item.sizeBytes) * 100)
+            Math.round((item.transferredBytes / (item.sizeBytes || 1)) * 100)
           );
 
           return (
@@ -46,8 +52,23 @@ export function TransferQueue({ items }: TransferQueueProps) {
                   <span className="font-medium text-foreground">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-3 text-muted-foreground tabular-nums">
-                  <span>{formatSpeed(item.speedBytesPerSec)}</span>
-                  <span>ETA: {formatDuration(item.etaSeconds)}</span>
+                  {item.speedBytesPerSec > 0 && (
+                    <span>{formatSpeed(item.speedBytesPerSec)}</span>
+                  )}
+                  {item.etaSeconds > 0 && (
+                    <span>ETA: {formatDuration(item.etaSeconds)}</span>
+                  )}
+                  {item.jobId && onCancel && item.status === "uploading" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onCancel(item.jobId!)}
+                      title="Cancel transfer"
+                      className="size-6 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
+                    >
+                      <IconX className="size-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -57,10 +78,16 @@ export function TransferQueue({ items }: TransferQueueProps) {
                 <span>
                   {formatBytes(item.transferredBytes)} / {formatBytes(item.sizeBytes)} ({percent}%)
                 </span>
-                <span className="flex items-center gap-1 text-vault-accent-text">
-                  <IconCircleCheck className="size-3" />
-                  <span>Safely backed up</span>
-                </span>
+                {item.status === "verified" ? (
+                  <span className="flex items-center gap-1 text-vault-accent-text">
+                    <IconCircleCheck className="size-3" />
+                    <span>Safely backed up</span>
+                  </span>
+                ) : item.status === "error" ? (
+                  <span className="text-destructive">{item.error ?? "Upload failed"}</span>
+                ) : (
+                  <span className="text-muted-foreground">Backing up...</span>
+                )}
               </div>
             </Card>
           );

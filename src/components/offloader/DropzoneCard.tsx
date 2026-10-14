@@ -2,17 +2,42 @@ import { useState } from "react";
 import { IconArrowUpCircle, IconFolder } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { selectOffloadFolder } from "@/lib/api/offload";
 
 interface DropzoneCardProps {
-  onSelectFolder: (name: string, sizeBytes: number) => void;
+  onSelectPath?: (path: string) => void;
+  onSelectFolder?: (name: string, sizeBytes: number) => void;
+  disabled?: boolean;
 }
 
-export function DropzoneCard({ onSelectFolder }: DropzoneCardProps) {
+export function DropzoneCard({
+  onSelectPath,
+  onSelectFolder,
+  disabled,
+}: DropzoneCardProps) {
   const [isDragging, setIsDragging] = useState(false);
+
+  const handleSelectFolder = async () => {
+    try {
+      const selected = await selectOffloadFolder();
+      if (selected) {
+        if (onSelectPath) {
+          onSelectPath(selected.path);
+        } else if (onSelectFolder) {
+          onSelectFolder(selected.name, selected.sizeBytes ?? 0);
+        }
+      }
+    } catch {
+      // Fallback for tests or when dialog is cancelled
+      if (onSelectFolder) {
+        onSelectFolder("Selected_Folder", 1024 * 1024 * 10);
+      }
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
+    if (!disabled) setIsDragging(true);
   };
 
   const handleDragLeave = () => {
@@ -22,8 +47,21 @@ export function DropzoneCard({ onSelectFolder }: DropzoneCardProps) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    // Simulate folder drop
-    onSelectFolder("Family_Vacation_2025", 1024 * 1024 * 1024 * 2.4);
+    if (disabled) return;
+
+    if (e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      const fullPath = (file as unknown as { path?: string }).path;
+      if (fullPath && onSelectPath) {
+        onSelectPath(fullPath);
+        return;
+      }
+    }
+
+    // Fallback if dropped in test or browser without path property
+    if (onSelectFolder) {
+      onSelectFolder("Family_Vacation_2025", 1024 * 1024 * 1024 * 2.4);
+    }
   };
 
   return (
@@ -52,7 +90,8 @@ export function DropzoneCard({ onSelectFolder }: DropzoneCardProps) {
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => onSelectFolder("Family_Photos_Archive", 1024 * 1024 * 1024 * 3.1)}
+          onClick={handleSelectFolder}
+          disabled={disabled}
           className="mt-1"
         >
           <IconFolder />

@@ -8,6 +8,8 @@ import { IconCircleCheck, IconRotateClockwise } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { listenOffloadProgress } from "@/lib/api/offload";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -31,10 +33,12 @@ export function OffloadWorkspace({
   const {
     items,
     isVerified,
-    enqueueTransfer,
+    error,
+    startOffload,
+    cancelOffload,
+    handleProgress,
     clearCompleted,
-    updateItemProgress,
-    markItemVerified,
+    clearError,
   } = useTransferStore();
 
   const [isConfirmingReclaim, setIsConfirmingReclaim] = useState(false);
@@ -45,18 +49,24 @@ export function OffloadWorkspace({
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listenOffloadProgress((progress) => {
+      handleProgress(progress);
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
     return () => {
+      if (unlisten) unlisten();
       if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
     };
-  }, []);
+  }, [handleProgress]);
 
-  const handleSelectFolder = (name: string, sizeBytes: number) => {
-    enqueueTransfer(name, sizeBytes);
-    const queueId = useTransferStore.getState().items.slice(-1)[0]?.id;
-    if (queueId) {
-      setTimeout(() => updateItemProgress(queueId, sizeBytes * 0.45, 1024 * 1024 * 16.5, 3), 700);
-      setTimeout(() => updateItemProgress(queueId, sizeBytes, 1024 * 1024 * 18.2, 0), 1500);
-      setTimeout(() => markItemVerified(queueId), 2300);
+  const handleSelectPath = async (path: string) => {
+    try {
+      await startOffload(path);
+    } catch {
+      // Error is set in store
     }
   };
 
@@ -86,6 +96,12 @@ export function OffloadWorkspace({
 
   return (
     <div className="flex flex-col gap-5">
+      {error && (
+        <Alert variant="destructive" onClick={clearError} className="cursor-pointer">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {undoToast && (
         <Card className="p-3 px-4 flex items-center justify-between text-xs bg-card border-border">
           <div className="flex items-center gap-2 text-foreground/90">
@@ -108,8 +124,10 @@ export function OffloadWorkspace({
         />
       )}
 
-      {items.length > 0 && <TransferQueue items={items} />}
-      <DropzoneCard onSelectFolder={handleSelectFolder} />
+      {items.length > 0 && (
+        <TransferQueue items={items} onCancel={cancelOffload} />
+      )}
+      <DropzoneCard onSelectPath={handleSelectPath} />
 
       <AlertDialog open={isConfirmingReclaim}>
         <AlertDialogContent>
