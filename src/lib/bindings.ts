@@ -10,6 +10,9 @@ export const commands = {
 	connectAccount: (provider: string) => typedError<VaultQuota, string>(__TAURI_INVOKE("connect_account", { provider })),
 	disconnectAccount: (provider: string) => typedError<VaultQuota, string>(__TAURI_INVOKE("disconnect_account", { provider })),
 	cancelOauth: () => typedError<null, string>(__TAURI_INVOKE("cancel_oauth")),
+	inspectPath: (path: string) => typedError<InspectPathResult, string>(__TAURI_INVOKE("inspect_path", { path })),
+	startOffload: (localPath: string) => typedError<OffloadJobInfo, string>(__TAURI_INVOKE("start_offload", { localPath })),
+	cancelOffload: (jobId: number) => typedError<null, string>(__TAURI_INVOKE("cancel_offload", { jobId })),
 };
 
 /* Types */
@@ -29,11 +32,36 @@ export type CoreStats = {
 	totalBytes: number | null,
 	errors: number | null,
 	fatalError: boolean,
+	eta: number | null,
+	transferring: TransferringFile[] | null,
 };
 
 export type DaemonStatus = {
 	isRunning: boolean,
 	port: number,
+};
+
+export type InspectPathResult = {
+	path: string,
+	name: string,
+	sizeBytes: number | null,
+	isDir: boolean,
+};
+
+export type OffloadJobInfo = {
+	jobId: number | null,
+	path: string,
+	name: string,
+	sizeBytes: number | null,
+};
+
+export type TransferringFile = {
+	name: string,
+	bytes: number | null,
+	size: number | null,
+	speed: number | null,
+	eta: number | null,
+	percentage: number,
 };
 
 export type VaultQuota = {

@@ -7,7 +7,9 @@ use tauri_specta::{collect_commands, Builder};
 use tokio::sync::RwLock;
 
 use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_account};
+use crate::commands::offload::{cancel_offload, inspect_path, start_offload};
 use crate::commands::vault::get_vault_quota;
+pub use crate::commands::offload::{InspectPathResult, OffloadJobInfo, OffloadProgress};
 pub use crate::engine::{CloudAccount, VaultQuota};
 use crate::engine::{CoreStats, DaemonStatus, RcloneClient, RcloneDaemon};
 
@@ -53,7 +55,10 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         get_core_stats,
         connect_account,
         disconnect_account,
-        cancel_oauth
+        cancel_oauth,
+        inspect_path,
+        start_offload,
+        cancel_offload
     ])
 }
 
