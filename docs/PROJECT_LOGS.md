@@ -217,4 +217,9 @@
 - **decided:** resolve bundled `rclone` relative to `current_exe()` (`Contents/MacOS/rclone` on macOS, adjacent directory on Windows); add Windows `CREATE_NO_WINDOW` process flags; set desktop window bounds to 840x620 (min 720x520); configure `.github/workflows/release.yml` matrix build.
 - **shipped:** updated `src-tauri/src/engine/daemon.rs`, `src-tauri/tauri.conf.json`, `docs/ROADMAP.md`, created `.github/workflows/release.yml`, built standalone `Baulr.app` and `Baulr_0.1.0_aarch64.dmg` (32.7 MB); verified 45/45 vitest tests, 4/4 daemon tests, and clean binary launch.
 
+### [2026-10-15] Minimal Standalone Download Landing Page
+- **asked:** create a temporary minimal landing page within this repo with direct links to download the application.
+- **decided:** build a self-contained, zero-dependency static page in `landing/index.html` referencing GitHub Releases and `.dmg` downloads; bundle logo assets; keep in repo to minimize overhead ahead of dedicated marketing site.
+- **shipped:** created `landing/index.html`, copied `baulr.svg` and `baulr.png` into `landing/`, and verified clean browser render.
+
 
