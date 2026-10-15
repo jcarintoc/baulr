@@ -7,6 +7,9 @@ use tauri_specta::{collect_commands, Builder};
 use tokio::sync::RwLock;
 
 use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_account};
+use crate::commands::browser::{
+    delete_vault_item, download_vault_item, list_vault_files, pick_destination_folder,
+};
 use crate::commands::offload::{
     cancel_offload, inspect_path, pick_offload_folder, reclaim_paths, start_offload,
 };
@@ -51,7 +54,11 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         start_offload,
         cancel_offload,
         pick_offload_folder,
-        reclaim_paths
+        reclaim_paths,
+        list_vault_files,
+        delete_vault_item,
+        download_vault_item,
+        pick_destination_folder
     ])
 }
 

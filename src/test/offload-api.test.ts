@@ -63,6 +63,7 @@ describe("Offload API module", () => {
         name: "photos",
         sizeBytes: 5000,
         targetProvider: "Google Drive",
+        isDir: true,
       },
     });
 

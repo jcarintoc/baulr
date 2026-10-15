@@ -1,7 +1,9 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
-use crate::engine::models::{AboutFs, CoreStats, JobStatus, OAuthStatus};
+use crate::engine::models::{
+    AboutFs, CheckResult, CoreStats, JobStatus, OAuthStatus, RcloneItem, RcloneListResponse,
+};
 
 #[derive(Deserialize)]
 struct JobIdResponse {
@@ -328,6 +330,101 @@ impl RcloneClient {
         Ok(())
     }
 
+    pub async fn list_files(&self, fs: &str, remote: &str) -> Result<Vec<RcloneItem>, String> {
+        let url = format!("{}/operations/list", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "fs": fs, "remote": remote }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to list vault files: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Listing vault files failed: {body}"));
+        }
+
+        let list_resp = resp
+            .json::<RcloneListResponse>()
+            .await
+            .map_err(|e| format!("Failed to parse file list: {e}"))?;
+
+        Ok(list_resp.list)
+    }
+
+    pub async fn delete_file(&self, fs: &str, remote: &str) -> Result<(), String> {
+        let url = format!("{}/operations/deletefile", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "fs": fs, "remote": remote }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to delete vault file: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Deleting vault file failed: {body}"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn purge_dir(&self, fs: &str, remote: &str) -> Result<(), String> {
+        let url = format!("{}/operations/purge", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "fs": fs, "remote": remote }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to delete vault folder: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Deleting vault folder failed: {body}"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn check_hashes(
+        &self,
+        src_fs: &str,
+        dst_fs: &str,
+        filter_file: Option<&str>,
+    ) -> Result<CheckResult, String> {
+        let url = format!("{}/operations/check", self.base_url);
+        let mut payload = serde_json::json!({
+            "srcFs": src_fs,
+            "dstFs": dst_fs,
+            "oneWay": true,
+            "download": false,
+        });
+
+        if let Some(file) = filter_file {
+            payload["_filter"] = serde_json::json!({ "IncludeRule": [format!("/{file}")] });
+        }
+
+        let resp = self
+            .http
+            .post(&url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to check hashes: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Hash check failed: {body}"));
+        }
+
+        resp.json::<CheckResult>()
+            .await
+            .map_err(|e| format!("Failed to parse hash check result: {e}"))
+    }
+
     pub async fn quit(&self) -> Result<(), String> {
         let url = format!("{}/core/quit", self.base_url);
         let _ = self
@@ -374,4 +471,58 @@ mod tests {
         assert_eq!(status.error, "");
         assert_eq!(status.duration, 4.125);
     }
+
+    #[test]
+    fn test_rclone_item_deserialization() {
+        let json = r#"{
+            "Path": "documents/report.pdf",
+            "Name": "report.pdf",
+            "Size": 1048576,
+            "MimeType": "application/pdf",
+            "ModTime": "2026-10-15T19:00:00Z",
+            "IsDir": false
+        }"#;
+        let item: RcloneItem = serde_json::from_str(json).expect("deserialize rclone item");
+        assert_eq!(item.name, "report.pdf");
+        assert_eq!(item.path, "documents/report.pdf");
+        assert_eq!(item.size, 1048576);
+        assert_eq!(item.mime_type.as_deref(), Some("application/pdf"));
+        assert_eq!(item.mod_time.as_deref(), Some("2026-10-15T19:00:00Z"));
+        assert!(!item.is_dir);
+
+        let list_json = format!(r#"{{"list": [{json}]}}"#);
+        let list_resp: RcloneListResponse = serde_json::from_str(&list_json).expect("deserialize list response");
+        assert_eq!(list_resp.list.len(), 1);
+        assert_eq!(list_resp.list[0].name, "report.pdf");
+    }
+
+    #[test]
+    fn test_check_result_deserialization() {
+        let json = r#"{
+            "differ": [],
+            "error": [],
+            "hashType": "md5",
+            "missingOnDst": [],
+            "missingOnSrc": [],
+            "status": "OK",
+            "success": true
+        }"#;
+        let check: CheckResult = serde_json::from_str(json).expect("deserialize check result");
+        assert!(check.success);
+        assert_eq!(check.status, "OK");
+        assert!(check.differ.is_empty());
+        assert!(check.error.is_empty());
+
+        let failure_json = r#"{
+            "differ": ["corrupt.png"],
+            "error": ["failed to read"],
+            "status": "1 differences found",
+            "success": false
+        }"#;
+        let fail_check: CheckResult = serde_json::from_str(failure_json).expect("deserialize failure check");
+        assert!(!fail_check.success);
+        assert_eq!(fail_check.differ, vec!["corrupt.png".to_string()]);
+        assert_eq!(fail_check.error, vec!["failed to read".to_string()]);
+    }
 }
+

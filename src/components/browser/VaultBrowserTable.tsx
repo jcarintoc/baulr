@@ -1,51 +1,56 @@
-import { useState } from "react";
-import {
-  IconFileText,
-  IconSearch,
-  IconDownload,
-  IconTrash,
-  IconCloud,
-  IconArchive,
-  IconFolder,
-} from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import { IconFileText, IconSearch, IconArchive } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
-import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
+import { useRemoteFilesStore, RemoteVaultItem } from "@/store/useRemoteFilesStore";
+import { listenToDownloadProgress } from "@/lib/api/browser";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  Empty,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-  EmptyDescription,
-} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableHeader, TableBody, TableRow, TableHead } from "@/components/ui/table";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { VaultItemRow } from "@/components/browser/VaultItemRow";
+import { DownloadBanner } from "@/components/browser/DownloadBanner";
+import { DeleteVaultItemDialog } from "@/components/browser/DeleteVaultItemDialog";
 
 export function VaultBrowserTable() {
-  const { files, searchQuery, setSearchQuery, deleteToCloudTrash } =
-    useRemoteFilesStore();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const {
+    files, isLoading, searchQuery, activeDownloads,
+    setSearchQuery, fetchFiles, deleteFile, downloadFile,
+    handleDownloadProgress, dismissDownload,
+  } = useRemoteFilesStore();
+  const [pendingDelete, setPendingDelete] = useState<RemoteVaultItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
 
-  const filtered = files.filter((f) =>
-    f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-  const totalBytes = files.reduce((acc, f) => acc + f.sizeBytes, 0);
+  useEffect(() => {
+    fetchFiles();
+    const unlisten = listenToDownloadProgress(handleDownloadProgress);
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [fetchFiles, handleDownloadProgress]);
 
-  const handleDelete = (id: string) => {
-    setDeletingId(id);
-    setTimeout(() => {
-      deleteToCloudTrash(id);
-      setDeletingId(null);
-    }, 200);
+  const filtered = files.filter((f) => f.Name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const totalBytes = files.reduce((acc, f) => acc + (f.Size && f.Size > 0 ? f.Size : 0), 0);
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteFile(pendingDelete.Path, pendingDelete.IsDir);
+      setPendingDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDownload = async (item: RemoteVaultItem) => {
+    setDownloadingPath(item.Path);
+    try {
+      await downloadFile(item);
+    } finally {
+      setDownloadingPath(null);
+    }
   };
 
   return (
@@ -56,8 +61,7 @@ export function VaultBrowserTable() {
             <IconArchive className="size-5 text-vault-accent-text" />
             <div>
               <h3 className="font-semibold text-sm text-foreground">
-                Vault Directory ({files.length}{" "}
-                {files.length === 1 ? "file" : "files"})
+                Vault Directory ({files.length} {files.length === 1 ? "item" : "items"})
               </h3>
               <p className="text-xs text-muted-foreground tabular-nums">
                 Total pooled archive: {formatBytes(totalBytes)}
@@ -77,8 +81,19 @@ export function VaultBrowserTable() {
         </CardContent>
       </Card>
 
+      <DownloadBanner
+        downloads={Object.values(activeDownloads)}
+        onDismiss={dismissDownload}
+      />
+
       <Card className="border-border bg-card/75 overflow-hidden p-0">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="p-4 space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <Empty className="py-12">
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -98,79 +113,33 @@ export function VaultBrowserTable() {
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground">Name</TableHead>
                 <TableHead className="text-muted-foreground">Size</TableHead>
-                <TableHead className="text-muted-foreground">
-                  Cloud Target
-                </TableHead>
-                <TableHead className="text-muted-foreground">
-                  Offloaded
-                </TableHead>
-                <TableHead className="text-muted-foreground text-right">
-                  Actions
-                </TableHead>
+                <TableHead className="text-muted-foreground">Modified</TableHead>
+                <TableHead className="text-muted-foreground text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border/60">
-              {filtered.map((file) => (
-                <TableRow
-                  key={file.id}
-                  className="border-border/60 hover:bg-muted/30"
-                >
-                  <TableCell className="text-foreground font-medium">
-                    <div className="flex items-center gap-2">
-                      <IconFileText className="size-4 text-muted-foreground shrink-0" />
-                      <span className="truncate max-w-xs">{file.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-foreground/90 tabular-nums">
-                    {formatBytes(file.sizeBytes)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="border-border text-foreground/80 gap-1.5"
-                    >
-                      <IconCloud className="text-vault-accent-text" />
-                      <span>{file.provider}</span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground tabular-nums">
-                    {file.modifiedAt}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        title="Download file"
-                      >
-                        <IconDownload />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        title="Move to Cloud Trash"
-                        onClick={() => handleDelete(file.id)}
-                        disabled={deletingId === file.id}
-                        className="hover:text-destructive"
-                      >
-                        <IconTrash />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+              {filtered.map((item) => (
+                <VaultItemRow
+                  key={item.Path}
+                  item={item}
+                  isDownloading={downloadingPath === item.Path}
+                  activeDownload={activeDownloads[item.Path]}
+                  onDownload={handleDownload}
+                  onDelete={setPendingDelete}
+                />
               ))}
             </TableBody>
           </Table>
         )}
       </Card>
 
-      <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-        <IconFolder className="size-3.5 text-vault-accent-text" />
-        <span>
-          Deleted files are moved to your cloud trash so you can restore them
-          anytime.
-        </span>
-      </div>
+      <DeleteVaultItemDialog
+        item={pendingDelete}
+        isOpen={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

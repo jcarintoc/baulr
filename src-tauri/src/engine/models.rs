@@ -84,4 +84,34 @@ pub struct VaultQuota {
     pub accounts: Vec<CloudAccount>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "PascalCase")]
+pub struct RcloneItem {
+    pub path: String,
+    pub name: String,
+    #[specta(type = f64)]
+    pub size: i64,
+    pub mime_type: Option<String>,
+    pub mod_time: Option<String>,
+    pub is_dir: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RcloneListResponse {
+    #[serde(default)]
+    pub list: Vec<RcloneItem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckResult {
+    pub success: bool,
+    pub status: String,
+    #[serde(default)]
+    pub differ: Vec<String>,
+    #[serde(default)]
+    pub error: Vec<String>,
+}
+
+
 

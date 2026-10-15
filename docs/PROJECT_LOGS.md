@@ -191,3 +191,25 @@
 - **asked:** update Tauri application icons in `src-tauri/icons` to match newly updated SVG and PNG in `public/`.
 - **decided:** regenerate the full desktop Tauri icon suite (`icon.icns`, `icon.ico`, `icon.png`, `Square*`, `StoreLogo`, `32x32`, `128x128`, `128x128@2x`) from `public/baulr.png` via `tauri icon` and sync root `app-icon.png`.
 - **shipped:** regenerated all desktop icons in `src-tauri/icons/` and synchronized `app-icon.png`; verified via 32 vitest tests, 20 cargo tests, and production build.
+
+### [2026-10-15] Milestone 4: Live Cloud Vault Browser, File Retrieval & Verification Gate
+- **asked:** implement Milestone 4 (live cloud vault file browsing, item deletion with confirmation, file/folder download to native OS picker destination, and post-offload hash verification gate).
+- **decided:** add Rclone RPC operations (`operations/list`, `operations/deletefile`, `operations/purge`, `operations/check`); expose Tauri commands via Specta (`list_vault_files`, `delete_vault_item`, `download_vault_item`, `pick_destination_folder`); run automated hash verification gate before offload completion; modularize UI into `VaultBrowserTable.tsx`, `VaultItemRow.tsx`, and `DeleteVaultItemDialog.tsx` strictly under 150 lines with clean outcome-focused copy.
+- **shipped:** `src-tauri/src/commands/browser.rs`, updated `models.rs`, `client.rs`, `offload.rs`, `lib.rs`, `src/lib/api/browser.ts`, `useRemoteFilesStore.ts`, `VaultBrowserTable.tsx`, `VaultItemRow.tsx`, `DeleteVaultItemDialog.tsx`, 6 new store tests, 5 new component tests, and 4 new backend tests; verified via 24/24 cargo tests, 0 clippy warnings, 43/43 vitest tests, and production build.
+
+### [2026-10-15] Live Download Progress Telemetry & In-Row Feedback
+- **asked:** show download progress and confirmation feedback when downloading files/folders so user knows download started and tracks completion.
+- **decided:** emit `vault://download-progress` events from background telemetry loop in `download_vault_item`; render live progress percentage and saved state directly on `VaultItemRow.tsx`; show an active `DownloadBanner.tsx` with speed, ETA, destination, and completion badge; keep components strictly under 150 lines.
+- **shipped:** updated `src-tauri/src/commands/browser.rs`, `src/lib/api/browser.ts`, `src/store/useRemoteFilesStore.ts`, `src/components/browser/DownloadBanner.tsx`, `src/components/browser/VaultItemRow.tsx`, `src/components/browser/VaultBrowserTable.tsx`, added 2 new tests in `browser-store.test.ts` and `browser-table.test.tsx`; verified via 45/45 vitest tests, 0 clippy warnings, and production build.
+
+### [2026-10-15] Repeated Downloads & Destination Collision Renaming
+- **asked:** allow downloading the same folder or file multiple times to the same destination without silent 0-byte syncs or locked UI buttons.
+- **decided:** implement `resolve_unique_destination_name` in `browser.rs` to auto-disambiguate existing files and folders (`photos (1)`, `photos (2)`); keep download action button accessible in `VaultItemRow.tsx` whenever item is not actively downloading.
+- **shipped:** updated `src-tauri/src/commands/browser.rs`, `VaultItemRow.tsx`, added collision resolution unit tests and re-download UI test; verified via 46/46 vitest tests, 0 clippy warnings, and production build.
+
+### [2026-10-15] Ponytail Review Simplification (-31 Lines)
+- **asked:** prune dead prototype methods and redundant mock tests identified during ponytail-review.
+- **decided:** delete dead `deleteToCloudTrash` action and implementation from `useRemoteFilesStore.ts`; delete obsolete mock test block from `stores.test.ts` (covered by `browser-store.test.ts`).
+- **shipped:** net -31 lines across `useRemoteFilesStore.ts` and `stores.test.ts`; verified 45/45 vitest tests, 0 clippy warnings, and production build.
+
+

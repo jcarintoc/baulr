@@ -20,6 +20,7 @@
 - [[Milestone 2: OAuth & Cloud Union Management]]
 - [[Vault Sync]]
 - [[Integrity Verification & Safe Reclamation]]
+- [[Milestone 4: Cloud Browser & File Retrieval]]
 
 
 
