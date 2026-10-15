@@ -57,12 +57,16 @@ impl RcloneClient {
         Ok(())
     }
 
-    pub async fn get_stats(&self) -> Result<CoreStats, String> {
+    pub async fn get_stats(&self, group: Option<&str>) -> Result<CoreStats, String> {
         let url = format!("{}/core/stats", self.base_url);
+        let mut body = serde_json::Map::new();
+        if let Some(g) = group {
+            body.insert("group".to_string(), serde_json::Value::String(g.to_string()));
+        }
         let resp = self
             .http
             .post(&url)
-            .json(&serde_json::json!({}))
+            .json(&serde_json::Value::Object(body))
             .send()
             .await
             .map_err(|e| format!("Failed to query core stats: {e}"))?;
@@ -254,10 +258,10 @@ impl RcloneClient {
             .map_err(|e| format!("Failed to parse {label} response: {e}"))
     }
 
-    pub async fn start_copy(&self, src_fs: &str, dst_fs: &str) -> Result<u64, String> {
+    pub async fn start_copy(&self, src_fs: &str, dst_fs: &str, group: &str) -> Result<u64, String> {
         self.post_job(
             "sync/copy",
-            serde_json::json!({ "srcFs": src_fs, "dstFs": dst_fs, "_async": true }),
+            serde_json::json!({ "srcFs": src_fs, "dstFs": dst_fs, "_async": true, "_group": group }),
             "folder transfer",
         )
         .await
@@ -269,6 +273,7 @@ impl RcloneClient {
         src_remote: &str,
         dst_fs: &str,
         dst_remote: &str,
+        group: &str,
     ) -> Result<u64, String> {
         self.post_job(
             "operations/copyfile",
@@ -277,7 +282,8 @@ impl RcloneClient {
                 "srcRemote": src_remote,
                 "dstFs": dst_fs,
                 "dstRemote": dst_remote,
-                "_async": true
+                "_async": true,
+                "_group": group
             }),
             "file transfer",
         )

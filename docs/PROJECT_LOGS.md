@@ -181,3 +181,13 @@
 - **asked:** benchmark folder offload speed via Rclone CLI on 16MB test folder and investigate remaining startup delay.
 - **decided:** handle single connected cloud account by creating an `alias` remote instead of an invalid single-upstream `union` remote; benchmark 15.3MB folder (13 files) via CLI matching 13.7s; add `test-files/` to `.gitignore`.
 - **shipped:** `src-tauri/src/engine/union.rs`, `.gitignore`, updated `docs/PROJECT_LOGS.md`; verified via 20/20 cargo tests, 34/34 vitest tests, and production build.
+
+### [2026-10-15] Ponytail Review Cleanup (Net -120 Lines)
+- **asked:** prune dead prototype methods, dead commands, redundant daemon store, and starter boilerplate without touching shadcn components.
+- **decided:** remove dead `enqueueTransfer`, `updateItemProgress`, `markItemVerified` in `useTransferStore.ts`; delete unused `get_core_stats` and `fetchCoreStats`; merge `useDaemonStore` into `useVaultStore`; delete `types.ts`, starter SVGs (`react.svg`, `vite.svg`, `tauri.svg`); move `shadcn` to `devDependencies`.
+- **shipped:** net -120 lines across 13 files; verified 20/20 cargo tests, 0 clippy warnings, 32/32 vitest tests, and production build.
+
+### [2026-10-15] Update Tauri Desktop Icons from Updated Public Assets
+- **asked:** update Tauri application icons in `src-tauri/icons` to match newly updated SVG and PNG in `public/`.
+- **decided:** regenerate the full desktop Tauri icon suite (`icon.icns`, `icon.ico`, `icon.png`, `Square*`, `StoreLogo`, `32x32`, `128x128`, `128x128@2x`) from `public/baulr.png` via `tauri icon` and sync root `app-icon.png`.
+- **shipped:** regenerated all desktop icons in `src-tauri/icons/` and synchronized `app-icon.png`; verified via 32 vitest tests, 20 cargo tests, and production build.

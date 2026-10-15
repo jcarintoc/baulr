@@ -12,7 +12,7 @@ use crate::commands::offload::{
 };
 use crate::commands::vault::get_vault_quota;
 pub use crate::engine::{CloudAccount, VaultQuota};
-use crate::engine::{CoreStats, DaemonStatus, RcloneClient, RcloneDaemon};
+use crate::engine::{DaemonStatus, RcloneClient, RcloneDaemon};
 
 
 #[derive(Default, Clone)]
@@ -40,21 +40,10 @@ async fn get_daemon_status(
     }
 }
 
-#[tauri::command]
-#[specta::specta]
-async fn get_core_stats(
-    state: tauri::State<'_, AppState>,
-) -> Result<CoreStats, String> {
-    let client_guard = state.client.read().await;
-    let client = client_guard.as_ref().ok_or("Daemon is not running")?;
-    client.get_stats().await
-}
-
 pub fn create_specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![
         get_vault_quota,
         get_daemon_status,
-        get_core_stats,
         connect_account,
         disconnect_account,
         cancel_oauth,

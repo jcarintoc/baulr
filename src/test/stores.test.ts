@@ -29,30 +29,23 @@ describe("useTransferStore", () => {
     useTransferStore.getState().clearCompleted();
   });
 
-  it("enqueues a transfer item with calculating telemetry", () => {
-    useTransferStore.getState().enqueueTransfer("Holiday_Photos", 1024 * 1024 * 100);
-    const items = useTransferStore.getState().items;
-    expect(items.length).toBe(1);
-    expect(items[0].name).toBe("Holiday_Photos");
-    expect(items[0].status).toBe("uploading");
-    expect(useTransferStore.getState().isTransferring).toBe(true);
-  });
-
-  it("updates progress and marks verified", () => {
-    useTransferStore.getState().enqueueTransfer("Doc_Backup.tar", 1000);
-    const id = useTransferStore.getState().items[0].id;
-
-    useTransferStore.getState().updateItemProgress(id, 1000, 500, 0);
-    expect(useTransferStore.getState().items[0].status).toBe("verifying");
-
-    useTransferStore.getState().markItemVerified(id);
-    expect(useTransferStore.getState().items[0].status).toBe("verified");
-    expect(useTransferStore.getState().isVerified).toBe(true);
-    expect(useTransferStore.getState().isTransferring).toBe(false);
-  });
-
   it("updates item on live progress event", () => {
-    useTransferStore.getState().enqueueTransfer("Photos", 1000, 42, "/path/Photos");
+    useTransferStore.setState({
+      items: [
+        {
+          id: "job-42",
+          jobId: 42,
+          path: "/path/Photos",
+          name: "Photos",
+          sizeBytes: 1000,
+          transferredBytes: 0,
+          speedBytesPerSec: 0,
+          etaSeconds: 0,
+          status: "uploading",
+        },
+      ],
+      isTransferring: true,
+    });
 
     useTransferStore.getState().handleProgress({
       jobId: 42,
@@ -73,7 +66,22 @@ describe("useTransferStore", () => {
   });
 
   it("marks verified when offload progress completes", () => {
-    useTransferStore.getState().enqueueTransfer("Photos", 1000, 42, "/path/Photos");
+    useTransferStore.setState({
+      items: [
+        {
+          id: "job-42",
+          jobId: 42,
+          path: "/path/Photos",
+          name: "Photos",
+          sizeBytes: 1000,
+          transferredBytes: 0,
+          speedBytesPerSec: 0,
+          etaSeconds: 0,
+          status: "uploading",
+        },
+      ],
+      isTransferring: true,
+    });
 
     useTransferStore.getState().handleProgress({
       jobId: 42,

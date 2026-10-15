@@ -1,6 +1,7 @@
 import { create } from "zustand";
-import { VaultQuota } from "../lib/bindings";
+import { VaultQuota, DaemonStatus } from "../lib/bindings";
 import { fetchVaultQuota } from "../lib/api/vault";
+import { fetchDaemonStatus } from "../lib/api/daemon";
 import {
   connectAccount as apiConnectAccount,
   disconnectAccount as apiDisconnectAccount,
@@ -9,11 +10,13 @@ import {
 
 interface VaultState {
   quota: VaultQuota | null;
+  daemonStatus: DaemonStatus | null;
   isLoading: boolean;
   isAuthenticating: boolean;
   authenticatingProvider: string | null;
   error: string | null;
   loadQuota: () => Promise<void>;
+  loadDaemonStatus: () => Promise<void>;
   connectAccount: (provider: string) => Promise<void>;
   disconnectAccount: (provider: string) => Promise<void>;
   cancelOAuth: () => Promise<void>;
@@ -21,6 +24,7 @@ interface VaultState {
 
 export const useVaultStore = create<VaultState>((set) => ({
   quota: null,
+  daemonStatus: null,
   isLoading: false,
   isAuthenticating: false,
   authenticatingProvider: null,
@@ -33,6 +37,14 @@ export const useVaultStore = create<VaultState>((set) => ({
       set({ quota, isLoading: false });
     } catch (err) {
       set({ error: String(err), isLoading: false });
+    }
+  },
+  loadDaemonStatus: async () => {
+    try {
+      const daemonStatus = await fetchDaemonStatus();
+      set({ daemonStatus });
+    } catch {
+      set({ daemonStatus: { isRunning: false, port: 0 } });
     }
   },
   connectAccount: async (provider: string) => {

@@ -37,10 +37,13 @@ export function TransferQueue({ items, onCancel }: TransferQueueProps) {
       <CardContent className="flex flex-col gap-3">
         {items.map((item) => {
           const isPreparing = item.status === "preparing";
+          const isVerified = item.status === "verified";
           const percent = isPreparing
             ? 0
+            : isVerified
+            ? 100
             : Math.min(
-                100,
+                99,
                 Math.round(
                   (item.transferredBytes / (item.sizeBytes || 1)) * 100,
                 ),
