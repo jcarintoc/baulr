@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "baulr",
+  "productName": "Baulr",
   "version": "0.1.0",
   "identifier": "com.baulr.app",
   "build": {
@@ -13,8 +13,10 @@
     "windows": [
       {
         "title": "Baulr",
-        "width": 800,
-        "height": 600
+        "width": 840,
+        "height": 620,
+        "minWidth": 720,
+        "minHeight": 520
       }
     ],
     "security": {
@@ -24,6 +26,8 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "category": "Utility",
+    "copyright": "Copyright © 2026 Baulr Authors",
     "externalBin": [
       "binaries/rclone"
     ],
@@ -33,6 +37,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
   }
 }

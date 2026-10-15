@@ -30,39 +30,44 @@ impl RcloneDaemon {
             let _ = std::fs::create_dir_all(parent);
         }
 
-        let mut child = Command::new(&binary_path)
-            .args([
-                "rcd",
-                "--rc-addr",
-                "127.0.0.1:0",
-                "--rc-no-auth",
-                "--config",
-                config_path.to_str().unwrap_or(""),
-                "--log-level",
-                "NOTICE",
-                "--drive-chunk-size",
-                "32M",
-                "--drive-upload-cutoff",
-                "32M",
-                "--drive-pacer-min-sleep",
-                "10ms",
-                "--drive-pacer-burst",
-                "200",
-                "--onedrive-chunk-size",
-                "32000k",
-                "--buffer-size",
-                "32M",
-                "--transfers",
-                "8",
-                "--checkers",
-                "16",
-                "--fast-list",
-                "--no-traverse",
-                "--order-by",
-                "size,ascending",
-            ])
-            .stderr(Stdio::piped())
-            .stdout(Stdio::null())
+        let mut cmd = Command::new(&binary_path);
+        cmd.args([
+            "rcd",
+            "--rc-addr",
+            "127.0.0.1:0",
+            "--rc-no-auth",
+            "--config",
+            config_path.to_str().unwrap_or(""),
+            "--log-level",
+            "NOTICE",
+            "--drive-chunk-size",
+            "32M",
+            "--drive-upload-cutoff",
+            "32M",
+            "--drive-pacer-min-sleep",
+            "10ms",
+            "--drive-pacer-burst",
+            "200",
+            "--onedrive-chunk-size",
+            "32000k",
+            "--buffer-size",
+            "32M",
+            "--transfers",
+            "8",
+            "--checkers",
+            "16",
+            "--fast-list",
+            "--no-traverse",
+            "--order-by",
+            "size,ascending",
+        ])
+        .stderr(Stdio::piped())
+        .stdout(Stdio::null());
+
+        #[cfg(windows)]
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+        let mut child = cmd
             .spawn()
             .map_err(|e| format!("Failed to spawn rclone daemon ({binary_path:?}): {e}"))?;
 
@@ -160,27 +165,57 @@ pub fn extract_port_from_log_line(line: &str) -> Option<u16> {
     rem[..slash].parse::<u16>().ok()
 }
 
+pub fn rclone_sidecar_filename() -> &'static str {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    return "rclone-aarch64-apple-darwin";
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+    return "rclone-x86_64-apple-darwin";
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    return "rclone-x86_64-pc-windows-msvc.exe";
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    return "rclone-x86_64-unknown-linux-gnu";
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    return "rclone-aarch64-unknown-linux-gnu";
+
+    #[allow(unreachable_code)]
+    "rclone"
+}
+
+pub fn get_binary_search_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    let sidecar_name = rclone_sidecar_filename();
+
+    // 1. Packaged location relative to current executable (Contents/MacOS on macOS)
+    if let Some(exe_dir) = std::env::current_exe().ok().as_deref().and_then(Path::parent) {
+        candidates.push(exe_dir.join(sidecar_name));
+        candidates.push(exe_dir.join("rclone"));
+        candidates.push(exe_dir.join("rclone.exe"));
+        candidates.push(exe_dir.join("../Resources").join(sidecar_name));
+        candidates.push(exe_dir.join("../Resources").join("rclone"));
+    }
+
+    // 2. Local workspace development paths
+    candidates.push(PathBuf::from(format!("binaries/{sidecar_name}")));
+    candidates.push(PathBuf::from(format!("src-tauri/binaries/{sidecar_name}")));
+    candidates.push(PathBuf::from("binaries/rclone"));
+    candidates.push(PathBuf::from("src-tauri/binaries/rclone"));
+
+    // 3. System paths
+    candidates.push(PathBuf::from("/opt/homebrew/bin/rclone"));
+    candidates.push(PathBuf::from("/usr/local/bin/rclone"));
+    candidates.push(PathBuf::from("/usr/bin/rclone"));
+
+    candidates
+}
+
 fn resolve_rclone_binary() -> Result<PathBuf, String> {
-    // 1. Check sidecar in binaries/ relative to executable or workspace
-    #[cfg(target_arch = "aarch64")]
-    let sidecar_name = "rclone-aarch64-apple-darwin";
-    #[cfg(target_arch = "x86_64")]
-    let sidecar_name = "rclone-x86_64-apple-darwin";
-
-    let candidates = [
-        PathBuf::from(format!("binaries/{sidecar_name}")),
-        PathBuf::from(format!("src-tauri/binaries/{sidecar_name}")),
-        PathBuf::from("/opt/homebrew/bin/rclone"),
-        PathBuf::from("/usr/local/bin/rclone"),
-    ];
-
-    for path in candidates {
+    for path in get_binary_search_candidates() {
         if path.exists() {
             return Ok(path);
         }
     }
 
-    // 2. Fall back to standard PATH
+    // Fall back to standard PATH
     Ok(PathBuf::from("rclone"))
 }
 
@@ -196,6 +231,24 @@ mod tests {
 
         let invalid = "2026/10/13 11:50:44 NOTICE: Starting engine without remote";
         assert_eq!(extract_port_from_log_line(invalid), None);
+    }
+
+    #[test]
+    fn test_binary_search_candidates() {
+        let candidates = get_binary_search_candidates();
+        assert!(!candidates.is_empty());
+        let sidecar = rclone_sidecar_filename();
+        assert!(candidates.iter().any(|c| {
+            let s = c.to_string_lossy();
+            s.contains(sidecar) || s.contains("rclone")
+        }));
+    }
+
+    #[test]
+    fn test_rclone_sidecar_filename_is_non_empty() {
+        let name = rclone_sidecar_filename();
+        assert!(!name.is_empty());
+        assert!(name.contains("rclone"));
     }
 
     #[tokio::test]

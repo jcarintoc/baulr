@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baulr — Local-First Unified Cloud Vault & Offloader</title>
+  <link rel="icon" type="image/svg+xml" href="baulr.svg">
+  <style>
+    :root {
+      --bg: #0d0f12;
+      --card-bg: #16191f;
+      --border: #262a33;
+      --text: #f4f4f5;
+      --text-muted: #949ba4;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --btn-secondary: #222630;
+      --btn-secondary-hover: #2c323f;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.25rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 640px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .tagline {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 480px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 9999px;
+    }
+
+    .downloads {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .downloads h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.2rem;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #042f1a;
+      border: 1px solid var(--accent);
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      color: #ffffff;
+    }
+
+    .btn-secondary {
+      background: var(--btn-secondary);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--btn-secondary-hover);
+      border-color: #3b4252;
+    }
+
+    .btn-label {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .btn-sub {
+      font-size: 0.75rem;
+      opacity: 0.75;
+      font-family: monospace;
+    }
+
+    .instructions {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      line-height: 1.5;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 520px) {
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+
+    .feature-card p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+    }
+
+    footer a {
+      color: var(--text);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="baulr.svg" alt="Baulr Logo" class="logo">
+      <span class="badge">v0.1.0 MVP Release</span>
+      <h1>Baulr</h1>
+      <p class="tagline">Local-first desktop vault that unifies free cloud storage into one virtual drive and safely offloads local files.</p>
+    </header>
+
+    <section class="downloads">
+      <h2>Download Baulr</h2>
+      <div class="btn-group">
+        <a href="https://github.com/jcarintoc/baulr/releases/latest/download/Baulr_0.1.0_aarch64.dmg" class="btn btn-primary">
+          <span class="btn-label">
+            <span>🍏</span>
+            <span>Download for macOS (Apple Silicon)</span>
+          </span>
+          <span class="btn-sub">.dmg (32 MB)</span>
+        </a>
+
+        <a href="https://github.com/jcarintoc/baulr/releases" class="btn btn-secondary">
+          <span class="btn-label">
+            <span>🪟</span>
+            <span>Windows (x64) & All Releases</span>
+          </span>
+          <span class="btn-sub">GitHub Releases</span>
+        </a>
+      </div>
+
+      <p class="instructions">
+        <strong>macOS Installation:</strong> Download the <code>.dmg</code>, double-click to open, and drag <strong>Baulr</strong> into your <strong>Applications</strong> folder. Compatible with macOS 11.0 (Big Sur) and later.
+      </p>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <h3>Unified Free Storage</h3>
+        <p>Pools Google Drive (15 GB) and OneDrive (5 GB) accounts into a seamless virtual vault with automatic capacity routing.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>Verified Safe Backup</h3>
+        <p>Automatically checks file integrity against cloud checksums before prompting to free up local disk space.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>Non-Destructive Cleanup</h3>
+        <p>Reclaiming space moves local copies to your computer's Trash/Recycle Bin. Your files are never permanently deleted.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>100% Local-First</h3>
+        <p>Direct encrypted communication with cloud providers over loopback. No middleman servers or third-party tracking.</p>
+      </div>
+    </section>
+
+    <footer>
+      <p>Baulr is open source. View source code and release history on <a href="https://github.com/jcarintoc/baulr" target="_blank" rel="noopener">GitHub</a>.</p>
+    </footer>
+  </div>
+</body>
+</html>
