@@ -14,7 +14,7 @@ export function AppHeader({ isLoading, daemonStatus, onSync }: AppHeaderProps) {
   return (
     <header className="border-b border-border px-6 py-4 flex items-center justify-between bg-card/60 backdrop-blur sticky top-0 z-10">
       <div data-tauri-drag-region className="flex items-center gap-3">
-        <img src="/baulr.svg" alt="Baulr" className="size-10 object-contain" />
+        <img src="/baulr.svg" alt="Baulr" className="size-12" />
         <div>
           <h1 className="font-semibold text-base tracking-tight leading-tight text-foreground">
             Baulr
