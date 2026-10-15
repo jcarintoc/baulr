@@ -47,6 +47,15 @@ pub async fn sync_vault_union(client: &RcloneClient) -> Result<Option<String>, S
         return Ok(None);
     }
 
+    if upstreams.len() == 1 {
+        let mut params = HashMap::new();
+        params.insert("remote".to_string(), upstreams[0].clone());
+        client
+            .create_remote(VAULT_UNION_NAME, "alias", &params)
+            .await?;
+        return Ok(Some(upstreams[0].clone()));
+    }
+
     let upstreams_str = upstreams.join(" ");
     let mut params = HashMap::new();
     params.insert("upstreams".to_string(), upstreams_str.clone());

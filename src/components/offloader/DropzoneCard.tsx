@@ -1,18 +1,65 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { IconArrowUpCircle, IconFolder } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { selectOffloadFolder } from "@/lib/api/offload";
 
 interface DropzoneCardProps {
-  onSelectFolder: (name: string, sizeBytes: number) => void;
+  onSelectPath: (path: string) => void;
+  disabled?: boolean;
 }
 
-export function DropzoneCard({ onSelectFolder }: DropzoneCardProps) {
+export function DropzoneCard({ onSelectPath, disabled }: DropzoneCardProps) {
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let mounted = true;
+
+    try {
+      getCurrentWebview()
+        .onDragDropEvent((event) => {
+          if (!mounted) return;
+          if (event.payload.type === "enter" || event.payload.type === "over") {
+            if (!disabled) setIsDragging(true);
+          } else if (event.payload.type === "drop") {
+            setIsDragging(false);
+            if (!disabled && event.payload.paths?.[0]) {
+              onSelectPath(event.payload.paths[0]);
+            }
+          } else if (event.payload.type === "leave") {
+            setIsDragging(false);
+          }
+        })
+        .then((fn) => {
+          if (mounted) {
+            unlisten = fn;
+          } else {
+            fn();
+          }
+        })
+        .catch(() => {
+          // Fallback if not inside Tauri environment
+        });
+    } catch {
+      // Ignore if outside Tauri
+    }
+
+    return () => {
+      mounted = false;
+      if (unlisten) unlisten();
+    };
+  }, [disabled, onSelectPath]);
+
+  const handleSelectFolder = async () => {
+    const selected = await selectOffloadFolder().catch(() => null);
+    if (selected) onSelectPath(selected.path);
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
+    if (!disabled) setIsDragging(true);
   };
 
   const handleDragLeave = () => {
@@ -22,8 +69,10 @@ export function DropzoneCard({ onSelectFolder }: DropzoneCardProps) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    // Simulate folder drop
-    onSelectFolder("Family_Vacation_2025", 1024 * 1024 * 1024 * 2.4);
+    if (disabled) return;
+
+    const path = (e.dataTransfer.files[0] as unknown as { path?: string })?.path;
+    if (path) onSelectPath(path);
   };
 
   return (
@@ -52,7 +101,8 @@ export function DropzoneCard({ onSelectFolder }: DropzoneCardProps) {
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => onSelectFolder("Family_Photos_Archive", 1024 * 1024 * 1024 * 3.1)}
+          onClick={handleSelectFolder}
+          disabled={disabled}
           className="mt-1"
         >
           <IconFolder />

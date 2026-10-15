@@ -1,4 +1,4 @@
-import { IconArrowRight, IconShieldCheck } from "@tabler/icons-react";
+import { IconArrowRight, IconShieldLock } from "@tabler/icons-react";
 import {
   GoogleDriveIcon,
   OneDriveIcon,
@@ -64,7 +64,7 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
         </div>
 
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-          <IconShieldCheck className="size-4 text-vault-accent-text" />
+          <IconShieldLock className="size-4 text-vault-accent-text" />
           <span>
             Direct and private connection. Account keys never leave your
             computer.

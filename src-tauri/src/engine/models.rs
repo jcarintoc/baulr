@@ -21,6 +21,19 @@ pub struct CoreStats {
     #[specta(type = f64)]
     pub errors: u64,
     pub fatal_error: bool,
+    #[specta(type = Option<f64>)]
+    pub eta: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct JobStatus {
+    #[specta(type = f64)]
+    pub id: u64,
+    pub finished: bool,
+    pub success: bool,
+    pub error: String,
+    pub duration: f64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Type)]

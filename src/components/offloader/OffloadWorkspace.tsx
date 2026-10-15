@@ -4,10 +4,12 @@ import { DropzoneCard } from "./DropzoneCard";
 import { TransferQueue } from "./TransferQueue";
 import { ReclaimBanner } from "./ReclaimBanner";
 import { OnboardingPrompt } from "../accounts/OnboardingPrompt";
-import { IconCircleCheck, IconRotateClockwise } from "@tabler/icons-react";
+import { IconCircleCheck } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { listenOffloadProgress, reclaimPaths } from "@/lib/api/offload";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -31,53 +33,69 @@ export function OffloadWorkspace({
   const {
     items,
     isVerified,
-    enqueueTransfer,
+    error,
+    startOffload,
+    cancelOffload,
+    handleProgress,
     clearCompleted,
-    updateItemProgress,
-    markItemVerified,
+    clearError,
   } = useTransferStore();
 
   const [isConfirmingReclaim, setIsConfirmingReclaim] = useState(false);
-  const [undoToast, setUndoToast] = useState<{
+  const [successToast, setSuccessToast] = useState<{
     bytes: number;
     count: number;
   } | null>(null);
-  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    return () => {
-      if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
-    };
-  }, []);
+    let unlisten: (() => void) | undefined;
+    listenOffloadProgress((progress) => {
+      handleProgress(progress);
+    }).then((fn) => {
+      unlisten = fn;
+    });
 
-  const handleSelectFolder = (name: string, sizeBytes: number) => {
-    enqueueTransfer(name, sizeBytes);
-    const queueId = useTransferStore.getState().items.slice(-1)[0]?.id;
-    if (queueId) {
-      setTimeout(() => updateItemProgress(queueId, sizeBytes * 0.45, 1024 * 1024 * 16.5, 3), 700);
-      setTimeout(() => updateItemProgress(queueId, sizeBytes, 1024 * 1024 * 18.2, 0), 1500);
-      setTimeout(() => markItemVerified(queueId), 2300);
+    return () => {
+      if (unlisten) unlisten();
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, [handleProgress]);
+
+  const handleSelectPath = async (path: string) => {
+    try {
+      await startOffload(path);
+    } catch {
+      // Error is set in store
     }
   };
 
-  const totalReclaimBytes = items
-    .filter((i) => i.status === "verified")
-    .reduce((acc, i) => acc + i.sizeBytes, 0);
+  const verifiedItems = items.filter((i) => i.status === "verified");
+  const totalReclaimBytes = verifiedItems.reduce((acc, i) => acc + i.sizeBytes, 0);
+  const verifiedPaths = verifiedItems.flatMap((i) => (i.path ? [i.path] : []));
 
-  const confirmReclaim = () => {
-    const bytes = totalReclaimBytes;
-    const count = items.length;
+  const confirmReclaim = async () => {
     setIsConfirmingReclaim(false);
-    clearCompleted();
+    if (verifiedPaths.length === 0) return;
 
-    setUndoToast({ bytes, count });
-    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
-    undoTimeoutRef.current = setTimeout(() => setUndoToast(null), 5000);
+    try {
+      const result = await reclaimPaths(verifiedPaths);
+      clearCompleted();
+      const bytes = result.reclaimedBytes ?? totalReclaimBytes;
+      const count = result.count || verifiedPaths.length;
+
+      setSuccessToast({ bytes, count });
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = setTimeout(() => setSuccessToast(null), 5000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      useTransferStore.setState({ error: msg });
+    }
   };
 
-  const handleUndo = () => {
-    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
-    setUndoToast(null);
+  const handleDismissToast = () => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setSuccessToast(null);
   };
 
   if (!hasConnectedAccounts) {
@@ -86,15 +104,22 @@ export function OffloadWorkspace({
 
   return (
     <div className="flex flex-col gap-5">
-      {undoToast && (
+      {error && (
+        <Alert variant="destructive" onClick={clearError} className="cursor-pointer">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {successToast && (
         <Card className="p-3 px-4 flex items-center justify-between text-xs bg-card border-border">
           <div className="flex items-center gap-2 text-foreground/90">
             <IconCircleCheck className="size-4 text-vault-accent-text shrink-0" />
-            <span>Freed up <strong className="text-foreground tabular-nums">{formatBytes(undoToast.bytes)}</strong>. Files removed from this computer.</span>
+            <span>
+              Freed up <strong className="text-foreground tabular-nums">{formatBytes(successToast.bytes)}</strong>. Files removed from this computer.
+            </span>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleUndo}>
-            <IconRotateClockwise />
-            <span>Undo</span>
+          <Button variant="ghost" size="sm" onClick={handleDismissToast} className="h-7 text-xs">
+            Dismiss
           </Button>
         </Card>
       )}
@@ -102,14 +127,16 @@ export function OffloadWorkspace({
       {isVerified && totalReclaimBytes > 0 && (
         <ReclaimBanner
           totalReclaimBytes={totalReclaimBytes}
-          itemCount={items.length}
+          itemCount={verifiedItems.length}
           onReclaim={() => setIsConfirmingReclaim(true)}
           onDismiss={clearCompleted}
         />
       )}
 
-      {items.length > 0 && <TransferQueue items={items} />}
-      <DropzoneCard onSelectFolder={handleSelectFolder} />
+      {items.length > 0 && (
+        <TransferQueue items={items} onCancel={cancelOffload} />
+      )}
+      <DropzoneCard onSelectPath={handleSelectPath} />
 
       <AlertDialog open={isConfirmingReclaim}>
         <AlertDialogContent>
@@ -118,7 +145,7 @@ export function OffloadWorkspace({
               Free up {formatBytes(totalReclaimBytes)}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {items.length} {items.length === 1 ? "file is" : "files are"}{" "}
+              {verifiedItems.length} {verifiedItems.length === 1 ? "file is" : "files are"}{" "}
               saved to your cloud. You can now remove them from this computer to
               reclaim drive space.
             </AlertDialogDescription>

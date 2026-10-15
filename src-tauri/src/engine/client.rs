@@ -1,6 +1,12 @@
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
-use crate::engine::models::{AboutFs, CoreStats, OAuthStatus};
+use crate::engine::models::{AboutFs, CoreStats, JobStatus, OAuthStatus};
+
+#[derive(Deserialize)]
+struct JobIdResponse {
+    jobid: u64,
+}
 
 #[derive(Debug, Clone)]
 pub struct RcloneClient {
@@ -222,6 +228,100 @@ impl RcloneClient {
         Ok(())
     }
 
+    async fn post_job(
+        &self,
+        endpoint: &str,
+        payload: serde_json::Value,
+        label: &str,
+    ) -> Result<u64, String> {
+        let url = format!("{}/{endpoint}", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to initiate {label}: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("{label} failed: {body}"));
+        }
+
+        resp.json::<JobIdResponse>()
+            .await
+            .map(|r| r.jobid)
+            .map_err(|e| format!("Failed to parse {label} response: {e}"))
+    }
+
+    pub async fn start_copy(&self, src_fs: &str, dst_fs: &str) -> Result<u64, String> {
+        self.post_job(
+            "sync/copy",
+            serde_json::json!({ "srcFs": src_fs, "dstFs": dst_fs, "_async": true }),
+            "folder transfer",
+        )
+        .await
+    }
+
+    pub async fn start_copy_file(
+        &self,
+        src_fs: &str,
+        src_remote: &str,
+        dst_fs: &str,
+        dst_remote: &str,
+    ) -> Result<u64, String> {
+        self.post_job(
+            "operations/copyfile",
+            serde_json::json!({
+                "srcFs": src_fs,
+                "srcRemote": src_remote,
+                "dstFs": dst_fs,
+                "dstRemote": dst_remote,
+                "_async": true
+            }),
+            "file transfer",
+        )
+        .await
+    }
+
+    pub async fn get_job_status(&self, job_id: u64) -> Result<JobStatus, String> {
+        let url = format!("{}/job/status", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "jobid": job_id }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to query job status for #{job_id}: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Job status query failed: {body}"));
+        }
+
+        resp.json::<JobStatus>()
+            .await
+            .map_err(|e| format!("Failed to parse job status response: {e}"))
+    }
+
+    pub async fn stop_job(&self, job_id: u64) -> Result<(), String> {
+        let url = format!("{}/job/stop", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "jobid": job_id }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to stop job #{job_id}: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Stopping job failed: {body}"));
+        }
+
+        Ok(())
+    }
+
     pub async fn quit(&self) -> Result<(), String> {
         let url = format!("{}/core/quit", self.base_url);
         let _ = self
@@ -250,5 +350,22 @@ mod tests {
         let oauth: OAuthStatus = serde_json::from_str(oauth_json).expect("deserialize oauth");
         assert_eq!(oauth.status, "running");
         assert_eq!(oauth.auth_url.as_deref(), Some("http://127.0.0.1:53682/auth"));
+    }
+
+    #[test]
+    fn test_job_status_deserialization() {
+        let json = r#"{
+            "id": 42,
+            "finished": true,
+            "success": true,
+            "error": "",
+            "duration": 4.125
+        }"#;
+        let status: JobStatus = serde_json::from_str(json).expect("deserialize job status");
+        assert_eq!(status.id, 42);
+        assert!(status.finished);
+        assert!(status.success);
+        assert_eq!(status.error, "");
+        assert_eq!(status.duration, 4.125);
     }
 }

@@ -5,6 +5,12 @@ import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 import { useThemeStore } from "@/store/useThemeStore";
 import { useVaultStore } from "@/store/useVaultStore";
 import * as accountsApi from "@/lib/api/accounts";
+import { startOffloadJob } from "@/lib/api/offload";
+
+vi.mock("@/lib/api/offload", () => ({
+  startOffloadJob: vi.fn(),
+  cancelOffloadJob: vi.fn(),
+}));
 
 describe("useViewStore", () => {
   beforeEach(() => {
@@ -43,6 +49,82 @@ describe("useTransferStore", () => {
     expect(useTransferStore.getState().items[0].status).toBe("verified");
     expect(useTransferStore.getState().isVerified).toBe(true);
     expect(useTransferStore.getState().isTransferring).toBe(false);
+  });
+
+  it("updates item on live progress event", () => {
+    useTransferStore.getState().enqueueTransfer("Photos", 1000, 42, "/path/Photos");
+
+    useTransferStore.getState().handleProgress({
+      jobId: 42,
+      name: "Photos",
+      transferredBytes: 500,
+      totalBytes: 1000,
+      speedBytesPerSec: 250,
+      etaSeconds: 2,
+      status: "uploading",
+      error: null,
+    });
+
+    const item = useTransferStore.getState().items.find((i) => i.jobId === 42);
+    expect(item).toBeDefined();
+    expect(item?.transferredBytes).toBe(500);
+    expect(item?.status).toBe("uploading");
+    expect(item?.speedBytesPerSec).toBe(250);
+  });
+
+  it("marks verified when offload progress completes", () => {
+    useTransferStore.getState().enqueueTransfer("Photos", 1000, 42, "/path/Photos");
+
+    useTransferStore.getState().handleProgress({
+      jobId: 42,
+      name: "Photos",
+      transferredBytes: 1000,
+      totalBytes: 1000,
+      speedBytesPerSec: 0,
+      etaSeconds: 0,
+      status: "completed",
+      error: null,
+    });
+
+    const state = useTransferStore.getState();
+    const item = state.items.find((i) => i.jobId === 42);
+    expect(item?.status).toBe("verified");
+    expect(state.isVerified).toBe(true);
+    expect(state.isTransferring).toBe(false);
+  });
+
+  it("optimistically enqueues preparing state when starting offload", async () => {
+    let resolveJob: (value: any) => void = () => {};
+    const promise = new Promise((resolve) => {
+      resolveJob = resolve;
+    });
+    vi.mocked(startOffloadJob).mockReturnValue(promise as any);
+
+    const startPromise = useTransferStore.getState().startOffload("/path/to/MyFolder");
+
+    // Instantly should be in items with status 'preparing'
+    const items = useTransferStore.getState().items;
+    expect(items.length).toBe(1);
+    expect(items[0].name).toBe("MyFolder");
+    expect(items[0].status).toBe("preparing");
+    expect(useTransferStore.getState().isTransferring).toBe(true);
+
+    // Resolve job
+    resolveJob({
+      jobId: 99,
+      path: "/path/to/MyFolder",
+      name: "MyFolder",
+      sizeBytes: 5000,
+      targetProvider: "Google Drive",
+    });
+
+    await startPromise;
+
+    const updated = useTransferStore.getState().items;
+    expect(updated[0].jobId).toBe(99);
+    expect(updated[0].status).toBe("uploading");
+    expect(updated[0].sizeBytes).toBe(5000);
+    expect(updated[0].targetProvider).toBe("Google Drive");
   });
 });
 

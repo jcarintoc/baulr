@@ -6,7 +6,7 @@ import {
   IconTrash,
   IconCloud,
   IconArchive,
-  IconShieldCheck,
+  IconFolder,
 } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
@@ -42,7 +42,10 @@ export function VaultBrowserTable() {
 
   const handleDelete = (id: string) => {
     setDeletingId(id);
-    setTimeout(() => { deleteToCloudTrash(id); setDeletingId(null); }, 200);
+    setTimeout(() => {
+      deleteToCloudTrash(id);
+      setDeletingId(null);
+    }, 200);
   };
 
   return (
@@ -78,10 +81,14 @@ export function VaultBrowserTable() {
         {filtered.length === 0 ? (
           <Empty className="py-12">
             <EmptyHeader>
-              <EmptyMedia variant="icon"><IconFileText className="size-4 text-muted-foreground" /></EmptyMedia>
+              <EmptyMedia variant="icon">
+                <IconFileText className="size-4 text-muted-foreground" />
+              </EmptyMedia>
               <EmptyTitle>No files found</EmptyTitle>
               <EmptyDescription>
-                {files.length === 0 ? "No files offloaded to the vault yet." : "No files match your search query."}
+                {files.length === 0
+                  ? "No files offloaded to the vault yet."
+                  : "No files match your search query."}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -91,31 +98,53 @@ export function VaultBrowserTable() {
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground">Name</TableHead>
                 <TableHead className="text-muted-foreground">Size</TableHead>
-                <TableHead className="text-muted-foreground">Cloud Target</TableHead>
-                <TableHead className="text-muted-foreground">Offloaded</TableHead>
-                <TableHead className="text-muted-foreground text-right">Actions</TableHead>
+                <TableHead className="text-muted-foreground">
+                  Cloud Target
+                </TableHead>
+                <TableHead className="text-muted-foreground">
+                  Offloaded
+                </TableHead>
+                <TableHead className="text-muted-foreground text-right">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border/60">
               {filtered.map((file) => (
-                <TableRow key={file.id} className="border-border/60 hover:bg-muted/30">
+                <TableRow
+                  key={file.id}
+                  className="border-border/60 hover:bg-muted/30"
+                >
                   <TableCell className="text-foreground font-medium">
                     <div className="flex items-center gap-2">
                       <IconFileText className="size-4 text-muted-foreground shrink-0" />
                       <span className="truncate max-w-xs">{file.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-foreground/90 tabular-nums">{formatBytes(file.sizeBytes)}</TableCell>
+                  <TableCell className="text-foreground/90 tabular-nums">
+                    {formatBytes(file.sizeBytes)}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="border-border text-foreground/80 gap-1.5">
+                    <Badge
+                      variant="outline"
+                      className="border-border text-foreground/80 gap-1.5"
+                    >
                       <IconCloud className="text-vault-accent-text" />
                       <span>{file.provider}</span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground tabular-nums">{file.modifiedAt}</TableCell>
+                  <TableCell className="text-muted-foreground tabular-nums">
+                    {file.modifiedAt}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon-sm" title="Download file"><IconDownload /></Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Download file"
+                      >
+                        <IconDownload />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"
@@ -136,7 +165,7 @@ export function VaultBrowserTable() {
       </Card>
 
       <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-        <IconShieldCheck className="size-3.5 text-vault-accent-text" />
+        <IconFolder className="size-3.5 text-vault-accent-text" />
         <span>
           Deleted files are moved to your cloud trash so you can restore them
           anytime.
