@@ -212,4 +212,9 @@
 - **decided:** delete dead `deleteToCloudTrash` action and implementation from `useRemoteFilesStore.ts`; delete obsolete mock test block from `stores.test.ts` (covered by `browser-store.test.ts`).
 - **shipped:** net -31 lines across `useRemoteFilesStore.ts` and `stores.test.ts`; verified 45/45 vitest tests, 0 clippy warnings, and production build.
 
+### [2026-10-15] Milestone 5: Cross-Platform Desktop Packaging & Sidecar Hardening
+- **asked:** implement Milestone 5 (standalone packaging, robust sidecar binary discovery, desktop window constraints, and automated release CI).
+- **decided:** resolve bundled `rclone` relative to `current_exe()` (`Contents/MacOS/rclone` on macOS, adjacent directory on Windows); add Windows `CREATE_NO_WINDOW` process flags; set desktop window bounds to 840x620 (min 720x520); configure `.github/workflows/release.yml` matrix build.
+- **shipped:** updated `src-tauri/src/engine/daemon.rs`, `src-tauri/tauri.conf.json`, `docs/ROADMAP.md`, created `.github/workflows/release.yml`, built standalone `Baulr.app` and `Baulr_0.1.0_aarch64.dmg` (32.7 MB); verified 45/45 vitest tests, 4/4 daemon tests, and clean binary launch.
+
 

@@ -7,6 +7,7 @@
 - [[Bandwidth Throttler]]
 
 ## In Progress
+- [[Milestone 5: End-to-End Testing & Cross-Platform Packaging]]
 
 ## Done
 - [[Decision log]]
