@@ -1,48 +1,114 @@
 import { create } from "zustand";
+import {
+  RemoteVaultItem,
+  DownloadProgress,
+  fetchVaultFiles,
+  removeVaultItem,
+  downloadVaultItemToDirectory,
+  pickDownloadDestination,
+} from "@/lib/api/browser";
 
-export interface RemoteVaultFile {
-  id: string;
-  name: string;
-  sizeBytes: number;
-  provider: "Google Drive" | "OneDrive";
-  modifiedAt: string;
-}
+export type { RemoteVaultItem, DownloadProgress };
 
-interface RemoteFilesState {
-  files: RemoteVaultFile[];
+export interface RemoteFilesState {
+  files: RemoteVaultItem[];
+  isLoading: boolean;
+  error: string | null;
   searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  deleteToCloudTrash: (id: string) => void;
+  activeDownloads: Record<string, DownloadProgress>;
+  setSearchQuery: (searchQuery: string) => void;
+  fetchFiles: () => Promise<void>;
+  deleteFile: (path: string, isDir: boolean) => Promise<void>;
+  downloadFile: (item: RemoteVaultItem) => Promise<void>;
+  handleDownloadProgress: (progress: DownloadProgress) => void;
+  dismissDownload: (path: string) => void;
 }
 
 export const useRemoteFilesStore = create<RemoteFilesState>((set) => ({
-  files: [
-    {
-      id: "f-1",
-      name: "Family_Vacation_Archive_2025.zip",
-      sizeBytes: 1024 * 1024 * 1024 * 2.8,
-      provider: "Google Drive",
-      modifiedAt: "2026-10-10",
-    },
-    {
-      id: "f-2",
-      name: "Lightroom_Raw_Catalog.dmg",
-      sizeBytes: 1024 * 1024 * 1024 * 1.4,
-      provider: "OneDrive",
-      modifiedAt: "2026-10-08",
-    },
-    {
-      id: "f-3",
-      name: "Taxes_and_Legal_Docs_2024.pdf",
-      sizeBytes: 1024 * 1024 * 24.5,
-      provider: "Google Drive",
-      modifiedAt: "2026-09-28",
-    },
-  ],
+  files: [],
+  isLoading: false,
+  error: null,
   searchQuery: "",
+  activeDownloads: {},
+
   setSearchQuery: (searchQuery) => set({ searchQuery }),
-  deleteToCloudTrash: (id) =>
+
+  fetchFiles: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const files = await fetchVaultFiles();
+      set({ files, isLoading: false });
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : String(err),
+        isLoading: false,
+      });
+    }
+  },
+
+  deleteFile: async (path: string, isDir: boolean) => {
+    set({ error: null });
+    try {
+      await removeVaultItem(path, isDir);
+      set((state) => ({
+        files: state.files.filter((f) => f.Path !== path),
+      }));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      set({ error: msg });
+      throw err;
+    }
+  },
+
+  downloadFile: async (item: RemoteVaultItem) => {
+    set({ error: null });
+    try {
+      const destination = await pickDownloadDestination();
+      if (!destination) return;
+
+      set((state) => ({
+        activeDownloads: {
+          ...state.activeDownloads,
+          [item.Path]: {
+            jobId: 0,
+            path: item.Path,
+            name: item.Name,
+            transferredBytes: 0,
+            totalBytes: item.Size && item.Size > 0 ? item.Size : 0,
+            speedBytesPerSec: 0,
+            etaSeconds: 0,
+            status: "downloading",
+            destinationDir: destination,
+          },
+        },
+      }));
+
+      await downloadVaultItemToDirectory(item.Path, item.Name, item.IsDir, destination);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      set((state) => {
+        const next = { ...state.activeDownloads };
+        delete next[item.Path];
+        return { error: msg, activeDownloads: next };
+      });
+      throw err;
+    }
+  },
+
+  handleDownloadProgress: (progress: DownloadProgress) => {
     set((state) => ({
-      files: state.files.filter((f) => f.id !== id),
-    })),
+      activeDownloads: {
+        ...state.activeDownloads,
+        [progress.path]: progress,
+      },
+    }));
+  },
+
+  dismissDownload: (path: string) => {
+    set((state) => {
+      const next = { ...state.activeDownloads };
+      delete next[path];
+      return { activeDownloads: next };
+    });
+  },
 }));

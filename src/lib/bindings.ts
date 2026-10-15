@@ -19,6 +19,10 @@ export const commands = {
 	isDir: boolean,
 } | null, string>(__TAURI_INVOKE("pick_offload_folder")),
 	reclaimPaths: (paths: string[]) => typedError<ReclaimResult, string>(__TAURI_INVOKE("reclaim_paths", { paths })),
+	listVaultFiles: () => typedError<RcloneItem[], string>(__TAURI_INVOKE("list_vault_files")),
+	deleteVaultItem: (itemPath: string, isDir: boolean) => typedError<null, string>(__TAURI_INVOKE("delete_vault_item", { itemPath, isDir })),
+	downloadVaultItem: (itemPath: string, itemName: string, isDir: boolean, destinationDir: string) => typedError<number | null, string>(__TAURI_INVOKE("download_vault_item", { itemPath, itemName, isDir, destinationDir })),
+	pickDestinationFolder: () => typedError<string | null, string>(__TAURI_INVOKE("pick_destination_folder")),
 };
 
 /* Types */
@@ -49,6 +53,16 @@ export type OffloadJobInfo = {
 	name: string,
 	sizeBytes: number | null,
 	targetProvider: string | null,
+	isDir: boolean,
+};
+
+export type RcloneItem = {
+	Path: string,
+	Name: string,
+	Size: number | null,
+	MimeType: string | null,
+	ModTime: string | null,
+	IsDir: boolean,
 };
 
 export type ReclaimResult = {

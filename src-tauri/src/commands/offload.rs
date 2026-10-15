@@ -29,6 +29,24 @@ pub struct OffloadJobInfo {
     #[specta(type = f64)]
     pub size_bytes: u64,
     pub target_provider: Option<String>,
+    pub is_dir: bool,
+}
+
+pub fn determine_verification_terminal_status(
+    transfer_success: bool,
+    transfer_error: Option<String>,
+    check_result: Option<Result<crate::engine::CheckResult, String>>,
+) -> (&'static str, Option<String>) {
+    if !transfer_success {
+        return ("error", transfer_error);
+    }
+
+    match check_result {
+        Some(Ok(check)) if check.success => ("completed", None),
+        Some(Ok(check)) => ("error", Some(format!("Integrity check failed: {}", check.status))),
+        Some(Err(err)) => ("error", Some(format!("Integrity check error: {err}"))),
+        None => ("error", Some("Integrity check not performed".to_string())),
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -172,6 +190,7 @@ pub async fn start_offload(
         name: inspected.name.clone(),
         size_bytes: inspected.size_bytes,
         target_provider: target_provider.clone(),
+        is_dir: inspected.is_dir,
     };
 
     // Spawn background telemetry streaming task
@@ -190,11 +209,28 @@ pub async fn start_offload(
 
             let terminal = match job_status_res {
                 Ok(status) if status.finished => {
-                    let (st, err) = if status.success {
-                        ("completed", None)
+                    let check_res = if status.success {
+                        let res = if job_info_clone.is_dir {
+                            let dst_fs = format!("{}:{}/", VAULT_UNION_NAME, job_info_clone.name);
+                            client_clone.check_hashes(&job_info_clone.path, &dst_fs, None).await
+                        } else {
+                            let parent = Path::new(&job_info_clone.path)
+                                .parent()
+                                .and_then(|p| p.to_str())
+                                .unwrap_or(".");
+                            let dst_fs = format!("{}:", VAULT_UNION_NAME);
+                            client_clone.check_hashes(parent, &dst_fs, Some(&job_info_clone.name)).await
+                        };
+                        Some(res)
                     } else {
-                        ("error", Some(status.error))
+                        None
                     };
+
+                    let (st, err) = determine_verification_terminal_status(
+                        status.success,
+                        if status.success { None } else { Some(status.error) },
+                        check_res,
+                    );
                     Some((st, job_info_clone.size_bytes, err))
                 }
                 Err(err) => Some(("error", 0, Some(err))),
@@ -365,5 +401,41 @@ mod tests {
         assert_eq!(res.count, 1);
         assert_eq!(res.reclaimed_bytes, 11);
         assert!(!file_path.exists());
+    }
+
+    #[test]
+    fn test_verification_status_determination() {
+        let (st, err) = determine_verification_terminal_status(
+            false,
+            Some("network failed".to_string()),
+            None,
+        );
+        assert_eq!(st, "error");
+        assert_eq!(err.as_deref(), Some("network failed"));
+
+        let good_check = Ok(crate::engine::CheckResult {
+            success: true,
+            status: "OK".to_string(),
+            differ: vec![],
+            error: vec![],
+        });
+        let (st, err) = determine_verification_terminal_status(true, None, Some(good_check));
+        assert_eq!(st, "completed");
+        assert!(err.is_none());
+
+        let bad_check = Ok(crate::engine::CheckResult {
+            success: false,
+            status: "1 differences found".to_string(),
+            differ: vec!["file.txt".to_string()],
+            error: vec![],
+        });
+        let (st, err) = determine_verification_terminal_status(true, None, Some(bad_check));
+        assert_eq!(st, "error");
+        assert!(err.unwrap().contains("Integrity check failed"));
+
+        let err_check = Err("rclone error".to_string());
+        let (st, err) = determine_verification_terminal_status(true, None, Some(err_check));
+        assert_eq!(st, "error");
+        assert!(err.unwrap().contains("Integrity check error"));
     }
 }

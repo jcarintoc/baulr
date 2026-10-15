@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useViewStore } from "@/store/useViewStore";
 import { useTransferStore } from "@/store/useTransferStore";
-import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 import { useThemeStore } from "@/store/useThemeStore";
 import { useVaultStore } from "@/store/useVaultStore";
 import * as accountsApi from "@/lib/api/accounts";
@@ -133,17 +132,6 @@ describe("useTransferStore", () => {
     expect(updated[0].status).toBe("uploading");
     expect(updated[0].sizeBytes).toBe(5000);
     expect(updated[0].targetProvider).toBe("Google Drive");
-  });
-});
-
-describe("useRemoteFilesStore", () => {
-  it("filters search queries and deletes files to cloud trash", () => {
-    const initialCount = useRemoteFilesStore.getState().files.length;
-    const fileId = useRemoteFilesStore.getState().files[0].id;
-
-    useRemoteFilesStore.getState().deleteToCloudTrash(fileId);
-    expect(useRemoteFilesStore.getState().files.length).toBe(initialCount - 1);
-    expect(useRemoteFilesStore.getState().files.some((f) => f.id === fileId)).toBe(false);
   });
 });
 
