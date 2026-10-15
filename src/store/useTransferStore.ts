@@ -25,20 +25,6 @@ interface TransferState {
   handleProgress: (progress: OffloadProgress) => void;
   clearCompleted: () => void;
   clearError: () => void;
-  enqueueTransfer: (
-    name: string,
-    sizeBytes: number,
-    jobId?: number,
-    path?: string,
-    targetProvider?: string
-  ) => void;
-  updateItemProgress: (
-    id: string,
-    transferredBytes: number,
-    speedBytesPerSec: number,
-    etaSeconds: number
-  ) => void;
-  markItemVerified: (id: string) => void;
 }
 
 export const useTransferStore = create<TransferState>((set) => ({
@@ -152,59 +138,6 @@ export const useTransferStore = create<TransferState>((set) => ({
       return {
         items: updated,
         isTransferring: anyTransferring,
-        isVerified: allVerified,
-      };
-    });
-  },
-
-  enqueueTransfer: (name, sizeBytes, jobId, path, targetProvider) => {
-    const id = jobId ? `job-${jobId}` : Math.random().toString(36).substring(2, 9);
-    set((state) => ({
-      items: [
-        ...state.items,
-        {
-          id,
-          jobId,
-          path: path ?? name,
-          name,
-          sizeBytes,
-          transferredBytes: 0,
-          speedBytesPerSec: 1024 * 1024 * 14.2,
-          etaSeconds: Math.ceil(sizeBytes / (1024 * 1024 * 14.2)),
-          status: "uploading",
-          targetProvider,
-        },
-      ],
-      isTransferring: true,
-      isVerified: false,
-    }));
-  },
-
-  updateItemProgress: (id, transferredBytes, speedBytesPerSec, etaSeconds) => {
-    set((state) => ({
-      items: state.items.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              transferredBytes,
-              speedBytesPerSec,
-              etaSeconds,
-              status: transferredBytes >= item.sizeBytes ? "verifying" : "uploading",
-            }
-          : item
-      ),
-    }));
-  },
-
-  markItemVerified: (id) => {
-    set((state) => {
-      const nextItems = state.items.map((item) =>
-        item.id === id ? { ...item, status: "verified" as const } : item
-      );
-      const allVerified = nextItems.length > 0 && nextItems.every((i) => i.status === "verified");
-      return {
-        items: nextItems,
-        isTransferring: !allVerified,
         isVerified: allVerified,
       };
     });

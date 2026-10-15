@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useVaultStore } from "./store/useVaultStore";
-import { useDaemonStore } from "./store/useDaemonStore";
 import { useViewStore } from "./store/useViewStore";
 import { AccountCard } from "./components/accounts/AccountCard";
 import { OAuthModal } from "./components/accounts/OAuthModal";
@@ -14,17 +13,17 @@ import { Alert, AlertDescription } from "./components/ui/alert";
 export function App() {
   const {
     quota,
+    daemonStatus,
     isLoading,
     isAuthenticating,
     authenticatingProvider,
     error,
     loadQuota,
+    loadDaemonStatus,
     connectAccount,
     disconnectAccount,
     cancelOAuth,
   } = useVaultStore();
-  const { status: daemonStatus, loadStatus: loadDaemonStatus } =
-    useDaemonStore();
   const { activeView } = useViewStore();
 
   useEffect(() => {

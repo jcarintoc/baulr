@@ -144,9 +144,17 @@ pub async fn start_offload(
         .max_by_key(|a| a.total_bytes.saturating_sub(a.used_bytes))
         .map(|a| a.name.clone());
 
+    let group = format!(
+        "offload-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+    );
+
     let job_id = if inspected.is_dir {
         let dst_fs = format!("{}:{}/", VAULT_UNION_NAME, inspected.name);
-        client.start_copy(&inspected.path, &dst_fs).await?
+        client.start_copy(&inspected.path, &dst_fs, &group).await?
     } else {
         let parent = Path::new(&inspected.path)
             .parent()
@@ -154,7 +162,7 @@ pub async fn start_offload(
             .unwrap_or(".");
         let dst_fs = format!("{}:", VAULT_UNION_NAME);
         client
-            .start_copy_file(parent, &inspected.name, &dst_fs, &inspected.name)
+            .start_copy_file(parent, &inspected.name, &dst_fs, &inspected.name, &group)
             .await?
     };
 
@@ -170,6 +178,7 @@ pub async fn start_offload(
     let client_clone = client.clone();
     let app_handle = app.clone();
     let job_info_clone = job_info.clone();
+    let group_clone = group.clone();
 
     tauri::async_runtime::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
@@ -177,7 +186,7 @@ pub async fn start_offload(
             interval.tick().await;
 
             let job_status_res = client_clone.get_job_status(job_info_clone.job_id).await;
-            let stats_res = client_clone.get_stats().await;
+            let stats_res = client_clone.get_stats(Some(&group_clone)).await;
 
             let terminal = match job_status_res {
                 Ok(status) if status.finished => {
@@ -212,7 +221,9 @@ pub async fn start_offload(
 
             if let Ok(stats) = stats_res {
                 let speed = stats.speed;
-                let transferred = stats.bytes.min(job_info_clone.size_bytes);
+                // Cap in-flight progress to 99% until terminal completion confirms 100%
+                let max_in_flight = job_info_clone.size_bytes.saturating_sub(1);
+                let transferred = stats.bytes.min(max_in_flight);
                 let eta = stats.eta.unwrap_or(0);
 
                 let _ = app_handle.emit(
