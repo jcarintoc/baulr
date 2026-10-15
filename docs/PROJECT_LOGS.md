@@ -157,6 +157,27 @@
 - **decided:** wire Tauri backend to Rclone async transfer RPC (`sync/copy`, `operations/copyfile`); enforce zero-loss capacity gate (`file_size <= remaining_vault_space`); stream live telemetry events (`vault://offload-progress`) via Tauri event bus; integrate `tauri-plugin-dialog` for native OS folder picker; connect Zustand `useTransferStore` and React UI components.
 - **shipped:** `src-tauri/src/commands/offload.rs`, `src/lib/api/offload.ts`, updated `DropzoneCard.tsx`, `TransferQueue.tsx`, `OffloadWorkspace.tsx`, and `useTransferStore.ts`; added 10 unit/component tests in `stores.test.ts`, `offload-api.test.ts`, and `offloader.test.tsx`; verified via 30/30 vitest tests, 19/19 cargo tests, and production build.
 
+### [2026-10-14] Milestone 3: Drag-Drop, High-Throughput Buffers, Provider Indicator & Safe Space Reclamation
+- **asked:** fix drag-and-drop not registering dropped folders, slow 16MB upload speeds, missing cloud provider destination indicator in UI, and "free up space" button not moving local files to Trash.
+- **decided:** wire Tauri native webview drop listener (`getCurrentWebview().onDragDropEvent`) to bypass WebKit browser path scrubbing; boost Rclone daemon throughput flags (`--drive-chunk-size 32M`, `--onedrive-chunk-size 32000k`, `--buffer-size 32M`, `--transfers 4`, `--checkers 8`); calculate `target_provider` via union mfs policy and expose in telemetry and UI badges; implement non-destructive `reclaim_paths` command using `trash` crate moving files directly to OS Trash.
+- **shipped:** `src-tauri/src/commands/offload.rs`, `src-tauri/src/engine/daemon.rs`, `src-tauri/src/lib.rs`, `src/components/offloader/DropzoneCard.tsx`, `src/components/offloader/TransferQueue.tsx`, `src/components/offloader/OffloadWorkspace.tsx`, and updated test suites; verified via 32 vitest tests, 20 cargo tests, and production build.
 
+### [2026-10-14] Ponytail Review Cleanup (Net -3 Lines)
+- **asked:** review diff for over-engineering and apply simplifications.
+- **decided:** simplify drag-and-drop path check with `paths?.[0]` in `DropzoneCard.tsx` and collapse two-step filter and map with `flatMap` in `OffloadWorkspace.tsx`.
+- **shipped:** net -3 lines across `src/components/offloader/DropzoneCard.tsx` and `src/components/offloader/OffloadWorkspace.tsx`; verified via 32 vitest tests, 20 cargo tests, and production build.
 
+### [2026-10-14] Rclone Upload Speed Optimization & Process Supervision
+- **asked:** investigate and fix 20 KB/s upload speed during folder offload.
+- **decided:** terminate 25 orphan rclone background daemons causing Google Drive rate-limit throttling; hook `tauri::RunEvent::Exit` in `src-tauri/src/lib.rs` to terminate sidecar on app quit; tune Rclone daemon flags (`--drive-pacer-min-sleep 10ms`, `--drive-pacer-burst 200`, `--transfers 8`, `--checkers 16`, `--fast-list`).
+- **shipped:** updated `src-tauri/src/engine/daemon.rs` and `src-tauri/src/lib.rs`; killed orphan processes; verified 32 vitest tests, 20 cargo tests, and production build.
 
+### [2026-10-14] Eliminate Pre-Upload Startup Lag & Progressive Ingestion
+- **asked:** eliminate multi-second dead time before folder offload progress triggers.
+- **decided:** bypass Rclone remote directory tree scan via `--no-traverse` and `--order-by size,ascending`; run cloud quota checks concurrently via `tokio::join!`; cache quota in `AppState` for instantaneous 0ms capacity checks; add optimistic `"preparing"` queue state in `useTransferStore` for sub-50ms instant UI feedback.
+- **shipped:** updated `src-tauri/src/engine/daemon.rs`, `src-tauri/src/commands/vault.rs`, `src-tauri/src/commands/offload.rs`, `src/store/useTransferStore.ts`, `src/components/offloader/TransferQueue.tsx`, and test suites; verified via 34 vitest tests, 20 cargo tests, and production build.
+
+### [2026-10-15] Single-Provider Alias Support & Benchmark Validation
+- **asked:** benchmark folder offload speed via Rclone CLI on 16MB test folder and investigate remaining startup delay.
+- **decided:** handle single connected cloud account by creating an `alias` remote instead of an invalid single-upstream `union` remote; benchmark 15.3MB folder (13 files) via CLI matching 13.7s; add `test-files/` to `.gitignore`.
+- **shipped:** `src-tauri/src/engine/union.rs`, `.gitignore`, updated `docs/PROJECT_LOGS.md`; verified via 20/20 cargo tests, 34/34 vitest tests, and production build.

@@ -28,6 +28,7 @@ pub struct OffloadJobInfo {
     pub name: String,
     #[specta(type = f64)]
     pub size_bytes: u64,
+    pub target_provider: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -45,6 +46,15 @@ pub struct OffloadProgress {
     pub eta_seconds: u64,
     pub status: String,
     pub error: Option<String>,
+    pub target_provider: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ReclaimResult {
+    #[specta(type = f64)]
+    pub reclaimed_bytes: u64,
+    pub count: u32,
 }
 
 pub fn calculate_path_size(path: &Path) -> Result<(u64, bool), String> {
@@ -112,9 +122,27 @@ pub async fn start_offload(
 
     let inspected = inspect_path(local_path.clone()).await?;
 
-    // Pre-flight Capacity Gate
-    let quota = fetch_vault_quota_internal(client).await?;
+    // Pre-flight Capacity Gate: use cached quota if available, fallback to live query
+    let quota = {
+        let cached = state.cached_quota.read().await.clone();
+        match cached {
+            Some(q) => q,
+            None => {
+                let fresh = fetch_vault_quota_internal(client).await?;
+                *state.cached_quota.write().await = Some(fresh.clone());
+                fresh
+            }
+        }
+    };
     check_capacity(inspected.size_bytes, quota.free_bytes)?;
+
+    // Determine target cloud provider (mfs policy routes to account with most free space)
+    let target_provider = quota
+        .accounts
+        .iter()
+        .filter(|a| a.is_connected && !a.needs_auth)
+        .max_by_key(|a| a.total_bytes.saturating_sub(a.used_bytes))
+        .map(|a| a.name.clone());
 
     let job_id = if inspected.is_dir {
         let dst_fs = format!("{}:{}/", VAULT_UNION_NAME, inspected.name);
@@ -135,6 +163,7 @@ pub async fn start_offload(
         path: inspected.path.clone(),
         name: inspected.name.clone(),
         size_bytes: inspected.size_bytes,
+        target_provider: target_provider.clone(),
     };
 
     // Spawn background telemetry streaming task
@@ -175,6 +204,7 @@ pub async fn start_offload(
                         eta_seconds: 0,
                         status: status.to_string(),
                         error,
+                        target_provider: job_info_clone.target_provider.clone(),
                     },
                 );
                 break;
@@ -196,6 +226,7 @@ pub async fn start_offload(
                         eta_seconds: eta,
                         status: "uploading".to_string(),
                         error: None,
+                        target_provider: job_info_clone.target_provider.clone(),
                     },
                 );
             }
@@ -236,6 +267,33 @@ pub async fn pick_offload_folder(
         return Ok(None);
     };
     inspect_path(file_path.to_string()).await.map(Some)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn reclaim_paths(paths: Vec<String>) -> Result<ReclaimResult, String> {
+    tokio::task::spawn_blocking(move || {
+        let mut count = 0u32;
+        let mut reclaimed_bytes = 0u64;
+
+        for path_str in paths {
+            let path = PathBuf::from(&path_str);
+            if path.exists() {
+                let size = calculate_path_size(&path).map(|(s, _)| s).unwrap_or(0);
+                trash::delete(&path)
+                    .map_err(|e| format!("Failed to move {:?} to Trash: {e}", path))?;
+                count += 1;
+                reclaimed_bytes = reclaimed_bytes.saturating_add(size);
+            }
+        }
+
+        Ok(ReclaimResult {
+            reclaimed_bytes,
+            count,
+        })
+    })
+    .await
+    .map_err(|e| format!("Reclaim task failed: {e}"))?
 }
 
 #[cfg(test)]
@@ -282,5 +340,19 @@ mod tests {
         let required_space = 2000;
         let result = check_capacity(required_space, free_space);
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_reclaim_paths() {
+        let dir = tempdir().expect("tempdir");
+        let file_path = dir.path().join("reclaim_me.txt");
+        std::fs::write(&file_path, b"delete this").expect("write file");
+
+        let res = reclaim_paths(vec![file_path.to_string_lossy().to_string()])
+            .await
+            .expect("reclaim");
+        assert_eq!(res.count, 1);
+        assert_eq!(res.reclaimed_bytes, 11);
+        assert!(!file_path.exists());
     }
 }

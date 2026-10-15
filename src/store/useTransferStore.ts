@@ -10,8 +10,9 @@ export interface TransferQueueItem {
   transferredBytes: number;
   speedBytesPerSec: number;
   etaSeconds: number;
-  status: "queued" | "uploading" | "verifying" | "verified" | "error";
+  status: "queued" | "preparing" | "uploading" | "verifying" | "verified" | "error";
   error?: string;
+  targetProvider?: string;
 }
 
 interface TransferState {
@@ -24,7 +25,13 @@ interface TransferState {
   handleProgress: (progress: OffloadProgress) => void;
   clearCompleted: () => void;
   clearError: () => void;
-  enqueueTransfer: (name: string, sizeBytes: number, jobId?: number, path?: string) => void;
+  enqueueTransfer: (
+    name: string,
+    sizeBytes: number,
+    jobId?: number,
+    path?: string,
+    targetProvider?: string
+  ) => void;
   updateItemProgress: (
     id: string,
     transferredBytes: number,
@@ -42,9 +49,28 @@ export const useTransferStore = create<TransferState>((set) => ({
 
   startOffload: async (localPath: string) => {
     set({ error: null });
+    const name = localPath.split("/").filter(Boolean).pop() || localPath;
+    const tempId = `prep-${Date.now()}`;
+    const preparingItem: TransferQueueItem = {
+      id: tempId,
+      path: localPath,
+      name,
+      sizeBytes: 0,
+      transferredBytes: 0,
+      speedBytesPerSec: 0,
+      etaSeconds: 0,
+      status: "preparing",
+    };
+
+    set((state) => ({
+      items: [...state.items, preparingItem],
+      isTransferring: true,
+      isVerified: false,
+    }));
+
     try {
       const job = await startOffloadJob(localPath);
-      const newItem: TransferQueueItem = {
+      const readyItem: TransferQueueItem = {
         id: `job-${job.jobId ?? Date.now()}`,
         jobId: job.jobId ?? undefined,
         path: job.path,
@@ -54,15 +80,25 @@ export const useTransferStore = create<TransferState>((set) => ({
         speedBytesPerSec: 0,
         etaSeconds: 0,
         status: "uploading",
+        targetProvider: job.targetProvider ?? undefined,
       };
+
       set((state) => ({
-        items: [...state.items.filter((i) => i.jobId !== job.jobId), newItem],
+        items: state.items.map((i) => (i.id === tempId ? readyItem : i)),
         isTransferring: true,
         isVerified: false,
       }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      set({ error: msg });
+      set((state) => ({
+        items: state.items.map((i) =>
+          i.id === tempId ? { ...i, status: "error" as const, error: msg } : i
+        ),
+        error: msg,
+        isTransferring: state.items.some(
+          (i) => i.id !== tempId && (i.status === "uploading" || i.status === "preparing")
+        ),
+      }));
       throw err;
     }
   },
@@ -74,7 +110,9 @@ export const useTransferStore = create<TransferState>((set) => ({
         const nextItems = state.items.filter((i) => i.jobId !== jobId);
         return {
           items: nextItems,
-          isTransferring: nextItems.some((i) => i.status === "uploading"),
+          isTransferring: nextItems.some(
+            (i) => i.status === "uploading" || i.status === "preparing"
+          ),
         };
       });
     } catch (err) {
@@ -100,23 +138,26 @@ export const useTransferStore = create<TransferState>((set) => ({
               ? ("error" as const)
               : ("uploading" as const),
             error: progress.error ?? undefined,
+            targetProvider: progress.targetProvider ?? item.targetProvider,
           };
         }
         return item;
       });
 
-      const anyUploading = updated.some((i) => i.status === "uploading");
+      const anyTransferring = updated.some(
+        (i) => i.status === "uploading" || i.status === "preparing"
+      );
       const allVerified = updated.length > 0 && updated.every((i) => i.status === "verified");
 
       return {
         items: updated,
-        isTransferring: anyUploading,
+        isTransferring: anyTransferring,
         isVerified: allVerified,
       };
     });
   },
 
-  enqueueTransfer: (name, sizeBytes, jobId, path) => {
+  enqueueTransfer: (name, sizeBytes, jobId, path, targetProvider) => {
     const id = jobId ? `job-${jobId}` : Math.random().toString(36).substring(2, 9);
     set((state) => ({
       items: [
@@ -131,6 +172,7 @@ export const useTransferStore = create<TransferState>((set) => ({
           speedBytesPerSec: 1024 * 1024 * 14.2,
           etaSeconds: Math.ceil(sizeBytes / (1024 * 1024 * 14.2)),
           status: "uploading",
+          targetProvider,
         },
       ],
       isTransferring: true,

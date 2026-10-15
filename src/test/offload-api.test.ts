@@ -4,6 +4,7 @@ import {
   selectOffloadFolder,
   startOffloadJob,
   cancelOffloadJob,
+  reclaimPaths,
 } from "@/lib/api/offload";
 import { commands } from "@/lib/bindings";
 
@@ -13,6 +14,7 @@ vi.mock("@/lib/bindings", () => ({
     pickOffloadFolder: vi.fn(),
     startOffload: vi.fn(),
     cancelOffload: vi.fn(),
+    reclaimPaths: vi.fn(),
   },
 }));
 
@@ -55,12 +57,19 @@ describe("Offload API module", () => {
   it("starts offload job and returns job info", async () => {
     vi.mocked(commands.startOffload).mockResolvedValue({
       status: "ok",
-      data: { jobId: 123, path: "/photos", name: "photos", sizeBytes: 5000 },
+      data: {
+        jobId: 123,
+        path: "/photos",
+        name: "photos",
+        sizeBytes: 5000,
+        targetProvider: "Google Drive",
+      },
     });
 
     const result = await startOffloadJob("/photos");
     expect(result.jobId).toBe(123);
     expect(result.name).toBe("photos");
+    expect(result.targetProvider).toBe("Google Drive");
   });
 
   it("cancels offload job successfully", async () => {
@@ -71,5 +80,17 @@ describe("Offload API module", () => {
 
     await expect(cancelOffloadJob(123)).resolves.not.toThrow();
     expect(commands.cancelOffload).toHaveBeenCalledWith(123);
+  });
+
+  it("reclaims paths successfully", async () => {
+    vi.mocked(commands.reclaimPaths).mockResolvedValue({
+      status: "ok",
+      data: { reclaimedBytes: 1024, count: 1 },
+    });
+
+    const result = await reclaimPaths(["/test/path"]);
+    expect(result.count).toBe(1);
+    expect(result.reclaimedBytes).toBe(1024);
+    expect(commands.reclaimPaths).toHaveBeenCalledWith(["/test/path"]);
   });
 });

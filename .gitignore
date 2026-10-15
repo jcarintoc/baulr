@@ -30,3 +30,6 @@ src-tauri/binaries/*
 # Local plan files
 docs/superpowers/
 
+# Local test data
+test-files/
+

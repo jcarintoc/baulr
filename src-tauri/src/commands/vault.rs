@@ -68,21 +68,44 @@ pub fn calculate_vault_quota(
 pub async fn fetch_vault_quota_internal(client: &RcloneClient) -> Result<VaultQuota, String> {
     let config = client.dump_config().await?;
 
-    let mut about_map = HashMap::new();
-
-    // Query about for each configured provider
-    for &(_name, id) in KNOWN_PROVIDERS {
-        if config.contains_key(id) {
-            let res = client.get_about(&format!("{}:", id)).await;
-            about_map.insert(id.to_string(), res);
+    let gdrive_fut = async {
+        if config.contains_key("gdrive") {
+            Some(("gdrive".to_string(), client.get_about("gdrive:").await))
+        } else {
+            None
         }
+    };
+
+    let onedrive_fut = async {
+        if config.contains_key("onedrive") {
+            Some(("onedrive".to_string(), client.get_about("onedrive:").await))
+        } else {
+            None
+        }
+    };
+
+    let union_fut = async {
+        if config.contains_key(VAULT_UNION_NAME) {
+            Some((
+                VAULT_UNION_NAME.to_string(),
+                client.get_about(&format!("{}:", VAULT_UNION_NAME)).await,
+            ))
+        } else {
+            None
+        }
+    };
+
+    let (gdrive_res, onedrive_res, union_res) = tokio::join!(gdrive_fut, onedrive_fut, union_fut);
+
+    let mut about_map = HashMap::new();
+    if let Some((id, res)) = gdrive_res {
+        about_map.insert(id, res);
     }
-
-
-    // Query about for union remote if configured
-    if config.contains_key(VAULT_UNION_NAME) {
-        let res = client.get_about(&format!("{}:", VAULT_UNION_NAME)).await;
-        about_map.insert(VAULT_UNION_NAME.to_string(), res);
+    if let Some((id, res)) = onedrive_res {
+        about_map.insert(id, res);
+    }
+    if let Some((id, res)) = union_res {
+        about_map.insert(id, res);
     }
 
     Ok(calculate_vault_quota(&config, &about_map))
@@ -95,7 +118,9 @@ pub async fn get_vault_quota(
 ) -> Result<VaultQuota, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
-    fetch_vault_quota_internal(client).await
+    let quota = fetch_vault_quota_internal(client).await?;
+    *state.cached_quota.write().await = Some(quota.clone());
+    Ok(quota)
 }
 
 #[cfg(test)]

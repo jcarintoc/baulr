@@ -7,7 +7,6 @@
 - [[Bandwidth Throttler]]
 
 ## In Progress
-- [[Integrity Verification & Safe Reclamation]]
 
 ## Done
 - [[Decision log]]
@@ -20,6 +19,7 @@
 - [[Desktop Vault UI (The Obsidian Vault)]]
 - [[Milestone 2: OAuth & Cloud Union Management]]
 - [[Vault Sync]]
+- [[Integrity Verification & Safe Reclamation]]
 
 
 

@@ -30,7 +30,7 @@ export function AccountCard({
 
   return (
     <Card className="bg-card/75 border-border">
-      <CardContent className="p-4 flex items-center justify-between">
+      <CardContent className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-lg bg-muted text-foreground border border-border flex items-center justify-center">
             {isGoogle ? (
@@ -52,7 +52,10 @@ export function AccountCard({
 
         {isConnected ? (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-vault-accent-border text-vault-accent-text bg-vault-accent-muted">
+            <Badge
+              variant="outline"
+              className="border-vault-accent-border text-vault-accent-text bg-vault-accent-muted"
+            >
               <IconCircleCheck />
               <span>Connected</span>
             </Badge>

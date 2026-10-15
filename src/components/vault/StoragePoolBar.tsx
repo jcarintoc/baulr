@@ -1,5 +1,5 @@
 import { formatBytes } from "@/lib/formatters";
-import { IconShieldCheck } from "@tabler/icons-react";
+import { IconCloudCheck } from "@tabler/icons-react";
 import type { VaultQuota } from "@/lib/bindings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -51,7 +51,7 @@ export function StoragePoolBar({ quota }: StoragePoolBarProps) {
             <span className="tabular-nums">Remaining: {formatBytes(free)}</span>
           </div>
           <div className="ml-auto flex items-center gap-1.5 text-muted-foreground">
-            <IconShieldCheck className="size-4 text-vault-accent-text" />
+            <IconCloudCheck className="size-4 text-vault-accent-text" />
             <span>Safe backup verification enabled</span>
           </div>
         </div>

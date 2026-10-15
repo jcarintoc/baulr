@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { IconArrowUpCircle, IconFolder } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,45 @@ interface DropzoneCardProps {
 
 export function DropzoneCard({ onSelectPath, disabled }: DropzoneCardProps) {
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let mounted = true;
+
+    try {
+      getCurrentWebview()
+        .onDragDropEvent((event) => {
+          if (!mounted) return;
+          if (event.payload.type === "enter" || event.payload.type === "over") {
+            if (!disabled) setIsDragging(true);
+          } else if (event.payload.type === "drop") {
+            setIsDragging(false);
+            if (!disabled && event.payload.paths?.[0]) {
+              onSelectPath(event.payload.paths[0]);
+            }
+          } else if (event.payload.type === "leave") {
+            setIsDragging(false);
+          }
+        })
+        .then((fn) => {
+          if (mounted) {
+            unlisten = fn;
+          } else {
+            fn();
+          }
+        })
+        .catch(() => {
+          // Fallback if not inside Tauri environment
+        });
+    } catch {
+      // Ignore if outside Tauri
+    }
+
+    return () => {
+      mounted = false;
+      if (unlisten) unlisten();
+    };
+  }, [disabled, onSelectPath]);
 
   const handleSelectFolder = async () => {
     const selected = await selectOffloadFolder().catch(() => null);

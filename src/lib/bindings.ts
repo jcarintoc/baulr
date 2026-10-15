@@ -19,6 +19,7 @@ export const commands = {
 	sizeBytes: number | null,
 	isDir: boolean,
 } | null, string>(__TAURI_INVOKE("pick_offload_folder")),
+	reclaimPaths: (paths: string[]) => typedError<ReclaimResult, string>(__TAURI_INVOKE("reclaim_paths", { paths })),
 };
 
 /* Types */
@@ -58,6 +59,12 @@ export type OffloadJobInfo = {
 	path: string,
 	name: string,
 	sizeBytes: number | null,
+	targetProvider: string | null,
+};
+
+export type ReclaimResult = {
+	reclaimedBytes: number | null,
+	count: number,
 };
 
 export type VaultQuota = {

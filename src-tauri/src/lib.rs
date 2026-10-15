@@ -7,7 +7,9 @@ use tauri_specta::{collect_commands, Builder};
 use tokio::sync::RwLock;
 
 use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_account};
-use crate::commands::offload::{cancel_offload, inspect_path, pick_offload_folder, start_offload};
+use crate::commands::offload::{
+    cancel_offload, inspect_path, pick_offload_folder, reclaim_paths, start_offload,
+};
 use crate::commands::vault::get_vault_quota;
 pub use crate::engine::{CloudAccount, VaultQuota};
 use crate::engine::{CoreStats, DaemonStatus, RcloneClient, RcloneDaemon};
@@ -17,6 +19,7 @@ use crate::engine::{CoreStats, DaemonStatus, RcloneClient, RcloneDaemon};
 pub struct AppState {
     pub daemon: Arc<RwLock<Option<RcloneDaemon>>>,
     pub client: Arc<RwLock<Option<RcloneClient>>>,
+    pub cached_quota: Arc<RwLock<Option<VaultQuota>>>,
 }
 
 #[tauri::command]
@@ -58,7 +61,8 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         inspect_path,
         start_offload,
         cancel_offload,
-        pick_offload_folder
+        pick_offload_folder,
+        reclaim_paths
     ])
 }
 
@@ -66,6 +70,7 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
 pub fn run() {
     let app_state = AppState::default();
     let daemon_holder = app_state.daemon.clone();
+    let daemon_exit_holder = app_state.daemon.clone();
     let client_holder = app_state.client.clone();
 
     let specta_builder = create_specta_builder();
@@ -105,9 +110,19 @@ pub fn run() {
         })
         .invoke_handler(specta_builder.invoke_handler());
 
-    if let Err(e) = builder.run(tauri::generate_context!()) {
-        eprintln!("Failed to launch Baulr desktop application: {e}");
-    }
+    let app = match builder.build(tauri::generate_context!()) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("Failed to launch Baulr desktop application: {e}");
+            return;
+        }
+    };
+
+    app.run(move |_app_handle, event| {
+        if let tauri::RunEvent::Exit = event {
+            let _ = daemon_exit_holder.blocking_write().take();
+        }
+    });
 }
 
 #[cfg(test)]
