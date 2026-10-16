@@ -8,7 +8,6 @@ import * as mobileApi from "@/lib/api/mobile";
 vi.mock("@/lib/api/mobile", () => ({
   startMobileReceiver: vi.fn(),
   stopMobileReceiver: vi.fn().mockResolvedValue(undefined),
-  getMobileReceiverStatus: vi.fn(),
   listenMobileFileReceived: vi.fn().mockResolvedValue(() => {}),
   listenMobileClientConnected: vi.fn().mockResolvedValue(() => {}),
 }));

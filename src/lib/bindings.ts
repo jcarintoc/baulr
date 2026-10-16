@@ -25,7 +25,6 @@ export const commands = {
 	pickDestinationFolder: () => typedError<string | null, string>(__TAURI_INVOKE("pick_destination_folder")),
 	startMobileReceiver: () => typedError<MobileReceiverInfo, string>(__TAURI_INVOKE("start_mobile_receiver")),
 	stopMobileReceiver: () => typedError<null, string>(__TAURI_INVOKE("stop_mobile_receiver")),
-	getMobileReceiverStatus: () => typedError<MobileReceiverStatus, string>(__TAURI_INVOKE("get_mobile_receiver_status")),
 };
 
 /* Types */
@@ -57,12 +56,6 @@ export type MobileReceiverInfo = {
 	token: string,
 	qrSvg: string,
 	stagingDir: string,
-};
-
-export type MobileReceiverStatus = {
-	isRunning: boolean,
-	url: string | null,
-	port: number | null,
 };
 
 export type OffloadJobInfo = {

@@ -61,9 +61,7 @@ export function useMobileReceiver(isOpen: boolean) {
       stop();
     }
     return () => {
-      unlistenFnsRef.current.forEach((fn) => fn());
-      unlistenFnsRef.current = [];
-      Promise.resolve(stopMobileReceiver()).catch(() => {});
+      stop();
     };
   }, [isOpen, start, stop]);
 

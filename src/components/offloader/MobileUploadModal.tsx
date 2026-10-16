@@ -27,6 +27,14 @@ interface MobileUploadModalProps {
   onClose: () => void;
 }
 
+const STATUS_BADGES: Record<string, { label: string; variant?: "outline" | "destructive"; className?: string }> = {
+  starting: { label: "Starting receiver...", variant: "outline" },
+  waiting: { label: "Ready for scan", variant: "outline" },
+  connected: { label: "Phone connected", className: "bg-vault-accent text-zinc-950 font-semibold" },
+  receiving: { label: "Receiving files...", className: "bg-vault-accent text-zinc-950 font-semibold" },
+  error: { label: "Error", variant: "destructive" },
+};
+
 export function MobileUploadModal({ open, onClose }: MobileUploadModalProps) {
   const { receiverInfo, receiverState, error, receivedFiles, retry, stop } =
     useMobileReceiver(open);
@@ -46,22 +54,7 @@ export function MobileUploadModal({ open, onClose }: MobileUploadModalProps) {
     onClose();
   };
 
-  const getStatusBadge = () => {
-    switch (receiverState) {
-      case "starting":
-        return <Badge variant="outline">Starting receiver...</Badge>;
-      case "waiting":
-        return <Badge variant="outline">Ready for scan</Badge>;
-      case "connected":
-        return <Badge className="bg-vault-accent text-zinc-950 font-semibold">Phone connected</Badge>;
-      case "receiving":
-        return <Badge className="bg-vault-accent text-zinc-950 font-semibold">Receiving files...</Badge>;
-      case "error":
-        return <Badge variant="destructive">Error</Badge>;
-      default:
-        return null;
-    }
-  };
+  const badge = STATUS_BADGES[receiverState];
 
   return (
     <AlertDialog open={open}>
@@ -76,7 +69,13 @@ export function MobileUploadModal({ open, onClose }: MobileUploadModalProps) {
           <AlertDialogDescription className="text-xs text-muted-foreground max-w-xs">
             Connect your phone to the same Wi-Fi network and scan the code with your camera.
           </AlertDialogDescription>
-          <div className="pt-1">{getStatusBadge()}</div>
+          <div className="pt-1">
+            {badge && (
+              <Badge variant={badge.variant} className={badge.className}>
+                {badge.label}
+              </Badge>
+            )}
+          </div>
         </AlertDialogHeader>
 
         {error && (

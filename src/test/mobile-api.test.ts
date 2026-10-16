@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   startMobileReceiver,
   stopMobileReceiver,
-  getMobileReceiverStatus,
 } from "@/lib/api/mobile";
 import { commands } from "@/lib/bindings";
 
@@ -10,7 +9,6 @@ vi.mock("@/lib/bindings", () => ({
   commands: {
     startMobileReceiver: vi.fn(),
     stopMobileReceiver: vi.fn(),
-    getMobileReceiverStatus: vi.fn(),
   },
 }));
 
@@ -56,20 +54,5 @@ describe("Mobile API module", () => {
 
     await expect(stopMobileReceiver()).resolves.not.toThrow();
     expect(commands.stopMobileReceiver).toHaveBeenCalledOnce();
-  });
-
-  it("gets mobile receiver status", async () => {
-    vi.mocked(commands.getMobileReceiverStatus).mockResolvedValue({
-      status: "ok",
-      data: {
-        isRunning: true,
-        url: "http://192.168.1.50:49200/?token=test",
-        port: 49200,
-      },
-    });
-
-    const status = await getMobileReceiverStatus();
-    expect(status.isRunning).toBe(true);
-    expect(status.port).toBe(49200);
   });
 });

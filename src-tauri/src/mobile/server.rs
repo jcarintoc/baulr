@@ -32,14 +32,6 @@ pub struct MobileReceiverInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct MobileReceiverStatus {
-    pub is_running: bool,
-    pub url: Option<String>,
-    pub port: Option<u16>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
 pub struct MobileFileReceivedEvent {
     pub file_name: String,
     pub file_path: String,
@@ -78,18 +70,15 @@ impl MobileServerHandle {
 }
 
 pub fn get_local_ip() -> String {
-    let udp = std::net::UdpSocket::bind("0.0.0.0:0");
-    if let Ok(socket) = udp {
-        if socket.connect("8.8.8.8:80").is_ok() {
-            if let Ok(addr) = socket.local_addr() {
-                let ip = addr.ip().to_string();
-                if ip != "0.0.0.0" {
-                    return ip;
-                }
-            }
-        }
-    }
-    "127.0.0.1".to_string()
+    std::net::UdpSocket::bind("0.0.0.0:0")
+        .and_then(|s| {
+            s.connect("8.8.8.8:80")?;
+            s.local_addr()
+        })
+        .map(|a| a.ip().to_string())
+        .ok()
+        .filter(|ip| ip != "0.0.0.0")
+        .unwrap_or_else(|| "127.0.0.1".to_string())
 }
 
 pub fn generate_pairing_token() -> String {

@@ -11,9 +11,7 @@ use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_accoun
 use crate::commands::browser::{
     delete_vault_item, download_vault_item, list_vault_files, pick_destination_folder,
 };
-use crate::commands::mobile::{
-    get_mobile_receiver_status, start_mobile_receiver, stop_mobile_receiver,
-};
+use crate::commands::mobile::{start_mobile_receiver, stop_mobile_receiver};
 use crate::commands::offload::{
     cancel_offload, inspect_path, pick_offload_folder, reclaim_paths, start_offload,
 };
@@ -65,8 +63,7 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         download_vault_item,
         pick_destination_folder,
         start_mobile_receiver,
-        stop_mobile_receiver,
-        get_mobile_receiver_status
+        stop_mobile_receiver
     ])
 }
 

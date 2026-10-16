@@ -210,31 +210,18 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
     function uploadFile(file) {
       const card = document.createElement("div");
       card.className = "file-card";
-
-      const header = document.createElement("div");
-      header.className = "file-header";
-
-      const name = document.createElement("span");
-      name.className = "file-name";
-      name.textContent = file.name;
-
-      const status = document.createElement("span");
-      status.className = "file-status";
-      status.textContent = "Sending (" + formatBytes(file.size) + ")...";
-
-      header.appendChild(name);
-      header.appendChild(status);
-
-      const bar = document.createElement("div");
-      bar.className = "progress-bar";
-
-      const fill = document.createElement("div");
-      fill.className = "progress-fill";
-      bar.appendChild(fill);
-
-      card.appendChild(header);
-      card.appendChild(bar);
+      card.innerHTML = `
+        <div class="file-header">
+          <span class="file-name"></span>
+          <span class="file-status">Sending (${formatBytes(file.size)})...</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      `;
+      card.querySelector(".file-name").textContent = file.name;
       fileList.prepend(card);
+
+      const status = card.querySelector(".file-status");
+      const fill = card.querySelector(".progress-fill");
 
       const formData = new FormData();
       formData.append("file", file);

@@ -1,5 +1,5 @@
 use tauri::Manager;
-use crate::mobile::{MobileReceiverInfo, MobileReceiverStatus};
+use crate::mobile::MobileReceiverInfo;
 use crate::AppState;
 
 #[tauri::command]
@@ -38,32 +38,12 @@ pub async fn stop_mobile_receiver(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn get_mobile_receiver_status(
-    state: tauri::State<'_, AppState>,
-) -> Result<MobileReceiverStatus, String> {
-    let server_guard = state.mobile_server.read().await;
-    match server_guard.as_ref() {
-        Some(handle) => Ok(MobileReceiverStatus {
-            is_running: true,
-            url: Some(handle.info.url.clone()),
-            port: Some(handle.info.port),
-        }),
-        None => Ok(MobileReceiverStatus {
-            is_running: false,
-            url: None,
-            port: None,
-        }),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_get_mobile_receiver_status_when_stopped() {
+    async fn test_mobile_server_state_initial() {
         let state = AppState::default();
         let guard = state.mobile_server.read().await;
         assert!(guard.is_none());
