@@ -8,6 +8,8 @@ on:
 
 jobs:
   build-release:
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +48,27 @@ jobs:
         run: |
           pnpm test
           pnpm build
+
+      - name: Download Rclone sidecar (macOS)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          mkdir -p src-tauri/binaries
+          curl -L -o rclone.zip https://downloads.rclone.org/v1.75.2/rclone-v1.75.2-osx-arm64.zip
+          unzip -j -q rclone.zip "*/rclone" -d src-tauri/binaries/
+          mv src-tauri/binaries/rclone src-tauri/binaries/rclone-aarch64-apple-darwin
+          chmod +x src-tauri/binaries/rclone-aarch64-apple-darwin
+          rm rclone.zip
+
+      - name: Download Rclone sidecar (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/binaries
+          Invoke-WebRequest -Uri "https://downloads.rclone.org/v1.75.2/rclone-v1.75.2-windows-amd64.zip" -OutFile "rclone.zip"
+          Expand-Archive -Path "rclone.zip" -DestinationPath "rclone-extracted" -Force
+          $rcloneExe = Get-ChildItem -Path "rclone-extracted" -Filter "rclone.exe" -Recurse | Select-Object -First 1
+          Move-Item -Path $rcloneExe.FullName -Destination "src-tauri/binaries/rclone-x86_64-pc-windows-msvc.exe" -Force
+          Remove-Item -Recurse -Force "rclone.zip", "rclone-extracted"
 
       - name: Build Tauri Desktop Package
         uses: tauri-apps/tauri-action@v0
