@@ -92,6 +92,10 @@ pub async fn list_vault_files(
 ) -> Result<Vec<RcloneItem>, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
+    let config = client.dump_config().await?;
+    if !config.contains_key(VAULT_UNION_NAME) {
+        return Ok(Vec::new());
+    }
     let fs = format!("{}:", VAULT_UNION_NAME);
     client.list_files(&fs, "").await
 }

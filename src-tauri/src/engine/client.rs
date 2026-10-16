@@ -154,6 +154,33 @@ impl RcloneClient {
         Ok(())
     }
 
+    pub async fn update_remote(
+        &self,
+        name: &str,
+        parameters: &HashMap<String, String>,
+    ) -> Result<(), String> {
+        let url = format!("{}/config/update", self.base_url);
+        let payload = serde_json::json!({
+            "name": name,
+            "parameters": parameters,
+        });
+
+        let resp = self
+            .http
+            .post(&url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to update remote '{name}': {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Failed to update remote '{name}': {body}"));
+        }
+
+        Ok(())
+    }
+
     pub async fn dump_config(
         &self,
     ) -> Result<HashMap<String, HashMap<String, serde_json::Value>>, String> {
@@ -342,6 +369,9 @@ impl RcloneClient {
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
+            if body.contains("directory not found") {
+                return Ok(Vec::new());
+            }
             return Err(format!("Listing vault files failed: {body}"));
         }
 

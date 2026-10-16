@@ -7,6 +7,7 @@ import {
   disconnectAccount as apiDisconnectAccount,
   cancelOAuth as apiCancelOAuth,
 } from "../lib/api/accounts";
+import { useRemoteFilesStore } from "./useRemoteFilesStore";
 
 interface VaultState {
   quota: VaultQuota | null;
@@ -52,6 +53,7 @@ export const useVaultStore = create<VaultState>((set) => ({
     try {
       const updatedQuota = await apiConnectAccount(provider);
       set({ quota: updatedQuota, isAuthenticating: false, authenticatingProvider: null });
+      useRemoteFilesStore.getState().fetchFiles().catch(() => {});
     } catch (err) {
       set({ error: String(err), isAuthenticating: false, authenticatingProvider: null });
     }
@@ -61,6 +63,9 @@ export const useVaultStore = create<VaultState>((set) => ({
     try {
       const updatedQuota = await apiDisconnectAccount(provider);
       set({ quota: updatedQuota, isLoading: false });
+      updatedQuota.accounts?.some((a) => a.isConnected)
+        ? useRemoteFilesStore.getState().fetchFiles().catch(() => {})
+        : useRemoteFilesStore.getState().clearFiles();
     } catch (err) {
       set({ error: String(err), isLoading: false });
     }

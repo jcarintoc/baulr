@@ -3,6 +3,7 @@ import { useViewStore } from "@/store/useViewStore";
 import { useTransferStore } from "@/store/useTransferStore";
 import { useThemeStore } from "@/store/useThemeStore";
 import { useVaultStore } from "@/store/useVaultStore";
+import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 import * as accountsApi from "@/lib/api/accounts";
 import { startOffloadJob } from "@/lib/api/offload";
 
@@ -204,6 +205,42 @@ describe("useVaultStore", () => {
     expect(state.authenticatingProvider).toBeNull();
     expect(state.quota).toEqual(mockQuota);
     expect(state.error).toBeNull();
+  });
+
+  it("disconnectAccount clears files when no accounts remain connected", async () => {
+    const emptyQuota = {
+      totalBytes: 0,
+      usedBytes: 0,
+      freeBytes: 0,
+      accounts: [
+        {
+          name: "Google Drive",
+          provider: "gdrive",
+          usedBytes: 0,
+          totalBytes: 0,
+          isConnected: false,
+          needsAuth: false,
+        },
+      ],
+    };
+    vi.spyOn(accountsApi, "disconnectAccount").mockResolvedValueOnce(emptyQuota);
+    useRemoteFilesStore.setState({
+      files: [
+        {
+          Path: "doc.txt",
+          Name: "doc.txt",
+          Size: 10,
+          MimeType: "text/plain",
+          ModTime: null,
+          IsDir: false,
+        },
+      ],
+    });
+
+    await useVaultStore.getState().disconnectAccount("gdrive");
+
+    expect(useVaultStore.getState().quota).toEqual(emptyQuota);
+    expect(useRemoteFilesStore.getState().files).toEqual([]);
   });
 
   it("handles cancelOAuth properly", async () => {

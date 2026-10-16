@@ -41,7 +41,20 @@ describe("useRemoteFilesStore actions", () => {
     expect(state.files).toEqual(mockFiles);
   });
 
-  it("sets error when fetch fails", async () => {
+  it("sets error and clears existing stale files when fetch fails", async () => {
+    useRemoteFilesStore.setState({
+      files: [
+        {
+          Path: "stale.pdf",
+          Name: "stale.pdf",
+          Size: 100,
+          MimeType: "application/pdf",
+          ModTime: null,
+          IsDir: false,
+        },
+      ],
+    });
+
     vi.mocked(browserApi.fetchVaultFiles).mockRejectedValueOnce(new Error("Connection error"));
 
     await useRemoteFilesStore.getState().fetchFiles();
@@ -50,6 +63,28 @@ describe("useRemoteFilesStore actions", () => {
     expect(state.isLoading).toBe(false);
     expect(state.error).toBe("Connection error");
     expect(state.files).toEqual([]);
+  });
+
+  it("clearFiles resets files and error", () => {
+    useRemoteFilesStore.setState({
+      files: [
+        {
+          Path: "doc.txt",
+          Name: "doc.txt",
+          Size: 10,
+          MimeType: "text/plain",
+          ModTime: null,
+          IsDir: false,
+        },
+      ],
+      error: "Previous error",
+    });
+
+    useRemoteFilesStore.getState().clearFiles();
+
+    const state = useRemoteFilesStore.getState();
+    expect(state.files).toEqual([]);
+    expect(state.error).toBeNull();
   });
 
   it("deletes file from cloud vault and updates store", async () => {
