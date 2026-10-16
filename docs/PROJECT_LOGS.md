@@ -222,4 +222,10 @@
 - **decided:** build a self-contained, zero-dependency static page in `landing/index.html` referencing GitHub Releases and `.dmg` downloads; bundle logo assets; keep in repo to minimize overhead ahead of dedicated marketing site.
 - **shipped:** created `landing/index.html`, copied `baulr.svg` and `baulr.png` into `landing/`, and verified clean browser render.
 
+### [2026-10-16] Fix CI Build Release Action Lockfile & Sidecar Pipeline
+- **asked:** fix GitHub Actions build-release workflow failure on macOS and Windows caused by lockfile dependency mismatch.
+- **decided:** update `pnpm-lock.yaml` to sync `shadcn` in devDependencies; add explicit `permissions: contents: write` and cross-platform Rclone sidecar binary preparation steps in `.github/workflows/release.yml`.
+- **shipped:** updated `pnpm-lock.yaml` and `.github/workflows/release.yml`; verified via `pnpm install --frozen-lockfile`, 45/45 vitest tests, `pnpm build`, and 27/27 cargo tests.
+
+
 
