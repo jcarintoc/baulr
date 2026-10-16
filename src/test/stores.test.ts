@@ -245,6 +245,29 @@ describe("useTransferStore", () => {
     expect(updated.items.length).toBe(1);
     expect(updated.items[0].name).toBe("HealthyFolder");
   });
+
+  it("passes targetProvider when enqueuing and processing items", async () => {
+    vi.mocked(startOffloadJob).mockResolvedValueOnce({
+      jobId: 301,
+      path: "/path/to/SelectedFile.pdf",
+      name: "SelectedFile.pdf",
+      sizeBytes: 1500,
+      isDir: false,
+      targetProvider: "onedrive",
+    });
+
+    await useTransferStore.getState().enqueuePaths(
+      ["/path/to/SelectedFile.pdf"],
+      "onedrive"
+    );
+
+    expect(startOffloadJob).toHaveBeenCalledWith(
+      "/path/to/SelectedFile.pdf",
+      "onedrive"
+    );
+    const state = useTransferStore.getState();
+    expect(state.items[0].targetProvider).toBe("onedrive");
+  });
 });
 
 

@@ -20,8 +20,8 @@ interface TransferState {
   isTransferring: boolean;
   isVerified: boolean;
   error: string | null;
-  startOffload: (localPath: string) => Promise<void>;
-  enqueuePaths: (localPaths: string[]) => Promise<void>;
+  startOffload: (localPath: string, targetProvider?: string) => Promise<void>;
+  enqueuePaths: (localPaths: string[], targetProvider?: string) => Promise<void>;
   cancelOffload: (jobId: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   processNext: () => Promise<void>;
@@ -36,12 +36,11 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   isVerified: false,
   error: null,
 
-  startOffload: async (localPath: string) => {
-    await get().enqueuePaths([localPath]);
+  startOffload: async (localPath: string, targetProvider?: string) => {
+    await get().enqueuePaths([localPath], targetProvider);
   },
 
-
-  enqueuePaths: async (localPaths: string[]) => {
+  enqueuePaths: async (localPaths: string[], targetProvider?: string) => {
     if (localPaths.length === 0) return;
     set({ error: null });
 
@@ -54,6 +53,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
       speedBytesPerSec: 0,
       etaSeconds: 0,
       status: "queued",
+      targetProvider: targetProvider && targetProvider !== "auto" ? targetProvider : undefined,
     }));
 
     set((state) => ({
@@ -86,7 +86,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     }));
 
     try {
-      const job = await startOffloadJob(nextItem.path);
+      const job = await startOffloadJob(nextItem.path, nextItem.targetProvider);
       set((s) => ({
         items: s.items.map((i) =>
           i.id === nextItem.id
@@ -98,7 +98,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
                 name: job.name,
                 sizeBytes: job.sizeBytes ?? 0,
                 status: "uploading" as const,
-                targetProvider: job.targetProvider ?? undefined,
+                targetProvider: job.targetProvider ?? i.targetProvider ?? undefined,
               }
             : i
         ),
@@ -106,6 +106,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
         isVerified: false,
       }));
     } catch (err) {
+
       const msg = err instanceof Error ? err.message : String(err);
       set((s) => ({
         items: s.items.map((i) =>

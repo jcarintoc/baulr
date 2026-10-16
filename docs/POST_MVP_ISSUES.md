@@ -13,9 +13,9 @@ This document tracks issues, edge cases, and feature enhancements identified dur
 | **ISSUE-04** | Disconnected account files remain in Vault Files tab | 🔴 **P0** | Low | Phase 1 | `[x] Resolved` |
 | **ISSUE-06** | Drag and drop only accepts one file/folder at a time | 🟠 **P1** | Low | Phase 2 | `[x] Resolved` |
 | **ISSUE-07** | Upload errors lack dismiss/cancel button, blocking queue | 🟠 **P1** | Low | Phase 2 | `[x] Resolved` |
-| **ISSUE-01** | Choose upload cloud provider ("Let Baulr decide" vs manual) | 🟡 **P2** | Medium | Phase 3 | `[ ] Open` |
-| **ISSUE-05** | Uploading duplicate folder names merges silently | 🟡 **P2** | High | Phase 3 | `[ ] Open` |
-| **ISSUE-08** | Uploading duplicate file names creates conflicts / no-ops | 🟡 **P2** | High | Phase 3 | `[ ] Open` |
+| **ISSUE-01** | Choose upload cloud provider ("Let Baulr decide" vs manual) | 🟡 **P2** | Medium | Phase 3 | `[x] Resolved` |
+| **ISSUE-05** | Uploading duplicate folder names merges silently | 🟡 **P2** | High | Phase 3 | `[x] Resolved` |
+| **ISSUE-08** | Uploading duplicate file names creates conflicts / no-ops | 🟡 **P2** | High | Phase 3 | `[x] Resolved` |
 
 ---
 
@@ -106,7 +106,7 @@ This document tracks issues, edge cases, and feature enhancements identified dur
 
 
 ### Phase 3: Upload Routing & Name Conflicts
-- [ ] Support `target_provider` in `start_offload` backend and frontend API.
-- [ ] Add provider selector UI ("Let Baulr decide", "Google Drive", "OneDrive").
-- [ ] Implement cloud pre-flight collision disambiguation for uploads.
-- [ ] Verify Phase 3 test suite.
+- [x] Support `target_provider` in `start_offload` backend and frontend API.
+- [x] Add provider selector UI ("Let Baulr decide", "Google Drive", "OneDrive").
+- [x] Implement cloud pre-flight collision disambiguation for uploads.
+- [x] Verify Phase 3 test suite.

@@ -71,6 +71,25 @@ describe("Offload API module", () => {
     expect(result.jobId).toBe(123);
     expect(result.name).toBe("photos");
     expect(result.targetProvider).toBe("Google Drive");
+    expect(commands.startOffload).toHaveBeenCalledWith("/photos", null);
+  });
+
+  it("starts offload job with explicit target provider", async () => {
+    vi.mocked(commands.startOffload).mockResolvedValue({
+      status: "ok",
+      data: {
+        jobId: 124,
+        path: "/docs",
+        name: "docs",
+        sizeBytes: 2000,
+        targetProvider: "onedrive",
+        isDir: false,
+      },
+    });
+
+    const result = await startOffloadJob("/docs", "onedrive");
+    expect(result.jobId).toBe(124);
+    expect(commands.startOffload).toHaveBeenCalledWith("/docs", "onedrive");
   });
 
   it("cancels offload job successfully", async () => {

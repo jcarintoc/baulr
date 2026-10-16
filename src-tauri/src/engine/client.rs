@@ -455,6 +455,70 @@ impl RcloneClient {
             .map_err(|e| format!("Failed to parse hash check result: {e}"))
     }
 
+    pub async fn get_file_hash(
+        &self,
+        fs: &str,
+        remote: &str,
+        hash_type: &str,
+    ) -> Result<String, String> {
+        let url = format!("{}/operations/hashsumfile", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({
+                "fs": fs,
+                "remote": remote,
+                "hashType": hash_type,
+                "download": true,
+            }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to compute hash for '{remote}': {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Hash computation failed for '{remote}': {body}"));
+        }
+
+        let res: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse hash response for '{remote}': {e}"))?;
+
+        res.get("hash")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| format!("No hash returned for '{remote}'"))
+    }
+
+    pub async fn check_single_file_hash(
+        &self,
+        src_fs: &str,
+        src_remote: &str,
+        dst_fs: &str,
+        dst_remote: &str,
+    ) -> Result<CheckResult, String> {
+        let src_hash = self.get_file_hash(src_fs, src_remote, "MD5").await?;
+        let dst_hash = self.get_file_hash(dst_fs, dst_remote, "MD5").await?;
+
+        if !src_hash.is_empty() && src_hash == dst_hash {
+            Ok(CheckResult {
+                success: true,
+                status: "OK".to_string(),
+                differ: Vec::new(),
+                error: Vec::new(),
+            })
+        } else {
+            Ok(CheckResult {
+                success: false,
+                status: "Hash mismatch".to_string(),
+                differ: vec![dst_remote.to_string()],
+                error: Vec::new(),
+            })
+        }
+    }
+
+
     pub async fn quit(&self) -> Result<(), String> {
         let url = format!("{}/core/quit", self.base_url);
         let _ = self

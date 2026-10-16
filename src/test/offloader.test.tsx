@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TransferQueue } from "@/components/offloader/TransferQueue";
 import { DropzoneCard } from "@/components/offloader/DropzoneCard";
+import { useVaultStore } from "@/store/useVaultStore";
 
 describe("Offloader Components", () => {
   it("renders active queue with real items and speed", () => {
@@ -67,10 +68,61 @@ describe("Offloader Components", () => {
     Object.defineProperty(file2, "path", { value: "/home/user/report.pdf" });
 
     fireEvent.drop(zone, { dataTransfer: { files: [file1, file2] } });
-    expect(onSelectPaths).toHaveBeenCalledWith([
-      "/home/user/vacation.zip",
-      "/home/user/report.pdf",
-    ]);
+    expect(onSelectPaths).toHaveBeenCalledWith(
+      [
+        "/home/user/vacation.zip",
+        "/home/user/report.pdf",
+      ],
+      undefined
+    );
+  });
+
+  it("renders cloud destination selector when multiple accounts are connected and passes chosen provider", () => {
+    useVaultStore.setState({
+      quota: {
+        totalBytes: 1000,
+        usedBytes: 500,
+        freeBytes: 500,
+        accounts: [
+          {
+            provider: "google",
+            name: "Google Drive",
+            isConnected: true,
+            needsAuth: false,
+            usedBytes: 200,
+            totalBytes: 500,
+          },
+          {
+            provider: "onedrive",
+            name: "OneDrive",
+            isConnected: true,
+            needsAuth: false,
+            usedBytes: 100,
+            totalBytes: 500,
+          },
+        ],
+      },
+    });
+
+    const onSelectPaths = vi.fn();
+    render(<DropzoneCard onSelectPaths={onSelectPaths} />);
+
+    const dropdownBtn = screen.getByTitle("Choose cloud destination");
+    expect(dropdownBtn).toBeInTheDocument();
+    expect(screen.getByText("Let Baulr decide")).toBeInTheDocument();
+
+    fireEvent.click(dropdownBtn);
+    const onedriveItem = screen.getByRole("menuitem", { name: /OneDrive/i });
+    fireEvent.click(onedriveItem);
+
+    expect(screen.getByText("OneDrive")).toBeInTheDocument();
+
+    const zone = screen.getByRole("region", { name: "File offloader drop zone" });
+    const file1 = new File(["dummy"], "vacation.zip");
+    Object.defineProperty(file1, "path", { value: "/home/user/vacation.zip" });
+    fireEvent.drop(zone, { dataTransfer: { files: [file1] } });
+
+    expect(onSelectPaths).toHaveBeenCalledWith(["/home/user/vacation.zip"], "onedrive");
   });
 
   it("displays target provider badge and destination status in TransferQueue", () => {
