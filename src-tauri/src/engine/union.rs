@@ -40,10 +40,12 @@ pub async fn sync_vault_union(client: &RcloneClient) -> Result<Option<String>, S
     let config = client.dump_config().await?;
     let upstreams = build_union_upstreams(&config);
 
+    // Cleanly delete existing remote upfront to purge internal cache across transitions
+    if config.contains_key(VAULT_UNION_NAME) {
+        let _ = client.delete_remote(VAULT_UNION_NAME).await;
+    }
+
     if upstreams.is_empty() {
-        if config.contains_key(VAULT_UNION_NAME) {
-            let _ = client.delete_remote(VAULT_UNION_NAME).await;
-        }
         return Ok(None);
     }
 

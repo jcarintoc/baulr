@@ -21,7 +21,7 @@ pub struct RcloneClient {
 impl RcloneClient {
     pub fn new(port: u16) -> Self {
         let http = reqwest::Client::builder()
-            .timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(45))
             .build()
             .unwrap_or_default();
 

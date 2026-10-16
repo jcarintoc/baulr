@@ -146,7 +146,7 @@ pub async fn start_offload(
         match cached {
             Some(q) => q,
             None => {
-                let fresh = fetch_vault_quota_internal(client).await?;
+                let fresh = fetch_vault_quota_internal(client, None).await?;
                 *state.cached_quota.write().await = Some(fresh.clone());
                 fresh
             }

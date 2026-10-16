@@ -11,11 +11,14 @@ const KNOWN_PROVIDERS: &[(&str, &str)] = &[
 pub fn calculate_vault_quota(
     config: &HashMap<String, HashMap<String, serde_json::Value>>,
     about_map: &HashMap<String, Result<AboutFs, String>>,
+    prev_quota: Option<&VaultQuota>,
 ) -> VaultQuota {
     let mut accounts = Vec::new();
 
     for &(name, id) in KNOWN_PROVIDERS {
         let is_configured = config.contains_key(id);
+
+        let prev_account = prev_quota.and_then(|q| q.accounts.iter().find(|a| a.provider == id));
 
         let (is_connected, needs_auth, used_bytes, total_bytes) = if is_configured {
             match about_map.get(id) {
@@ -25,7 +28,17 @@ pub fn calculate_vault_quota(
                     about.used.unwrap_or(0),
                     about.total.unwrap_or(0),
                 ),
-                _ => (false, true, 0, 0),
+                Some(Err(err))
+                    if ["invalid_grant", "unauthorized", "token expired", "401"]
+                        .iter()
+                        .any(|k| err.to_lowercase().contains(k)) =>
+                {
+                    (false, true, 0, 0)
+                }
+                _ => {
+                    let (u, t) = prev_account.map_or((0, 0), |a| (a.used_bytes, a.total_bytes));
+                    (true, false, u, t)
+                }
             }
         } else {
             (false, false, 0, 0)
@@ -65,7 +78,10 @@ pub fn calculate_vault_quota(
     }
 }
 
-pub async fn fetch_vault_quota_internal(client: &RcloneClient) -> Result<VaultQuota, String> {
+pub async fn fetch_vault_quota_internal(
+    client: &RcloneClient,
+    prev_quota: Option<&VaultQuota>,
+) -> Result<VaultQuota, String> {
     let config = client.dump_config().await?;
 
     let gdrive_fut = async {
@@ -108,7 +124,7 @@ pub async fn fetch_vault_quota_internal(client: &RcloneClient) -> Result<VaultQu
         about_map.insert(id, res);
     }
 
-    Ok(calculate_vault_quota(&config, &about_map))
+    Ok(calculate_vault_quota(&config, &about_map, prev_quota))
 }
 
 #[tauri::command]
@@ -118,7 +134,8 @@ pub async fn get_vault_quota(
 ) -> Result<VaultQuota, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
-    let quota = fetch_vault_quota_internal(client).await?;
+    let prev_cached = state.cached_quota.read().await.clone();
+    let quota = fetch_vault_quota_internal(client, prev_cached.as_ref()).await?;
     *state.cached_quota.write().await = Some(quota.clone());
     Ok(quota)
 }
@@ -132,7 +149,7 @@ mod tests {
         let config = HashMap::new();
         let about_map = HashMap::new();
 
-        let quota = calculate_vault_quota(&config, &about_map);
+        let quota = calculate_vault_quota(&config, &about_map, None);
         assert_eq!(quota.total_bytes, 0);
         assert_eq!(quota.used_bytes, 0);
         assert_eq!(quota.free_bytes, 0);
@@ -159,7 +176,7 @@ mod tests {
             }),
         );
 
-        let quota = calculate_vault_quota(&config, &about_map);
+        let quota = calculate_vault_quota(&config, &about_map, None);
         assert_eq!(quota.total_bytes, 15 * 1024 * 1024 * 1024);
         assert_eq!(quota.used_bytes, 5 * 1024 * 1024 * 1024);
         assert_eq!(quota.free_bytes, 10 * 1024 * 1024 * 1024);
@@ -175,9 +192,45 @@ mod tests {
         let mut about_map = HashMap::new();
         about_map.insert("onedrive".to_string(), Err("Token expired".into()));
 
-        let quota = calculate_vault_quota(&config, &about_map);
+        let quota = calculate_vault_quota(&config, &about_map, None);
         let onedrive = quota.accounts.iter().find(|a| a.provider == "onedrive").unwrap();
         assert!(!onedrive.is_connected);
         assert!(onedrive.needs_auth);
+    }
+
+    #[test]
+    fn test_calculate_vault_quota_transient_error_preserves_cache() {
+        let mut config = HashMap::new();
+        config.insert("gdrive".to_string(), HashMap::new());
+
+        let mut about_map = HashMap::new();
+        about_map.insert(
+            "gdrive".to_string(),
+            Err("failed to get Drive storageQuota: context canceled".into()),
+        );
+
+        let prev = VaultQuota {
+            total_bytes: 15 * 1024 * 1024 * 1024,
+            used_bytes: 2 * 1024 * 1024 * 1024,
+            free_bytes: 13 * 1024 * 1024 * 1024,
+            accounts: vec![
+                CloudAccount {
+                    name: "Google Drive".into(),
+                    provider: "gdrive".into(),
+                    used_bytes: 2 * 1024 * 1024 * 1024,
+                    total_bytes: 15 * 1024 * 1024 * 1024,
+                    is_connected: true,
+                    needs_auth: false,
+                },
+            ],
+        };
+
+        let quota = calculate_vault_quota(&config, &about_map, Some(&prev));
+        let gdrive = quota.accounts.iter().find(|a| a.provider == "gdrive").unwrap();
+        assert!(gdrive.is_connected, "Transient error should not mark account disconnected");
+        assert!(!gdrive.needs_auth, "Transient error should not flag needs_auth");
+        assert_eq!(gdrive.total_bytes, 15 * 1024 * 1024 * 1024);
+        assert_eq!(gdrive.used_bytes, 2 * 1024 * 1024 * 1024);
+        assert_eq!(quota.total_bytes, 15 * 1024 * 1024 * 1024);
     }
 }

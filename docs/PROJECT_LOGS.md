@@ -227,10 +227,15 @@
 - **decided:** update `pnpm-lock.yaml` to sync `shadcn` in devDependencies; add explicit `permissions: contents: write` and cross-platform Rclone sidecar binary preparation steps in `.github/workflows/release.yml`.
 - **shipped:** updated `pnpm-lock.yaml` and `.github/workflows/release.yml`; verified via `pnpm install --frozen-lockfile`, 45/45 vitest tests, `pnpm build`, and 27/27 cargo tests.
 
-### [2026-10-16] Fix Windows CommandExt Trait in Rclone Daemon
-- **asked:** resolve Windows CI release build failure (`error[E0599]: no method named creation_flags found for struct std::process::Command`).
-- **decided:** import `std::os::windows::process::CommandExt` under `#[cfg(windows)]` in `daemon.rs` so `creation_flags(0x08000000)` resolves properly on MSVC/Windows targets.
-- **shipped:** updated `src-tauri/src/engine/daemon.rs`; verified via `cargo check`, 0 clippy warnings, and 27/27 cargo tests passing.
+### [2026-10-16] Phase 1: Connection Sync, OneDrive Auto-Config & Vault Purge
+- **asked:** resolve Phase 1 post-MVP issues: OneDrive upload failure, manual sync lag after connect/disconnect, and lingering vault files.
+- **decided:** auto-configure OneDrive with `drive_type = "personal"` and Graph API drive resolution; make cache synchronization reactive; gracefully clear vault items on disconnect.
+- **shipped:** updated `accounts.rs`, `vault.rs`, `union.rs`, `VaultFilesTab.tsx`, `useVaultStore.ts`; verified 27/27 cargo tests, 47/47 vitest tests, and ponytail review.
+
+### [2026-10-16] Multi-Cloud Quota Stabilization, 45s Timeout & BaulrVault File Sync
+- **asked:** fix multi-cloud connect timeout, Google Drive "Re-authenticate" false alert, 5 GB quota undercounting, and load files inside Google Drive `BaulrVault`.
+- **decided:** increase Rclone HTTP client timeout from 5s to 45s; preserve connected state and quota cache during transient API latency; delete existing `baulr_vault` remote before recreating union remote; maintain `VAULT_SUBDIR = "BaulrVault"` sandbox for safety and speed; add Alert with retry CTA to `VaultBrowserTable.tsx`.
+- **shipped:** updated `src-tauri/src/engine/client.rs`, `src-tauri/src/engine/union.rs`, `src-tauri/src/commands/vault.rs`, `src-tauri/src/commands/accounts.rs`, `src-tauri/src/commands/offload.rs`, `src/components/browser/VaultBrowserTable.tsx`, and added unit tests in `vault.rs` and `browser-table.test.tsx`; verified 28/28 cargo tests, 48/48 vitest tests, 0 clippy warnings, and clean `pnpm build`.
 
 
 

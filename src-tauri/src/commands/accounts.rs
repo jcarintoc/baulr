@@ -81,7 +81,8 @@ pub async fn connect_account(
 
     let _ = sync_vault_union(&client).await;
 
-    let quota = fetch_vault_quota_internal(&client).await?;
+    let prev_cached = state.cached_quota.read().await.clone();
+    let quota = fetch_vault_quota_internal(&client, prev_cached.as_ref()).await?;
     *state.cached_quota.write().await = Some(quota.clone());
     Ok(quota)
 }
@@ -98,7 +99,8 @@ pub async fn disconnect_account(
     client.delete_remote(name).await?;
     let _ = sync_vault_union(&client).await;
 
-    let quota = fetch_vault_quota_internal(&client).await?;
+    let prev_cached = state.cached_quota.read().await.clone();
+    let quota = fetch_vault_quota_internal(&client, prev_cached.as_ref()).await?;
     *state.cached_quota.write().await = Some(quota.clone());
     Ok(quota)
 }

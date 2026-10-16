@@ -92,6 +92,10 @@ This document tracks issues, edge cases, and feature enhancements identified dur
 - [x] Fix OneDrive `drive_type` / drive ID configuration in `src-tauri/src/commands/accounts.rs`.
 - [x] Auto-refresh Vault Files and Quota reactively on account connection.
 - [x] Clear file store and return empty list when vault has no connected accounts.
+- [x] Extend Rclone HTTP client timeout to 45s to eliminate Google Drive & union listing timeouts.
+- [x] Stabilize multi-cloud Combined Storage Pool (20 GB) and prevent false "Re-authenticate" warnings.
+- [x] Recreate union cleanly on account transitions and preserve `BaulrVault` scoping.
+- [x] Add user-friendly error Alert and retry CTA in `VaultBrowserTable.tsx`.
 - [x] Verify Phase 1 test suite (`cargo test`, `pnpm test`, production build).
 
 ### Phase 2: Queue & Drag-and-Drop UX
