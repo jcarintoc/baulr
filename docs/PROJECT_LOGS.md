@@ -252,3 +252,9 @@
 - **decided:** add `target_provider: Option<String>` to `start_offload` supporting manual cloud destination selection alongside "Let Baulr decide (Auto)"; implement pre-flight cloud duplicate inspection and numerical suffix auto-disambiguation (`resolve_unique_cloud_name`); add custom single-file hash verification on rename (`check_single_file_hash`); add compact destination dropdown inside `DropzoneCard.tsx`; modularize webview drop listener into `useWebviewDrop.ts` and reclaim confirmation into `ReclaimConfirmDialog.tsx` keeping all components under 150 lines.
 - **shipped:** updated `src-tauri/src/commands/offload.rs`, `src-tauri/src/engine/client.rs`, `src/lib/bindings.ts`, `src/lib/api/offload.ts`, `src/store/useTransferStore.ts`, `src/components/offloader/DropzoneCard.tsx`, `src/components/offloader/OffloadWorkspace.tsx`, created `src/components/offloader/useWebviewDrop.ts` and `src/components/offloader/ReclaimConfirmDialog.tsx`, updated `docs/POST_MVP_ISSUES.md`, and added comprehensive unit tests across backend and frontend; verified 31/31 cargo tests, 54/54 vitest tests, and clean production build.
 
+### [2026-10-16] Ponytail Review Simplification (-14 Lines)
+- **asked:** prune unnecessary complexity in Phase 3 upload routing and collision handling.
+- **decided:** eliminate unreachable fallback path reconstruction in `offload.rs` telemetry loop; replace manual mutable counter loop in `resolve_unique_cloud_name` with standard iterator pipeline; remove redundant `useEffect` for mutable ref syncing in `useWebviewDrop.ts`.
+- **shipped:** net -14 lines across `src-tauri/src/commands/offload.rs` and `src/components/offloader/useWebviewDrop.ts`; verified 31/31 cargo tests, 54/54 vitest tests, and production build.
+
+

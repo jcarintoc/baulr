@@ -151,14 +151,10 @@ pub fn resolve_unique_cloud_name(existing_names: &[&str], item_name: &str, is_di
         (stem, ext)
     };
 
-    let mut counter = 1;
-    loop {
-        let candidate = format!("{} ({}){}", stem, counter, ext);
-        if !existing_names.contains(&candidate.as_str()) {
-            return candidate;
-        }
-        counter += 1;
-    }
+    (1..)
+        .map(|i| format!("{stem} ({i}){ext}"))
+        .find(|candidate| !existing_names.contains(&candidate.as_str()))
+        .unwrap_or_else(|| item_name.to_string())
 }
 
 #[tauri::command]
@@ -277,14 +273,7 @@ pub async fn start_offload(
                 Ok(status) if status.finished => {
                     let check_res = if status.success {
                         let res = if job_info_clone.is_dir {
-                            let dst_fs = dst_dir_fs.clone().unwrap_or_else(|| {
-                                if dst_base_fs_clone.ends_with(':') {
-                                    format!("{dst_base_fs_clone}{}/", job_info_clone.name)
-                                } else {
-                                    format!("{dst_base_fs_clone}/{}/", job_info_clone.name)
-                                }
-                            });
-
+                            let dst_fs = dst_dir_fs.clone().unwrap_or_default();
                             client_clone.check_hashes(&job_info_clone.path, &dst_fs, None).await
                         } else {
                             let parent = Path::new(&job_info_clone.path)

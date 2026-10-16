@@ -11,10 +11,8 @@ export function useWebviewDrop({ disabled, onDrop }: UseWebviewDropOptions) {
   const onDropRef = useRef(onDrop);
   const disabledRef = useRef(disabled);
 
-  useEffect(() => {
-    onDropRef.current = onDrop;
-    disabledRef.current = disabled;
-  });
+  onDropRef.current = onDrop;
+  disabledRef.current = disabled;
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
