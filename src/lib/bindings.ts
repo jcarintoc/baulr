@@ -23,6 +23,9 @@ export const commands = {
 	deleteVaultItem: (itemPath: string, isDir: boolean) => typedError<null, string>(__TAURI_INVOKE("delete_vault_item", { itemPath, isDir })),
 	downloadVaultItem: (itemPath: string, itemName: string, isDir: boolean, destinationDir: string) => typedError<number | null, string>(__TAURI_INVOKE("download_vault_item", { itemPath, itemName, isDir, destinationDir })),
 	pickDestinationFolder: () => typedError<string | null, string>(__TAURI_INVOKE("pick_destination_folder")),
+	startMobileReceiver: () => typedError<MobileReceiverInfo, string>(__TAURI_INVOKE("start_mobile_receiver")),
+	stopMobileReceiver: () => typedError<null, string>(__TAURI_INVOKE("stop_mobile_receiver")),
+	getMobileReceiverStatus: () => typedError<MobileReceiverStatus, string>(__TAURI_INVOKE("get_mobile_receiver_status")),
 };
 
 /* Types */
@@ -45,6 +48,21 @@ export type InspectPathResult = {
 	name: string,
 	sizeBytes: number | null,
 	isDir: boolean,
+};
+
+export type MobileReceiverInfo = {
+	url: string,
+	ip: string,
+	port: number,
+	token: string,
+	qrSvg: string,
+	stagingDir: string,
+};
+
+export type MobileReceiverStatus = {
+	isRunning: boolean,
+	url: string | null,
+	port: number | null,
 };
 
 export type OffloadJobInfo = {

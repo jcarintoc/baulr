@@ -257,4 +257,9 @@
 - **decided:** eliminate unreachable fallback path reconstruction in `offload.rs` telemetry loop; replace manual mutable counter loop in `resolve_unique_cloud_name` with standard iterator pipeline; remove redundant `useEffect` for mutable ref syncing in `useWebviewDrop.ts`.
 - **shipped:** net -14 lines across `src-tauri/src/commands/offload.rs` and `src/components/offloader/useWebviewDrop.ts`; verified 31/31 cargo tests, 54/54 vitest tests, and production build.
 
+### [2026-10-16] Milestone 6: LAN Wi-Fi QR Mobile Upload (REQ-07)
+- **asked:** implement Milestone 6: allow users to offload photos and videos from mobile phones directly to Baulr over local Wi-Fi without installing a mobile app.
+- **decided:** build an embedded local network Axum HTTP streaming receiver on dynamic port with pairing token authentication; generate crisp vector QR code in Rust (`qrcode`); serve a responsive dark-mode mobile web uploader page; stream multipart chunks directly to disk staging to prevent OOM on large 4K video uploads; emit `mobile://file-received` to automatically enqueue files into `useTransferStore`; modularize UI into `MobileUploadModal.tsx`, `MobileReceivedList.tsx`, `DestinationCloudDropdown.tsx`, and `useMobileReceiver.ts` keeping all components strictly under 150 lines.
+- **shipped:** created `src-tauri/src/mobile/`, `src-tauri/src/commands/mobile.rs`, `src/lib/api/mobile.ts`, `src/components/offloader/useMobileReceiver.ts`, `src/components/offloader/MobileUploadModal.tsx`, `src/components/offloader/MobileReceivedList.tsx`, `src/components/offloader/DestinationCloudDropdown.tsx`, `src/components/offloader/ReclaimSuccessToast.tsx`, updated `DropzoneCard.tsx`, `OffloadWorkspace.tsx`, `lib.rs`, `Cargo.toml`, and added unit tests in `mobile-api.test.ts` and `mobile-receiver.test.tsx`; verified 33/33 cargo tests, 61/61 vitest tests, and clean production build.
+
 

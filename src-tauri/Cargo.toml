@@ -25,10 +25,13 @@ serde_json = "1"
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "=0.0.12"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["javascript", "typescript"] }
-tokio = { version = "1", features = ["sync", "time", "process", "io-util", "macros", "rt"] }
+tokio = { version = "1", features = ["sync", "time", "process", "io-util", "macros", "rt", "net"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 tauri-plugin-dialog = "2"
 trash = "5"
+axum = { version = "0.8", default-features = false, features = ["multipart", "tokio", "http1", "query"] }
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+tower-http = { version = "0.6", features = ["cors"] }
 
 [dev-dependencies]
 tempfile = "3"

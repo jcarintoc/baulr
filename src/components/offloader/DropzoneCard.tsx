@@ -2,43 +2,31 @@ import { useState } from "react";
 import {
   IconArrowUpCircle,
   IconFolder,
-  IconCloudUpload,
-  IconChevronDown,
-  IconCheck,
+  IconDeviceMobile,
 } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { selectOffloadFolder } from "@/lib/api/offload";
 import { useVaultStore } from "@/store/useVaultStore";
 import { useWebviewDrop } from "./useWebviewDrop";
+import { DestinationCloudDropdown } from "./DestinationCloudDropdown";
 
 interface DropzoneCardProps {
   onSelectPaths: (paths: string[], targetProvider?: string) => void;
+  onOpenMobile?: () => void;
   disabled?: boolean;
 }
 
-export function DropzoneCard({ onSelectPaths, disabled }: DropzoneCardProps) {
+export function DropzoneCard({
+  onSelectPaths,
+  onOpenMobile,
+  disabled,
+}: DropzoneCardProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>("auto");
 
   const { quota } = useVaultStore();
   const connectedAccounts =
     quota?.accounts.filter((a) => a.isConnected && !a.needsAuth) ?? [];
-
-  const activeProvider = connectedAccounts.find(
-    (a) => a.provider === selectedProvider,
-  );
-  const activeLabel =
-    selectedProvider === "auto" || !activeProvider
-      ? "Let Baulr decide"
-      : activeProvider.name;
 
   const triggerSelect = (paths: string[]) => {
     onSelectPaths(
@@ -105,43 +93,25 @@ export function DropzoneCard({ onSelectPaths, disabled }: DropzoneCardProps) {
             <span>Select Folder to Free Up Space</span>
           </Button>
 
-          {connectedAccounts.length > 1 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={disabled}
-                    className="gap-1.5 text-xs text-muted-foreground"
-                    title="Choose cloud destination"
-                  >
-                    <IconCloudUpload />
-                    <span>{activeLabel}</span>
-                    <IconChevronDown />
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel>Destination Cloud</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setSelectedProvider("auto")}>
-                  <span className="flex-1">Let Baulr decide (Auto)</span>
-                  {selectedProvider === "auto" && <IconCheck />}
-                </DropdownMenuItem>
-                {connectedAccounts.map((account) => (
-                  <DropdownMenuItem
-                    key={account.provider}
-                    onClick={() => setSelectedProvider(account.provider)}
-                  >
-                    <span className="flex-1">{account.name}</span>
-                    {selectedProvider === account.provider && <IconCheck />}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {onOpenMobile && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onOpenMobile}
+              disabled={disabled}
+            >
+              <IconDeviceMobile />
+              <span>Receive from Phone</span>
+            </Button>
           )}
+
+          <DestinationCloudDropdown
+            accounts={connectedAccounts}
+            selectedProvider={selectedProvider}
+            onSelectProvider={setSelectedProvider}
+            disabled={disabled}
+          />
         </div>
       </CardContent>
     </Card>
