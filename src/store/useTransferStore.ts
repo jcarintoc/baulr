@@ -21,96 +21,135 @@ interface TransferState {
   isVerified: boolean;
   error: string | null;
   startOffload: (localPath: string) => Promise<void>;
+  enqueuePaths: (localPaths: string[]) => Promise<void>;
   cancelOffload: (jobId: number) => Promise<void>;
+  removeItem: (id: string) => Promise<void>;
+  processNext: () => Promise<void>;
   handleProgress: (progress: OffloadProgress) => void;
   clearCompleted: () => void;
   clearError: () => void;
 }
 
-export const useTransferStore = create<TransferState>((set) => ({
+export const useTransferStore = create<TransferState>((set, get) => ({
   items: [],
   isTransferring: false,
   isVerified: false,
   error: null,
 
   startOffload: async (localPath: string) => {
+    await get().enqueuePaths([localPath]);
+  },
+
+
+  enqueuePaths: async (localPaths: string[]) => {
+    if (localPaths.length === 0) return;
     set({ error: null });
-    const name = localPath.split("/").filter(Boolean).pop() || localPath;
-    const tempId = `prep-${Date.now()}`;
-    const preparingItem: TransferQueueItem = {
-      id: tempId,
-      path: localPath,
-      name,
+
+    const newItems: TransferQueueItem[] = localPaths.map((path, idx) => ({
+      id: `queue-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+      path,
+      name: path.split("/").filter(Boolean).pop() || path,
       sizeBytes: 0,
       transferredBytes: 0,
       speedBytesPerSec: 0,
       etaSeconds: 0,
-      status: "preparing",
-    };
+      status: "queued",
+    }));
 
     set((state) => ({
-      items: [...state.items, preparingItem],
+      items: [...state.items, ...newItems],
+      isVerified: false,
+    }));
+
+    await get().processNext();
+  },
+
+  processNext: async () => {
+    const state = get();
+    if (state.items.some((i) => i.status === "preparing" || i.status === "uploading")) {
+      return;
+    }
+
+    const nextItem = state.items.find((i) => i.status === "queued");
+    if (!nextItem || !nextItem.path) {
+      set({
+        isTransferring: false,
+        isVerified: state.items.length > 0 && state.items.every((i) => i.status === "verified"),
+      });
+      return;
+    }
+
+    set((s) => ({
+      items: s.items.map((i) => (i.id === nextItem.id ? { ...i, status: "preparing" as const } : i)),
       isTransferring: true,
       isVerified: false,
     }));
 
     try {
-      const job = await startOffloadJob(localPath);
-      const readyItem: TransferQueueItem = {
-        id: `job-${job.jobId ?? Date.now()}`,
-        jobId: job.jobId ?? undefined,
-        path: job.path,
-        name: job.name,
-        sizeBytes: job.sizeBytes ?? 0,
-        transferredBytes: 0,
-        speedBytesPerSec: 0,
-        etaSeconds: 0,
-        status: "uploading",
-        targetProvider: job.targetProvider ?? undefined,
-      };
-
-      set((state) => ({
-        items: state.items.map((i) => (i.id === tempId ? readyItem : i)),
+      const job = await startOffloadJob(nextItem.path);
+      set((s) => ({
+        items: s.items.map((i) =>
+          i.id === nextItem.id
+            ? {
+                ...i,
+                id: `job-${job.jobId ?? Date.now()}`,
+                jobId: job.jobId ?? undefined,
+                path: job.path,
+                name: job.name,
+                sizeBytes: job.sizeBytes ?? 0,
+                status: "uploading" as const,
+                targetProvider: job.targetProvider ?? undefined,
+              }
+            : i
+        ),
         isTransferring: true,
         isVerified: false,
       }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      set((state) => ({
-        items: state.items.map((i) =>
-          i.id === tempId ? { ...i, status: "error" as const, error: msg } : i
+      set((s) => ({
+        items: s.items.map((i) =>
+          i.id === nextItem.id ? { ...i, status: "error" as const, error: msg } : i
         ),
         error: msg,
-        isTransferring: state.items.some(
-          (i) => i.id !== tempId && (i.status === "uploading" || i.status === "preparing")
-        ),
       }));
-      throw err;
+      get().processNext();
     }
+  },
+
+  removeItem: async (id: string) => {
+    const item = get().items.find((i) => i.id === id);
+    if (item?.jobId && item.status === "uploading") {
+      await cancelOffloadJob(item.jobId).catch(() => {});
+    }
+
+    set((state) => {
+      const nextItems = state.items.filter((i) => i.id !== id);
+      return {
+        items: nextItems,
+        isTransferring: nextItems.some(
+          (i) => i.status === "uploading" || i.status === "preparing"
+        ),
+        isVerified: nextItems.length > 0 && nextItems.every((i) => i.status === "verified"),
+      };
+    });
+
+    get().processNext();
   },
 
   cancelOffload: async (jobId: number) => {
-    try {
-      await cancelOffloadJob(jobId);
-      set((state) => {
-        const nextItems = state.items.filter((i) => i.jobId !== jobId);
-        return {
-          items: nextItems,
-          isTransferring: nextItems.some(
-            (i) => i.status === "uploading" || i.status === "preparing"
-          ),
-        };
-      });
-    } catch (err) {
-      set({ error: err instanceof Error ? err.message : String(err) });
+    const item = get().items.find((i) => i.jobId === jobId);
+    if (item) {
+      await get().removeItem(item.id);
     }
   },
 
-  handleProgress: (progress: OffloadProgress) => {
-    set((state) => {
-      const isComplete = progress.status === "completed";
-      const isError = progress.status === "error";
 
+  handleProgress: (progress: OffloadProgress) => {
+    const isComplete = progress.status === "completed";
+    const isError = progress.status === "error";
+
+    set((state) => {
       const updated = state.items.map((item) => {
         if (item.jobId === progress.jobId) {
           return {
@@ -141,6 +180,10 @@ export const useTransferStore = create<TransferState>((set) => ({
         isVerified: allVerified,
       };
     });
+
+    if (isComplete || isError) {
+      get().processNext();
+    }
   },
 
   clearCompleted: () => {

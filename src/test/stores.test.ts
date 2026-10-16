@@ -123,8 +123,10 @@ describe("useTransferStore", () => {
       path: "/path/to/MyFolder",
       name: "MyFolder",
       sizeBytes: 5000,
+      isDir: true,
       targetProvider: "Google Drive",
     });
+
 
     await startPromise;
 
@@ -134,7 +136,117 @@ describe("useTransferStore", () => {
     expect(updated[0].sizeBytes).toBe(5000);
     expect(updated[0].targetProvider).toBe("Google Drive");
   });
+
+  it("enqueues multiple paths and processes them sequentially", async () => {
+    vi.mocked(startOffloadJob)
+      .mockResolvedValueOnce({
+        jobId: 101,
+        path: "/path/to/FirstFolder",
+        name: "FirstFolder",
+        sizeBytes: 1000,
+        isDir: true,
+        targetProvider: "OneDrive",
+      })
+      .mockResolvedValueOnce({
+        jobId: 102,
+        path: "/path/to/SecondFolder",
+        name: "SecondFolder",
+        sizeBytes: 2000,
+        isDir: true,
+        targetProvider: "Google Drive",
+      });
+
+    await useTransferStore.getState().enqueuePaths([
+      "/path/to/FirstFolder",
+      "/path/to/SecondFolder",
+    ]);
+
+    const state1 = useTransferStore.getState();
+    expect(state1.items.length).toBe(2);
+    expect(state1.items[0].jobId).toBe(101);
+    expect(state1.items[0].status).toBe("uploading");
+    expect(state1.items[1].status).toBe("queued");
+    expect(state1.isTransferring).toBe(true);
+
+    // Complete first job via progress event
+    useTransferStore.getState().handleProgress({
+      jobId: 101,
+      name: "FirstFolder",
+      transferredBytes: 1000,
+      totalBytes: 1000,
+      speedBytesPerSec: 0,
+      etaSeconds: 0,
+      status: "completed",
+      error: null,
+    });
+
+    // Wait for async processNext to start second job
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Second job should now have started
+    const state2 = useTransferStore.getState();
+    expect(state2.items[0].status).toBe("verified");
+    expect(state2.items[1].jobId).toBe(102);
+    expect(state2.items[1].status).toBe("uploading");
+    expect(state2.isTransferring).toBe(true);
+
+    // Complete second job
+    useTransferStore.getState().handleProgress({
+      jobId: 102,
+      name: "SecondFolder",
+      transferredBytes: 2000,
+      totalBytes: 2000,
+      speedBytesPerSec: 0,
+      etaSeconds: 0,
+      status: "completed",
+      error: null,
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    const state3 = useTransferStore.getState();
+
+    expect(state3.items.every((i) => i.status === "verified")).toBe(true);
+    expect(state3.isVerified).toBe(true);
+    expect(state3.isTransferring).toBe(false);
+  });
+
+  it("advances queue when an item encounters an error and allows dismissing failed items", async () => {
+    vi.mocked(startOffloadJob)
+      .mockRejectedValueOnce(new Error("Drive quota exceeded"))
+      .mockResolvedValueOnce({
+        jobId: 202,
+        path: "/path/to/HealthyFolder",
+        name: "HealthyFolder",
+        sizeBytes: 500,
+        isDir: true,
+        targetProvider: null,
+      });
+
+
+    await useTransferStore.getState().enqueuePaths([
+      "/path/to/FailingFolder",
+      "/path/to/HealthyFolder",
+    ]);
+
+    const state = useTransferStore.getState();
+    expect(state.items.length).toBe(2);
+    const failedItem = state.items.find((i) => i.name === "FailingFolder");
+    const healthyItem = state.items.find((i) => i.name === "HealthyFolder");
+
+    expect(failedItem?.status).toBe("error");
+    expect(failedItem?.error).toContain("Drive quota exceeded");
+    expect(healthyItem?.status).toBe("uploading");
+    expect(healthyItem?.jobId).toBe(202);
+
+    // Dismiss failed item
+    await useTransferStore.getState().removeItem(failedItem!.id);
+    const updated = useTransferStore.getState();
+    expect(updated.items.length).toBe(1);
+    expect(updated.items[0].name).toBe("HealthyFolder");
+  });
 });
+
 
 describe("useThemeStore", () => {
   beforeEach(() => {

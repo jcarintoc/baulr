@@ -237,7 +237,13 @@
 - **decided:** increase Rclone HTTP client timeout from 5s to 45s; preserve connected state and quota cache during transient API latency; delete existing `baulr_vault` remote before recreating union remote; maintain `VAULT_SUBDIR = "BaulrVault"` sandbox for safety and speed; add Alert with retry CTA to `VaultBrowserTable.tsx`.
 - **shipped:** updated `src-tauri/src/engine/client.rs`, `src-tauri/src/engine/union.rs`, `src-tauri/src/commands/vault.rs`, `src-tauri/src/commands/accounts.rs`, `src-tauri/src/commands/offload.rs`, `src/components/browser/VaultBrowserTable.tsx`, and added unit tests in `vault.rs` and `browser-table.test.tsx`; verified 28/28 cargo tests, 48/48 vitest tests, 0 clippy warnings, and clean `pnpm build`.
 
+### [2026-10-16] Phase 2: Multi-Item Drag-and-Drop & Sequential Queue Resilience
+- **asked:** resolve Phase 2 post-MVP issues: enable dropping multiple files/folders at once (`ISSUE-06`) and allow dismissing failed or queued items so other offloads continue (`ISSUE-07`).
+- **decided:** upgrade `DropzoneCard` to extract all paths from Tauri drag-drop payload and browser fallback; implement autonomous sequential queue runner (`processNext`) in `useTransferStore`; add `<IconX />` dismiss action on errored items and remove action on queued items; split `TransferQueueItem` into dedicated modular component (<120 lines).
+- **shipped:** updated `DropzoneCard.tsx`, `OffloadWorkspace.tsx`, `TransferQueue.tsx`, `useTransferStore.ts`, created `TransferQueueItem.tsx`, updated `docs/POST_MVP_ISSUES.md`, and added comprehensive unit tests in `offloader.test.tsx` and `stores.test.ts`; verified 51/51 vitest tests, 28/28 cargo tests, and clean production build.
 
-
-
+### [2026-10-16] Ponytail Review Simplification (-59 Lines)
+- **asked:** prune over-engineering in Phase 2 queue and offload components.
+- **decided:** shrink manual file path extraction loop in `DropzoneCard.tsx`; unify `onCancel` and `onDismiss` into single `onDismiss` callback in `TransferQueue` & `TransferQueueItem`; shrink redundant `startOffload` in `useTransferStore.ts` to delegate to `enqueuePaths`.
+- **shipped:** net -59 lines across `DropzoneCard.tsx`, `OffloadWorkspace.tsx`, `TransferQueue.tsx`, `TransferQueueItem.tsx`, `useTransferStore.ts`, and `offloader.test.tsx`; verified 51/51 vitest tests, 28/28 cargo tests, and production build.
 

@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { selectOffloadFolder } from "@/lib/api/offload";
 
 interface DropzoneCardProps {
-  onSelectPath: (path: string) => void;
+  onSelectPaths: (paths: string[]) => void;
   disabled?: boolean;
 }
 
-export function DropzoneCard({ onSelectPath, disabled }: DropzoneCardProps) {
+export function DropzoneCard({ onSelectPaths, disabled }: DropzoneCardProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
@@ -25,8 +25,8 @@ export function DropzoneCard({ onSelectPath, disabled }: DropzoneCardProps) {
             if (!disabled) setIsDragging(true);
           } else if (event.payload.type === "drop") {
             setIsDragging(false);
-            if (!disabled && event.payload.paths?.[0]) {
-              onSelectPath(event.payload.paths[0]);
+            if (!disabled && event.payload.paths && event.payload.paths.length > 0) {
+              onSelectPaths(event.payload.paths);
             }
           } else if (event.payload.type === "leave") {
             setIsDragging(false);
@@ -50,11 +50,11 @@ export function DropzoneCard({ onSelectPath, disabled }: DropzoneCardProps) {
       mounted = false;
       if (unlisten) unlisten();
     };
-  }, [disabled, onSelectPath]);
+  }, [disabled, onSelectPaths]);
 
   const handleSelectFolder = async () => {
     const selected = await selectOffloadFolder().catch(() => null);
-    if (selected) onSelectPath(selected.path);
+    if (selected) onSelectPaths([selected.path]);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -71,9 +71,12 @@ export function DropzoneCard({ onSelectPath, disabled }: DropzoneCardProps) {
     setIsDragging(false);
     if (disabled) return;
 
-    const path = (e.dataTransfer.files[0] as unknown as { path?: string })?.path;
-    if (path) onSelectPath(path);
+    const paths = Array.from(e.dataTransfer.files ?? [])
+      .map((f) => (f as unknown as { path?: string }).path)
+      .filter((p): p is string => Boolean(p));
+    if (paths.length > 0) onSelectPaths(paths);
   };
+
 
   return (
     <Card

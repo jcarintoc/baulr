@@ -34,12 +34,13 @@ export function OffloadWorkspace({
     items,
     isVerified,
     error,
-    startOffload,
-    cancelOffload,
+    enqueuePaths,
+    removeItem,
     handleProgress,
     clearCompleted,
     clearError,
   } = useTransferStore();
+
 
   const [isConfirmingReclaim, setIsConfirmingReclaim] = useState(false);
   const [successToast, setSuccessToast] = useState<{
@@ -62,9 +63,9 @@ export function OffloadWorkspace({
     };
   }, [handleProgress]);
 
-  const handleSelectPath = async (path: string) => {
+  const handleSelectPaths = async (paths: string[]) => {
     try {
-      await startOffload(path);
+      await enqueuePaths(paths);
     } catch {
       // Error is set in store
     }
@@ -134,9 +135,13 @@ export function OffloadWorkspace({
       )}
 
       {items.length > 0 && (
-        <TransferQueue items={items} onCancel={cancelOffload} />
+        <TransferQueue
+          items={items}
+          onDismiss={removeItem}
+        />
       )}
-      <DropzoneCard onSelectPath={handleSelectPath} />
+
+      <DropzoneCard onSelectPaths={handleSelectPaths} />
 
       <AlertDialog open={isConfirmingReclaim}>
         <AlertDialogContent>
