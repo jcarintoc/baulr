@@ -226,4 +226,27 @@ describe("VaultBrowserTable", () => {
       );
     });
   });
+
+  it("renders error alert with retry button when error occurs", () => {
+    const fetchSpy = vi.fn().mockResolvedValue(undefined);
+    useRemoteFilesStore.setState({
+      files: [],
+      isLoading: false,
+      error: "Network connection lost",
+      fetchFiles: fetchSpy,
+    });
+
+    render(<VaultBrowserTable />);
+
+    expect(screen.getByText("Unable to load vault files")).toBeInTheDocument();
+    expect(
+      screen.getByText("We could not reach your cloud accounts. Check your internet connection and try again.")
+    ).toBeInTheDocument();
+
+    const retryBtn = screen.getByRole("button", { name: /try again/i });
+    expect(retryBtn).toBeInTheDocument();
+    fireEvent.click(retryBtn);
+
+    expect(fetchSpy).toHaveBeenCalled();
+  });
 });

@@ -3,6 +3,7 @@ import { useTransferStore } from "@/store/useTransferStore";
 import { DropzoneCard } from "./DropzoneCard";
 import { TransferQueue } from "./TransferQueue";
 import { ReclaimBanner } from "./ReclaimBanner";
+import { ReclaimConfirmDialog } from "./ReclaimConfirmDialog";
 import { OnboardingPrompt } from "../accounts/OnboardingPrompt";
 import { IconCircleCheck } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
@@ -10,16 +11,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { listenOffloadProgress, reclaimPaths } from "@/lib/api/offload";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
 
 interface OffloadWorkspaceProps {
   hasConnectedAccounts: boolean;
@@ -34,8 +25,8 @@ export function OffloadWorkspace({
     items,
     isVerified,
     error,
-    startOffload,
-    cancelOffload,
+    enqueuePaths,
+    removeItem,
     handleProgress,
     clearCompleted,
     clearError,
@@ -62,9 +53,9 @@ export function OffloadWorkspace({
     };
   }, [handleProgress]);
 
-  const handleSelectPath = async (path: string) => {
+  const handleSelectPaths = async (paths: string[], targetProvider?: string) => {
     try {
-      await startOffload(path);
+      await enqueuePaths(paths, targetProvider);
     } catch {
       // Error is set in store
     }
@@ -134,32 +125,21 @@ export function OffloadWorkspace({
       )}
 
       {items.length > 0 && (
-        <TransferQueue items={items} onCancel={cancelOffload} />
+        <TransferQueue
+          items={items}
+          onDismiss={removeItem}
+        />
       )}
-      <DropzoneCard onSelectPath={handleSelectPath} />
 
-      <AlertDialog open={isConfirmingReclaim}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Free up {formatBytes(totalReclaimBytes)}?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {verifiedItems.length} {verifiedItems.length === 1 ? "file is" : "files are"}{" "}
-              saved to your cloud. You can now remove them from this computer to
-              reclaim drive space.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmingReclaim(false)}>
-              Keep on this computer
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmReclaim}>
-              Free up space
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DropzoneCard onSelectPaths={handleSelectPaths} />
+
+      <ReclaimConfirmDialog
+        open={isConfirmingReclaim}
+        totalReclaimBytes={totalReclaimBytes}
+        itemCount={verifiedItems.length}
+        onConfirm={confirmReclaim}
+        onCancel={() => setIsConfirmingReclaim(false)}
+      />
     </div>
   );
 }

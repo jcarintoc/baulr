@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { IconFileText, IconSearch, IconArchive } from "@tabler/icons-react";
+import { IconFileText, IconSearch, IconArchive, IconAlertCircle, IconRefresh } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { useRemoteFilesStore, RemoteVaultItem } from "@/store/useRemoteFilesStore";
 import { listenToDownloadProgress } from "@/lib/api/browser";
@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead } from "@/components/ui/table";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { VaultItemRow } from "@/components/browser/VaultItemRow";
 import { DownloadBanner } from "@/components/browser/DownloadBanner";
 import { DeleteVaultItemDialog } from "@/components/browser/DeleteVaultItemDialog";
 
 export function VaultBrowserTable() {
   const {
-    files, isLoading, searchQuery, activeDownloads,
+    files, isLoading, error, searchQuery, activeDownloads,
     setSearchQuery, fetchFiles, deleteFile, downloadFile,
     handleDownloadProgress, dismissDownload,
   } = useRemoteFilesStore();
@@ -80,6 +82,29 @@ export function VaultBrowserTable() {
           </div>
         </CardContent>
       </Card>
+
+      {error && !isLoading && (
+        <Alert variant="destructive" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <IconAlertCircle />
+            <div>
+              <AlertTitle>Unable to load vault files</AlertTitle>
+              <AlertDescription>
+                We could not reach your cloud accounts. Check your internet connection and try again.
+              </AlertDescription>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchFiles}
+            className="self-start sm:self-auto cursor-pointer"
+          >
+            <IconRefresh />
+            <span>Try again</span>
+          </Button>
+        </Alert>
+      )}
 
       <DownloadBanner
         downloads={Object.values(activeDownloads)}

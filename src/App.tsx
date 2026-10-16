@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useVaultStore } from "./store/useVaultStore";
 import { useViewStore } from "./store/useViewStore";
+import { useRemoteFilesStore } from "./store/useRemoteFilesStore";
 import { AccountCard } from "./components/accounts/AccountCard";
 import { OAuthModal } from "./components/accounts/OAuthModal";
 import { StoragePoolBar } from "./components/vault/StoragePoolBar";
@@ -43,6 +44,7 @@ export function App() {
         onSync={() => {
           loadQuota();
           loadDaemonStatus();
+          useRemoteFilesStore.getState().fetchFiles().catch(() => {});
         }}
       />
 

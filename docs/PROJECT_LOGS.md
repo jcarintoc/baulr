@@ -227,12 +227,34 @@
 - **decided:** update `pnpm-lock.yaml` to sync `shadcn` in devDependencies; add explicit `permissions: contents: write` and cross-platform Rclone sidecar binary preparation steps in `.github/workflows/release.yml`.
 - **shipped:** updated `pnpm-lock.yaml` and `.github/workflows/release.yml`; verified via `pnpm install --frozen-lockfile`, 45/45 vitest tests, `pnpm build`, and 27/27 cargo tests.
 
-### [2026-10-16] Fix Windows CommandExt Trait in Rclone Daemon
-- **asked:** resolve Windows CI release build failure (`error[E0599]: no method named creation_flags found for struct std::process::Command`).
-- **decided:** import `std::os::windows::process::CommandExt` under `#[cfg(windows)]` in `daemon.rs` so `creation_flags(0x08000000)` resolves properly on MSVC/Windows targets.
-- **shipped:** updated `src-tauri/src/engine/daemon.rs`; verified via `cargo check`, 0 clippy warnings, and 27/27 cargo tests passing.
+### [2026-10-16] Phase 1: Connection Sync, OneDrive Auto-Config & Vault Purge
+- **asked:** resolve Phase 1 post-MVP issues: OneDrive upload failure, manual sync lag after connect/disconnect, and lingering vault files.
+- **decided:** auto-configure OneDrive with `drive_type = "personal"` and Graph API drive resolution; make cache synchronization reactive; gracefully clear vault items on disconnect.
+- **shipped:** updated `accounts.rs`, `vault.rs`, `union.rs`, `VaultFilesTab.tsx`, `useVaultStore.ts`; verified 27/27 cargo tests, 47/47 vitest tests, and ponytail review.
 
+### [2026-10-16] Multi-Cloud Quota Stabilization, 45s Timeout & BaulrVault File Sync
+- **asked:** fix multi-cloud connect timeout, Google Drive "Re-authenticate" false alert, 5 GB quota undercounting, and load files inside Google Drive `BaulrVault`.
+- **decided:** increase Rclone HTTP client timeout from 5s to 45s; preserve connected state and quota cache during transient API latency; delete existing `baulr_vault` remote before recreating union remote; maintain `VAULT_SUBDIR = "BaulrVault"` sandbox for safety and speed; add Alert with retry CTA to `VaultBrowserTable.tsx`.
+- **shipped:** updated `src-tauri/src/engine/client.rs`, `src-tauri/src/engine/union.rs`, `src-tauri/src/commands/vault.rs`, `src-tauri/src/commands/accounts.rs`, `src-tauri/src/commands/offload.rs`, `src/components/browser/VaultBrowserTable.tsx`, and added unit tests in `vault.rs` and `browser-table.test.tsx`; verified 28/28 cargo tests, 48/48 vitest tests, 0 clippy warnings, and clean `pnpm build`.
 
+### [2026-10-16] Phase 2: Multi-Item Drag-and-Drop & Sequential Queue Resilience
+- **asked:** resolve Phase 2 post-MVP issues: enable dropping multiple files/folders at once (`ISSUE-06`) and allow dismissing failed or queued items so other offloads continue (`ISSUE-07`).
+- **decided:** upgrade `DropzoneCard` to extract all paths from Tauri drag-drop payload and browser fallback; implement autonomous sequential queue runner (`processNext`) in `useTransferStore`; add `<IconX />` dismiss action on errored items and remove action on queued items; split `TransferQueueItem` into dedicated modular component (<120 lines).
+- **shipped:** updated `DropzoneCard.tsx`, `OffloadWorkspace.tsx`, `TransferQueue.tsx`, `useTransferStore.ts`, created `TransferQueueItem.tsx`, updated `docs/POST_MVP_ISSUES.md`, and added comprehensive unit tests in `offloader.test.tsx` and `stores.test.ts`; verified 51/51 vitest tests, 28/28 cargo tests, and clean production build.
 
+### [2026-10-16] Ponytail Review Simplification (-59 Lines)
+- **asked:** prune over-engineering in Phase 2 queue and offload components.
+- **decided:** shrink manual file path extraction loop in `DropzoneCard.tsx`; unify `onCancel` and `onDismiss` into single `onDismiss` callback in `TransferQueue` & `TransferQueueItem`; shrink redundant `startOffload` in `useTransferStore.ts` to delegate to `enqueuePaths`.
+- **shipped:** net -59 lines across `DropzoneCard.tsx`, `OffloadWorkspace.tsx`, `TransferQueue.tsx`, `TransferQueueItem.tsx`, `useTransferStore.ts`, and `offloader.test.tsx`; verified 51/51 vitest tests, 28/28 cargo tests, and production build.
+
+### [2026-10-16] Phase 3: Upload Cloud Provider Selector & Collision Auto-Disambiguation
+- **asked:** resolve Phase 3 post-MVP issues: upload cloud provider selector (`ISSUE-01`), duplicate folder name conflict resolution (`ISSUE-05`), and duplicate file name conflict resolution (`ISSUE-08`).
+- **decided:** add `target_provider: Option<String>` to `start_offload` supporting manual cloud destination selection alongside "Let Baulr decide (Auto)"; implement pre-flight cloud duplicate inspection and numerical suffix auto-disambiguation (`resolve_unique_cloud_name`); add custom single-file hash verification on rename (`check_single_file_hash`); add compact destination dropdown inside `DropzoneCard.tsx`; modularize webview drop listener into `useWebviewDrop.ts` and reclaim confirmation into `ReclaimConfirmDialog.tsx` keeping all components under 150 lines.
+- **shipped:** updated `src-tauri/src/commands/offload.rs`, `src-tauri/src/engine/client.rs`, `src/lib/bindings.ts`, `src/lib/api/offload.ts`, `src/store/useTransferStore.ts`, `src/components/offloader/DropzoneCard.tsx`, `src/components/offloader/OffloadWorkspace.tsx`, created `src/components/offloader/useWebviewDrop.ts` and `src/components/offloader/ReclaimConfirmDialog.tsx`, updated `docs/POST_MVP_ISSUES.md`, and added comprehensive unit tests across backend and frontend; verified 31/31 cargo tests, 54/54 vitest tests, and clean production build.
+
+### [2026-10-16] Ponytail Review Simplification (-14 Lines)
+- **asked:** prune unnecessary complexity in Phase 3 upload routing and collision handling.
+- **decided:** eliminate unreachable fallback path reconstruction in `offload.rs` telemetry loop; replace manual mutable counter loop in `resolve_unique_cloud_name` with standard iterator pipeline; remove redundant `useEffect` for mutable ref syncing in `useWebviewDrop.ts`.
+- **shipped:** net -14 lines across `src-tauri/src/commands/offload.rs` and `src/components/offloader/useWebviewDrop.ts`; verified 31/31 cargo tests, 54/54 vitest tests, and production build.
 
 

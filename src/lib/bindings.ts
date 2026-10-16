@@ -10,7 +10,7 @@ export const commands = {
 	disconnectAccount: (provider: string) => typedError<VaultQuota, string>(__TAURI_INVOKE("disconnect_account", { provider })),
 	cancelOauth: () => typedError<null, string>(__TAURI_INVOKE("cancel_oauth")),
 	inspectPath: (path: string) => typedError<InspectPathResult, string>(__TAURI_INVOKE("inspect_path", { path })),
-	startOffload: (localPath: string) => typedError<OffloadJobInfo, string>(__TAURI_INVOKE("start_offload", { localPath })),
+	startOffload: (localPath: string, targetProvider: string | null) => typedError<OffloadJobInfo, string>(__TAURI_INVOKE("start_offload", { localPath, targetProvider })),
 	cancelOffload: (jobId: number) => typedError<null, string>(__TAURI_INVOKE("cancel_offload", { jobId })),
 	pickOffloadFolder: () => typedError<{
 	path: string,

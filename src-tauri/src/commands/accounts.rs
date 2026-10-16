@@ -6,9 +6,62 @@ use crate::AppState;
 pub fn resolve_provider_config(provider: &str) -> Result<(&'static str, &'static str, HashMap<String, String>), String> {
     match provider.to_lowercase().as_str() {
         "gdrive" | "drive" | "google" => Ok(("gdrive", "drive", HashMap::from([("scope".into(), "drive".into())]))),
-        "onedrive" | "microsoft" => Ok(("onedrive", "onedrive", HashMap::new())),
+        "onedrive" | "microsoft" => Ok(("onedrive", "onedrive", HashMap::from([("drive_type".into(), "personal".into())]))),
         other => Err(format!("Unsupported cloud provider: '{other}'")),
     }
+}
+
+pub async fn auto_configure_onedrive(client: &crate::engine::RcloneClient) -> Result<(), String> {
+    let config = client.dump_config().await?;
+    let onedrive_cfg = match config.get("onedrive") {
+        Some(cfg) => cfg,
+        None => return Ok(()),
+    };
+
+    if onedrive_cfg.get("drive_id").and_then(|v| v.as_str()).is_some_and(|s| !s.is_empty()) {
+        return Ok(());
+    }
+
+    let token_raw = onedrive_cfg.get("token").and_then(|v| v.as_str()).unwrap_or_default();
+    let token_val: serde_json::Value = serde_json::from_str(token_raw).unwrap_or_default();
+    let Some(access_token) = token_val.get("access_token").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) else {
+        return Ok(());
+    };
+
+    let graph_resp = reqwest::Client::new()
+        .get("https://graph.microsoft.com/v1.0/me/drive")
+        .header("Authorization", format!("Bearer {access_token}"))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to connect to Microsoft Graph: {e}"))?;
+
+    if !graph_resp.status().is_success() {
+        let err_text = graph_resp.text().await.unwrap_or_default();
+        return Err(format!("Microsoft Graph drive lookup failed: {err_text}"));
+    }
+
+    let drive_info: serde_json::Value = graph_resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Microsoft Graph response: {e}"))?;
+
+    let drive_id = drive_info
+        .get("id")
+        .and_then(|v| v.as_str())
+        .ok_or("Microsoft Graph response missing drive 'id'")?;
+
+    let drive_type = drive_info
+        .get("driveType")
+        .and_then(|v| v.as_str())
+        .unwrap_or("personal");
+
+    let params = HashMap::from([
+        ("drive_id".to_string(), drive_id.to_string()),
+        ("drive_type".to_string(), drive_type.to_string()),
+    ]);
+    client.update_remote("onedrive", &params).await?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -21,9 +74,17 @@ pub async fn connect_account(
     let (name, remote_type, params) = resolve_provider_config(&provider)?;
 
     client.create_oauth_remote(name, remote_type, &params).await?;
+
+    if name == "onedrive" {
+        auto_configure_onedrive(&client).await?;
+    }
+
     let _ = sync_vault_union(&client).await;
 
-    fetch_vault_quota_internal(&client).await
+    let prev_cached = state.cached_quota.read().await.clone();
+    let quota = fetch_vault_quota_internal(&client, prev_cached.as_ref()).await?;
+    *state.cached_quota.write().await = Some(quota.clone());
+    Ok(quota)
 }
 
 #[tauri::command]
@@ -38,7 +99,10 @@ pub async fn disconnect_account(
     client.delete_remote(name).await?;
     let _ = sync_vault_union(&client).await;
 
-    fetch_vault_quota_internal(&client).await
+    let prev_cached = state.cached_quota.read().await.clone();
+    let quota = fetch_vault_quota_internal(&client, prev_cached.as_ref()).await?;
+    *state.cached_quota.write().await = Some(quota.clone());
+    Ok(quota)
 }
 
 #[tauri::command]
@@ -70,7 +134,7 @@ mod tests {
         let (name, rtype, params) = resolve_provider_config("onedrive").unwrap();
         assert_eq!(name, "onedrive");
         assert_eq!(rtype, "onedrive");
-        assert!(params.is_empty());
+        assert_eq!(params.get("drive_type").map(String::as_str), Some("personal"));
     }
 
     #[test]

@@ -18,6 +18,7 @@ export interface RemoteFilesState {
   activeDownloads: Record<string, DownloadProgress>;
   setSearchQuery: (searchQuery: string) => void;
   fetchFiles: () => Promise<void>;
+  clearFiles: () => void;
   deleteFile: (path: string, isDir: boolean) => Promise<void>;
   downloadFile: (item: RemoteVaultItem) => Promise<void>;
   handleDownloadProgress: (progress: DownloadProgress) => void;
@@ -33,6 +34,8 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set) => ({
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),
 
+  clearFiles: () => set({ files: [], error: null }),
+
   fetchFiles: async () => {
     set({ isLoading: true, error: null });
     try {
@@ -40,6 +43,7 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set) => ({
       set({ files, isLoading: false });
     } catch (err) {
       set({
+        files: [],
         error: err instanceof Error ? err.message : String(err),
         isLoading: false,
       });

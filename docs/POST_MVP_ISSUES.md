@@ -8,14 +8,14 @@ This document tracks issues, edge cases, and feature enhancements identified dur
 
 | ID | Issue Description | Priority | Complexity | Phase | Status |
 | :---: | :--- | :---: | :---: | :---: | :---: |
-| **ISSUE-02** | OneDrive fails when uploading files/folders | 🔴 **P0** | Medium | Phase 1 | `[ ] Open` |
-| **ISSUE-03** | UI doesn't update on connect (requires double sync) | 🔴 **P0** | Low | Phase 1 | `[ ] Open` |
-| **ISSUE-04** | Disconnected account files remain in Vault Files tab | 🔴 **P0** | Low | Phase 1 | `[ ] Open` |
-| **ISSUE-06** | Drag and drop only accepts one file/folder at a time | 🟠 **P1** | Low | Phase 2 | `[ ] Open` |
-| **ISSUE-07** | Upload errors lack dismiss/cancel button, blocking queue | 🟠 **P1** | Low | Phase 2 | `[ ] Open` |
-| **ISSUE-01** | Choose upload cloud provider ("Let Baulr decide" vs manual) | 🟡 **P2** | Medium | Phase 3 | `[ ] Open` |
-| **ISSUE-05** | Uploading duplicate folder names merges silently | 🟡 **P2** | High | Phase 3 | `[ ] Open` |
-| **ISSUE-08** | Uploading duplicate file names creates conflicts / no-ops | 🟡 **P2** | High | Phase 3 | `[ ] Open` |
+| **ISSUE-02** | OneDrive fails when uploading files/folders | 🔴 **P0** | Medium | Phase 1 | `[x] Resolved` |
+| **ISSUE-03** | UI doesn't update on connect (requires double sync) | 🔴 **P0** | Low | Phase 1 | `[x] Resolved` |
+| **ISSUE-04** | Disconnected account files remain in Vault Files tab | 🔴 **P0** | Low | Phase 1 | `[x] Resolved` |
+| **ISSUE-06** | Drag and drop only accepts one file/folder at a time | 🟠 **P1** | Low | Phase 2 | `[x] Resolved` |
+| **ISSUE-07** | Upload errors lack dismiss/cancel button, blocking queue | 🟠 **P1** | Low | Phase 2 | `[x] Resolved` |
+| **ISSUE-01** | Choose upload cloud provider ("Let Baulr decide" vs manual) | 🟡 **P2** | Medium | Phase 3 | `[x] Resolved` |
+| **ISSUE-05** | Uploading duplicate folder names merges silently | 🟡 **P2** | High | Phase 3 | `[x] Resolved` |
+| **ISSUE-08** | Uploading duplicate file names creates conflicts / no-ops | 🟡 **P2** | High | Phase 3 | `[x] Resolved` |
 
 ---
 
@@ -89,19 +89,24 @@ This document tracks issues, edge cases, and feature enhancements identified dur
 ## 3. Execution Checklist
 
 ### Phase 1: Critical Connection & Sync Fixes
-- [ ] Fix OneDrive `drive_type` / drive ID configuration in `src-tauri/src/commands/accounts.rs`.
-- [ ] Auto-refresh Vault Files and Quota reactively on account connection.
-- [ ] Clear file store and return empty list when vault has no connected accounts.
-- [ ] Verify Phase 1 test suite (`cargo test`, `pnpm test`, production build).
+- [x] Fix OneDrive `drive_type` / drive ID configuration in `src-tauri/src/commands/accounts.rs`.
+- [x] Auto-refresh Vault Files and Quota reactively on account connection.
+- [x] Clear file store and return empty list when vault has no connected accounts.
+- [x] Extend Rclone HTTP client timeout to 45s to eliminate Google Drive & union listing timeouts.
+- [x] Stabilize multi-cloud Combined Storage Pool (20 GB) and prevent false "Re-authenticate" warnings.
+- [x] Recreate union cleanly on account transitions and preserve `BaulrVault` scoping.
+- [x] Add user-friendly error Alert and retry CTA in `VaultBrowserTable.tsx`.
+- [x] Verify Phase 1 test suite (`cargo test`, `pnpm test`, production build).
 
 ### Phase 2: Queue & Drag-and-Drop UX
-- [ ] Support multi-path drops in `DropzoneCard.tsx`.
-- [ ] Queue multiple items sequentially/concurrently in `useTransferStore.ts`.
-- [ ] Add dismiss button for failed/errored items in `TransferQueue.tsx`.
-- [ ] Verify Phase 2 test suite.
+- [x] Support multi-path drops in `DropzoneCard.tsx`.
+- [x] Queue multiple items sequentially in `useTransferStore.ts`.
+- [x] Add dismiss button for failed/errored items and remove button for queued items in `TransferQueue.tsx` / `TransferQueueItem.tsx`.
+- [x] Verify Phase 2 test suite.
+
 
 ### Phase 3: Upload Routing & Name Conflicts
-- [ ] Support `target_provider` in `start_offload` backend and frontend API.
-- [ ] Add provider selector UI ("Let Baulr decide", "Google Drive", "OneDrive").
-- [ ] Implement cloud pre-flight collision disambiguation for uploads.
-- [ ] Verify Phase 3 test suite.
+- [x] Support `target_provider` in `start_offload` backend and frontend API.
+- [x] Add provider selector UI ("Let Baulr decide", "Google Drive", "OneDrive").
+- [x] Implement cloud pre-flight collision disambiguation for uploads.
+- [x] Verify Phase 3 test suite.

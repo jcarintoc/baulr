@@ -32,11 +32,15 @@ export async function selectOffloadFolder(): Promise<InspectPathResult | null> {
   return res.data as InspectPathResult | null;
 }
 
-export async function startOffloadJob(localPath: string): Promise<OffloadJobInfo> {
-  const res = await commands.startOffload(localPath);
+export async function startOffloadJob(
+  localPath: string,
+  targetProvider?: string | null
+): Promise<OffloadJobInfo> {
+  const res = await commands.startOffload(localPath, targetProvider ?? null);
   if (res.status === "error") throw new Error(res.error);
   return res.data;
 }
+
 
 export async function cancelOffloadJob(jobId: number): Promise<void> {
   const res = await commands.cancelOffload(jobId);
