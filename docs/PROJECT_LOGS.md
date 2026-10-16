@@ -227,5 +227,12 @@
 - **decided:** update `pnpm-lock.yaml` to sync `shadcn` in devDependencies; add explicit `permissions: contents: write` and cross-platform Rclone sidecar binary preparation steps in `.github/workflows/release.yml`.
 - **shipped:** updated `pnpm-lock.yaml` and `.github/workflows/release.yml`; verified via `pnpm install --frozen-lockfile`, 45/45 vitest tests, `pnpm build`, and 27/27 cargo tests.
 
+### [2026-10-16] Fix Windows CommandExt Trait in Rclone Daemon
+- **asked:** resolve Windows CI release build failure (`error[E0599]: no method named creation_flags found for struct std::process::Command`).
+- **decided:** import `std::os::windows::process::CommandExt` under `#[cfg(windows)]` in `daemon.rs` so `creation_flags(0x08000000)` resolves properly on MSVC/Windows targets.
+- **shipped:** updated `src-tauri/src/engine/daemon.rs`; verified via `cargo check`, 0 clippy warnings, and 27/27 cargo tests passing.
+
+
+
 
 

@@ -5,6 +5,9 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
 use crate::engine::client::RcloneClient;
 
 pub struct RcloneDaemon {
