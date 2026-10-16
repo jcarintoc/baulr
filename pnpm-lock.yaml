@@ -35,9 +35,6 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.3.0(react@19.3.0)
-      shadcn:
-        specifier: ^4.21.4
-        version: 4.21.4
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
@@ -75,6 +72,9 @@ importers:
       jsdom:
         specifier: ^30.1.2
         version: 30.1.2
+      shadcn:
+        specifier: ^4.21.4
+        version: 4.21.4
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
