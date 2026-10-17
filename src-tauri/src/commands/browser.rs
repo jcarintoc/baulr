@@ -5,7 +5,7 @@ use specta::Type;
 use tauri::Emitter;
 use tauri_plugin_dialog::DialogExt;
 
-use crate::engine::{RcloneItem, VAULT_UNION_NAME};
+use crate::engine::{build_union_upstreams, RcloneItem, VAULT_UNION_NAME};
 use crate::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -260,6 +260,37 @@ pub async fn pick_destination_folder(app: tauri::AppHandle) -> Result<Option<Str
     .map_err(|e| format!("Dialog task failed: {e}"))?;
 
     Ok(folder_opt.map(|p| p.to_string()))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_file_share_link(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<String, String> {
+    let client_guard = state.client.read().await;
+    let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
+    let config = client.dump_config().await?;
+    let upstreams = build_union_upstreams(&config);
+    if upstreams.is_empty() {
+        return Err("No cloud accounts connected".to_string());
+    }
+
+    let clean_path = path.trim_start_matches('/').to_string();
+    let mut last_error = String::new();
+
+    for upstream in &upstreams {
+        match client.get_public_link(upstream, &clean_path).await {
+            Ok(url) => return Ok(url),
+            Err(e) => last_error = e,
+        }
+    }
+
+    Err(if last_error.is_empty() || last_error.contains("not found") || last_error.contains("itemNotFound") {
+        "File not found in any connected cloud account".to_string()
+    } else {
+        last_error
+    })
 }
 
 #[cfg(test)]

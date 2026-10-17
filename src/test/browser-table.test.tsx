@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { VaultBrowserTable } from "@/components/browser/VaultBrowserTable";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 
@@ -10,6 +10,7 @@ vi.mock("@/lib/api/browser", () => ({
   downloadVaultItemToDirectory: vi.fn().mockResolvedValue(1),
   pickDownloadDestination: vi.fn().mockResolvedValue("/tmp"),
   listenToDownloadProgress: vi.fn().mockResolvedValue(vi.fn()),
+  fetchFileShareLink: vi.fn().mockResolvedValue("https://drive.google.com/share/test"),
 }));
 
 describe("VaultBrowserTable", () => {
@@ -248,5 +249,31 @@ describe("VaultBrowserTable", () => {
     fireEvent.click(retryBtn);
 
     expect(fetchSpy).toHaveBeenCalled();
+  });
+
+  it("opens share modal when clicking share button on file row", async () => {
+    useRemoteFilesStore.setState({
+      files: [
+        {
+          Path: "vacation.jpg",
+          Name: "vacation.jpg",
+          Size: 2048,
+          MimeType: "image/jpeg",
+          ModTime: null,
+          IsDir: false,
+        },
+      ],
+    });
+
+    render(<VaultBrowserTable />);
+
+    const shareBtn = screen.getByTitle("Share link");
+    expect(shareBtn).toBeInTheDocument();
+    fireEvent.click(shareBtn);
+
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText("Share File")).toBeInTheDocument();
+    expect(within(dialog).getByText("vacation.jpg")).toBeInTheDocument();
   });
 });

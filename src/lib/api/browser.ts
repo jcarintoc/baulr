@@ -67,3 +67,11 @@ export function listenToDownloadProgress(
     callback(event.payload);
   });
 }
+
+export async function fetchFileShareLink(path: string): Promise<string> {
+  const result = await commands.getFileShareLink(path);
+  if (result.status === "error") {
+    throw new Error(result.error);
+  }
+  return result.data;
+}

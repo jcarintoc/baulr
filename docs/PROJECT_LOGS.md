@@ -301,3 +301,21 @@
 - **asked:** declutter the busy app header (speed limit, theme changer, sync button, badge) and create a dedicated settings page to house theme and bandwidth limits with room for future preferences.
 - **decided:** declutter `AppHeader.tsx` down to 3 controls (Sync, Status Badge, Settings button); move Theme and Bandwidth Limiter into a dedicated `SettingsPage.tsx` with modular cards (`AppearanceSettingsCard.tsx`, `NetworkSettingsCard.tsx`, `AboutSettingsCard.tsx`); add `"settings"` view to `useViewStore.ts` with seamless `previousView` back-navigation; ensure all components remain strictly under 150 lines and 0 mechanical design violations.
 - **shipped:** created `src/components/settings/SettingsPage.tsx`, `AppearanceSettingsCard.tsx`, `NetworkSettingsCard.tsx`, `AboutSettingsCard.tsx`, and `src/test/settings.test.tsx`; updated `AppHeader.tsx`, `App.tsx`, and `useViewStore.ts`; verified 83/83 vitest tests passing, 0 detector violations, and clean production build.
+
+### [2026-10-17] Share Link Generation for Vault Files (REQ-10)
+- **asked:** implement share link generation for any file or folder stored in the pooled cloud vault directly from the desktop Vault Files table.
+- **decided:** leverage Rclone's `operations/publiclink` JSON-RPC method with `baulr_vault:` to delegate link resolution to the underlying provider (Google Drive or OneDrive); expose `get_file_share_link` Tauri command via Specta; build `ShareLinkModal.tsx` with copy-to-clipboard, "Open in browser", and retry states; modularize `VaultBrowserTable.tsx` with `VaultBrowserHeader.tsx` to maintain strict Web-Developer maintainability (< 150 lines per component); enforce zero banned backend jargon and zero mechanical design violations.
+- **shipped:** created `src/components/browser/ShareLinkModal.tsx`, `VaultBrowserHeader.tsx`, and test suites `browser-api.test.ts` and `share-link-modal.test.tsx`; updated `src-tauri/src/engine/client.rs`, `src-tauri/src/commands/browser.rs`, `src-tauri/src/lib.rs`, `src/lib/bindings.ts`, `src/lib/api/browser.ts`, `src/components/browser/VaultItemRow.tsx`, `src/components/browser/VaultBrowserTable.tsx`, `src/test/browser-table.test.tsx`, and `docs/ROADMAP.md`; verified 84/84 vitest tests, 0 design detector violations, and clean production build.
+
+### [2026-10-17] Ponytail Review Simplification (-90 Lines)
+- **asked:** review diff for over-engineering and apply simplifications.
+- **decided:** replace manual 13-line JSON `Value` navigation with `HashMap<String, String>` deserialization in `client.rs`; delete single-caller wrapper `VaultBrowserAlert.tsx` and inline the error `Alert` in `VaultBrowserTable.tsx` while keeping it at 142 lines (< 150); inline `window.open` directly in `ShareLinkModal.tsx`; prune 45 lines of duplicate browser tests in `browser-api.test.ts`.
+- **shipped:** net -90 lines across `src-tauri/src/engine/client.rs`, `src/components/browser/ShareLinkModal.tsx`, `src/components/browser/VaultBrowserTable.tsx`, and `src/test/browser-api.test.ts`; deleted `src/components/browser/VaultBrowserAlert.tsx`; verified 84/84 vitest tests, 0 design detector violations, and clean production build.
+
+### [2026-10-17] Fix Union Publiclink by Delegating to Active Upstreams (-17 Lines)
+- **asked:** resolve `union root '' doesn't support public links` error when clicking share link in Vault Files table.
+- **decided:** Rclone's `union` remote backend does not implement `PublicLinker`. Update `get_file_share_link` in `browser.rs` to dynamically query connected upstreams (e.g. `gdrive:BaulrVault`, `onedrive:BaulrVault`) from `build_union_upstreams(&config)`, calling `client.get_public_link(upstream, &clean_path)` to retrieve its native cloud link; prune speculative double-query fallback and collapse error checks (-17 lines); sanitize error formatting in `client.rs` to avoid exposing raw JSON payloads.
+- **shipped:** updated `src-tauri/src/commands/browser.rs` and `src-tauri/src/engine/client.rs`; verified with `cargo check`, `cargo test`, `pnpm test` (84/84), and `cargo build`.
+
+
+

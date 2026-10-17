@@ -3,6 +3,7 @@ import {
   IconDownload,
   IconTrash,
   IconFolder,
+  IconShare,
 } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { TableRow, TableCell } from "@/components/ui/table";
@@ -19,6 +20,7 @@ interface VaultItemRowProps {
   activeDownload?: DownloadProgress;
   onDownload: (item: RemoteVaultItem) => void;
   onDelete: (item: RemoteVaultItem) => void;
+  onShare: (item: RemoteVaultItem) => void;
 }
 
 export function VaultItemRow({
@@ -27,6 +29,7 @@ export function VaultItemRow({
   activeDownload,
   onDownload,
   onDelete,
+  onShare,
 }: VaultItemRowProps) {
   const percent =
     activeDownload?.totalBytes && activeDownload.totalBytes > 0
@@ -58,6 +61,14 @@ export function VaultItemRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="Share link"
+            onClick={() => onShare(item)}
+          >
+            <IconShare />
+          </Button>
           {activeDownload?.status === "downloading" ? (
             <div className="flex items-center gap-1.5 text-xs text-vault-accent-text tabular-nums py-1 px-2">
               <Spinner className="size-3.5" />
