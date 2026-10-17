@@ -10,6 +10,7 @@ import { ViewToggle } from "./components/common/ViewToggle";
 import { AppHeader } from "./components/common/AppHeader";
 import { OffloadWorkspace } from "./components/offloader/OffloadWorkspace";
 import { VaultBrowserTable } from "./components/browser/VaultBrowserTable";
+import { SettingsPage } from "./components/settings/SettingsPage";
 import { Alert, AlertDescription } from "./components/ui/alert";
 
 export function App() {
@@ -26,7 +27,7 @@ export function App() {
     disconnectAccount,
     cancelOAuth,
   } = useVaultStore();
-  const { activeView } = useViewStore();
+  const { activeView, previousView, setActiveView } = useViewStore();
 
   useEffect(() => {
     loadQuota();
@@ -58,40 +59,49 @@ export function App() {
           </Alert>
         )}
 
-        {/* View Switcher Bar */}
-        <div className="flex items-center justify-between">
-          <ViewToggle />
-        </div>
-
-        {activeView === "dashboard" ? (
-          <div className="flex flex-col gap-6">
-            <StoragePoolBar quota={quota} />
-
-            {hasConnectedAccounts && (
-              <section className="flex flex-col gap-3">
-                <h3 className="font-semibold text-sm text-foreground">
-                  Cloud Accounts ({quota?.accounts.filter((a) => a.isConnected).length ?? 0} connected)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {quota?.accounts.map((acc) => (
-                    <AccountCard
-                      key={acc.name}
-                      account={acc}
-                      onConnect={connectAccount}
-                      onDisconnect={disconnectAccount}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <OffloadWorkspace
-              hasConnectedAccounts={hasConnectedAccounts}
-              onConnectDrive={connectAccount}
-            />
-          </div>
+        {activeView === "settings" ? (
+          <SettingsPage
+            daemonStatus={daemonStatus}
+            onBack={() => setActiveView(previousView)}
+          />
         ) : (
-          <VaultBrowserTable />
+          <>
+            {/* View Switcher Bar */}
+            <div className="flex items-center justify-between">
+              <ViewToggle />
+            </div>
+
+            {activeView === "dashboard" ? (
+              <div className="flex flex-col gap-6">
+                <StoragePoolBar quota={quota} />
+
+                {hasConnectedAccounts && (
+                  <section className="flex flex-col gap-3">
+                    <h3 className="font-semibold text-sm text-foreground">
+                      Cloud Accounts ({quota?.accounts.filter((a) => a.isConnected).length ?? 0} connected)
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {quota?.accounts.map((acc) => (
+                        <AccountCard
+                          key={acc.name}
+                          account={acc}
+                          onConnect={connectAccount}
+                          onDisconnect={disconnectAccount}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                <OffloadWorkspace
+                  hasConnectedAccounts={hasConnectedAccounts}
+                  onConnectDrive={connectAccount}
+                />
+              </div>
+            ) : (
+              <VaultBrowserTable />
+            )}
+          </>
         )}
       </main>
 

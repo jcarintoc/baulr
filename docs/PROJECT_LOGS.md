@@ -297,11 +297,7 @@
 - **decided:** stop event propagation (`stopPropagation()`) on `onKeyDown` and `onKeyUp` inside the `<form>` and `<Input>` to prevent `@base-ui/react/menu` from intercepting keystrokes with its typeahead search; control dropdown `open` state to cleanly close after preset click or custom submit; maintain component at 126 lines.
 - **shipped:** updated `BandwidthMenu.tsx`, added unit test in `bandwidth-menu.test.tsx`, verified 77/77 tests passing and clean production build.
 
-
-
-
-
-
-
-
-
+### [2026-10-17] Dedicated Settings Page & App Header Decluttering
+- **asked:** declutter the busy app header (speed limit, theme changer, sync button, badge) and create a dedicated settings page to house theme and bandwidth limits with room for future preferences.
+- **decided:** declutter `AppHeader.tsx` down to 3 controls (Sync, Status Badge, Settings button); move Theme and Bandwidth Limiter into a dedicated `SettingsPage.tsx` with modular cards (`AppearanceSettingsCard.tsx`, `NetworkSettingsCard.tsx`, `AboutSettingsCard.tsx`); add `"settings"` view to `useViewStore.ts` with seamless `previousView` back-navigation; ensure all components remain strictly under 150 lines and 0 mechanical design violations.
+- **shipped:** created `src/components/settings/SettingsPage.tsx`, `AppearanceSettingsCard.tsx`, `NetworkSettingsCard.tsx`, `AboutSettingsCard.tsx`, and `src/test/settings.test.tsx`; updated `AppHeader.tsx`, `App.tsx`, and `useViewStore.ts`; verified 83/83 vitest tests passing, 0 detector violations, and clean production build.
