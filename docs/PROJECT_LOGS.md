@@ -277,4 +277,11 @@
 - **decided:** separate modal visibility (`Done`) from receiver lifecycle; keep receiver active in the background when modal is closed so uploads continue; add dedicated "Close Connection" button with an `AlertDialog` confirmation (`DisconnectMobileDialog.tsx`) that warns user before disconnecting; maintain components strictly under 150 lines.
 - **shipped:** created `src/components/offloader/DisconnectMobileDialog.tsx`, updated `MobileUploadModal.tsx`, `useMobileReceiver.ts`, `mobile-receiver.test.tsx`, and `walkthrough.md`; verified 36/36 cargo tests, 61/61 vitest tests, and clean production build.
 
+### [2026-10-17] Impeccable UI & Layout Polish for Mobile Web & QR Modal
+- **asked:** polish mobile web uploader UI and desktop QR code modal layout using shadcn components and Baulr's Obsidian Vault design language.
+- **decided:** upgrade mobile uploader (`html.rs`) with Apple/Android native ergonomics, Obsidian Vault design tokens, batch telemetry progress bar, and media-type SVG icons (photo, video, doc); extract `MobileQrViewfinder.tsx` to provide a framed viewfinder QR code presentation while keeping `MobileUploadModal.tsx` strictly under 150 lines (133 lines); enhance `MobileReceivedList.tsx` with media-type icons and parent-driven Tailwind selectors; ensure zero mechanical detector violations.
+- **shipped:** created `src/components/offloader/MobileQrViewfinder.tsx`, updated `src/components/offloader/MobileUploadModal.tsx`, `src/components/offloader/MobileReceivedList.tsx`, and `src-tauri/src/mobile/html.rs`; verified 36/36 cargo tests, 61/61 vitest tests, and clean production build.
+
+
+
 
