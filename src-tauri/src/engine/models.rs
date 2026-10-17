@@ -113,5 +113,12 @@ pub struct CheckResult {
     pub error: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct BandwidthLimit {
+    pub rate: String,
+}
+
+
 
 

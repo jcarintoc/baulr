@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useVaultStore } from "./store/useVaultStore";
 import { useViewStore } from "./store/useViewStore";
 import { useRemoteFilesStore } from "./store/useRemoteFilesStore";
+import { useBandwidthStore } from "./store/useBandwidthStore";
 import { AccountCard } from "./components/accounts/AccountCard";
 import { OAuthModal } from "./components/accounts/OAuthModal";
 import { StoragePoolBar } from "./components/vault/StoragePoolBar";
@@ -30,6 +31,7 @@ export function App() {
   useEffect(() => {
     loadQuota();
     loadDaemonStatus();
+    useBandwidthStore.getState().init().catch(() => {});
   }, [loadQuota, loadDaemonStatus]);
 
   const hasConnectedAccounts = Boolean(

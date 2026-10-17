@@ -2,6 +2,7 @@ import { IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeSelector } from "./ThemeSelector";
+import { BandwidthMenu } from "./BandwidthMenu";
 import type { DaemonStatus } from "@/lib/bindings";
 
 interface AppHeaderProps {
@@ -26,6 +27,7 @@ export function AppHeader({ isLoading, daemonStatus, onSync }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2.5">
+        <BandwidthMenu />
         <ThemeSelector />
 
         <Button

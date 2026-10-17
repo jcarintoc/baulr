@@ -287,6 +287,18 @@
 - **decided:** revert `MobileUploadModal.tsx` from the 2-column grid (`grid-cols-2`) back to a focused, single-column vertical stack (`max-w-sm sm:max-w-md`); utilize adaptive `compact` QR sizing (`size-32` vs `size-44`) to maintain ergonomic dialog height while files are transferring; preserve continuous scrolling in the mobile uploader; keep component at 140 lines.
 - **shipped:** updated `src/components/offloader/MobileUploadModal.tsx`; verified 61/61 vitest tests, 5/5 Rust mobile tests, and clean production build.
 
+### [2026-10-17] Milestone 7: Bandwidth Throttler (REQ-09)
+- **asked:** implement user-configurable upload bandwidth rate limiting to prevent cloud offloads from saturating home internet connections.
+- **decided:** integrate with Rclone runtime `core/bwlimit` JSON-RPC; implement upload-focused rate syntax (`<rate>:off` / `"off"` for Unlimited); build `BandwidthMenu.tsx` dropdown in desktop header with presets (Unlimited, 25, 10, 5, 2 MB/s) and custom MB/s input; persist user preference in `localStorage` under `baulr:bandwidth_limit` and re-apply on daemon startup; keep components under 150 lines.
+- **shipped:** created `src/components/common/BandwidthMenu.tsx`, `src/lib/api/bandwidth.ts`, `src/store/useBandwidthStore.ts`, and `src-tauri/src/commands/bandwidth.rs`; updated `AppHeader.tsx`, `App.tsx`, and `src-tauri/src/engine/`; added unit tests across Rust and Vitest; verified 76/76 vitest tests passing and clean production build.
+
+### [2026-10-17] Fix DropdownMenu Typeahead Intercepting Custom Input in BandwidthMenu
+- **asked:** fix issue where typing in the custom speed input field steals focus and jumps to fixed presets.
+- **decided:** stop event propagation (`stopPropagation()`) on `onKeyDown` and `onKeyUp` inside the `<form>` and `<Input>` to prevent `@base-ui/react/menu` from intercepting keystrokes with its typeahead search; control dropdown `open` state to cleanly close after preset click or custom submit; maintain component at 126 lines.
+- **shipped:** updated `BandwidthMenu.tsx`, added unit test in `bandwidth-menu.test.tsx`, verified 77/77 tests passing and clean production build.
+
+
+
 
 
 
