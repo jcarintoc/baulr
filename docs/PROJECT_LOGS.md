@@ -272,4 +272,9 @@
 - **decided:** disable Axum's default 2MB request body limit on the receiver (`DefaultBodyLimit::disable()`); replace concurrent request flooding in the mobile web uploader with an autonomous sequential queue; integrate Screen Wake Lock API (`navigator.wakeLock`) to prevent mobile OS sleep during multi-gigabyte video transfers; implement zero-loss staging filename auto-disambiguation (`resolve_unique_staging_name`); add inline retry button on interrupted files; restore activeLabel fallback in `DestinationCloudDropdown.tsx`.
 - **shipped:** updated `src-tauri/src/mobile/server.rs`, `src-tauri/src/mobile/html.rs`, `src/components/offloader/DestinationCloudDropdown.tsx`, updated `walkthrough.md`, and added unit tests in `src-tauri/src/mobile/server.rs`; verified 36/36 cargo tests, 60/60 vitest tests, and clean production build.
 
+### [2026-10-17] Background Mobile Connection & Disconnect Confirmation Dialog
+- **asked:** prevent closing the QR code dialog from unintentionally closing the active phone connection; add a "Close Connection" action with confirmation alert dialog.
+- **decided:** separate modal visibility (`Done`) from receiver lifecycle; keep receiver active in the background when modal is closed so uploads continue; add dedicated "Close Connection" button with an `AlertDialog` confirmation (`DisconnectMobileDialog.tsx`) that warns user before disconnecting; maintain components strictly under 150 lines.
+- **shipped:** created `src/components/offloader/DisconnectMobileDialog.tsx`, updated `MobileUploadModal.tsx`, `useMobileReceiver.ts`, `mobile-receiver.test.tsx`, and `walkthrough.md`; verified 36/36 cargo tests, 61/61 vitest tests, and clean production build.
+
 

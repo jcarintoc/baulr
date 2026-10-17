@@ -40,7 +40,7 @@ describe("Mobile Receiver Components", () => {
     expect(screen.getAllByText("Saved")).toHaveLength(2);
   });
 
-  it("renders MobileUploadModal with QR code, link, and handles copy & close", async () => {
+  it("renders MobileUploadModal and allows closing dialog with Done without disconnecting", async () => {
     vi.mocked(mobileApi.startMobileReceiver).mockResolvedValue({
       url: "http://192.168.1.50:49200/?token=abc123xyz",
       ip: "192.168.1.50",
@@ -75,9 +75,43 @@ describe("Mobile Receiver Components", () => {
       "http://192.168.1.50:49200/?token=abc123xyz"
     );
 
-    // Cancel / Close action
-    const cancelBtn = screen.getByText("Cancel");
-    fireEvent.click(cancelBtn);
+    // Done action (closes modal, but does NOT stop receiver)
+    const doneBtn = screen.getByText("Done");
+    fireEvent.click(doneBtn);
+    expect(onClose).toHaveBeenCalled();
+    expect(mobileApi.stopMobileReceiver).not.toHaveBeenCalled();
+  });
+
+  it("prompts confirmation when clicking Close Connection and stops receiver upon confirm", async () => {
+    vi.mocked(mobileApi.startMobileReceiver).mockResolvedValue({
+      url: "http://192.168.1.50:49200/?token=abc123xyz",
+      ip: "192.168.1.50",
+      port: 49200,
+      token: "abc123xyz",
+      qrSvg: `<svg data-testid="qr-svg"><rect width="100" height="100" /></svg>`,
+      stagingDir: "/tmp/staging",
+    });
+
+    const onClose = vi.fn();
+    render(<MobileUploadModal open={true} onClose={onClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Close Connection")).toBeInTheDocument();
+    });
+
+    // Clicking Close Connection opens DisconnectMobileDialog
+    fireEvent.click(screen.getByText("Close Connection"));
+    expect(screen.getByText("Are you sure you want to close the connection? Any ongoing uploads from your phone will stop.")).toBeInTheDocument();
+
+    // Clicking Keep Connected cancels
+    fireEvent.click(screen.getByText("Keep Connected"));
+    expect(mobileApi.stopMobileReceiver).not.toHaveBeenCalled();
+
+    // Clicking Close Connection again and confirming
+    fireEvent.click(screen.getByText("Close Connection"));
+    const confirmButtons = screen.getAllByRole("button", { name: "Close Connection" });
+    // The dialog action button is the second one
+    fireEvent.click(confirmButtons[confirmButtons.length - 1]);
 
     await waitFor(() => {
       expect(mobileApi.stopMobileReceiver).toHaveBeenCalled();

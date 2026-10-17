@@ -55,15 +55,16 @@ export function useMobileReceiver(isOpen: boolean) {
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && receiverState === "idle") {
       start();
-    } else {
-      stop();
     }
+  }, [isOpen, start, receiverState]);
+
+  useEffect(() => {
     return () => {
       stop();
     };
-  }, [isOpen, start, stop]);
+  }, [stop]);
 
   return {
     receiverInfo,
