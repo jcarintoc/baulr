@@ -300,4 +300,30 @@ describe("VaultBrowserTable", () => {
     expect(screen.getByText("cached.pdf")).toBeInTheDocument();
     expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
   });
+
+  it("displays reassuring looking for files message instead of empty state while provider is checking", () => {
+    useRemoteFilesStore.setState({
+      files: [],
+      isLoading: false,
+      providerLoading: { onedrive: true },
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("Looking for your vault files")).toBeInTheDocument();
+    expect(screen.getByText(/Checking OneDrive for saved files.../i)).toBeInTheDocument();
+    expect(screen.queryByText("No files found")).not.toBeInTheDocument();
+    expect(screen.queryByText("No files offloaded to the vault yet.")).not.toBeInTheDocument();
+  });
+
+  it("displays live header status and table streaming row when files exist and another provider is checking", () => {
+    useRemoteFilesStore.setState({
+      files: [{ Path: "gdoc.pdf", Name: "gdoc.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false }],
+      providerLoading: { onedrive: true },
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("Checking OneDrive...")).toBeInTheDocument();
+    expect(screen.getByText(/Checking OneDrive for additional files.../i)).toBeInTheDocument();
+    expect(screen.getByText("gdoc.pdf")).toBeInTheDocument();
+  });
 });

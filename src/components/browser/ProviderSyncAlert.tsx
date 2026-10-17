@@ -3,7 +3,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 
-const PROVIDER_NAMES: Record<string, string> = {
+export const PROVIDER_NAMES: Record<string, string> = {
   gdrive: "Google Drive",
   onedrive: "OneDrive",
 };

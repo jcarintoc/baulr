@@ -2,12 +2,16 @@ import { IconArchive, IconSearch } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 
 interface VaultBrowserHeaderProps {
   filesCount: number;
   totalBytes: number;
   searchQuery: string;
   onSearchChange: (value: string) => void;
+  isCheckingCloud?: boolean;
+  checkingAccountNames?: string[];
 }
 
 export function VaultBrowserHeader({
@@ -15,16 +19,34 @@ export function VaultBrowserHeader({
   totalBytes,
   searchQuery,
   onSearchChange,
+  isCheckingCloud = false,
+  checkingAccountNames = [],
 }: VaultBrowserHeaderProps) {
+  const statusLabel =
+    checkingAccountNames.length > 0
+      ? `Checking ${checkingAccountNames.join(", ")}...`
+      : "Checking cloud accounts...";
+
   return (
     <Card className="bg-card/75 border-border">
       <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <IconArchive className="size-5 text-vault-accent-text" />
           <div>
-            <h3 className="font-semibold text-sm text-foreground">
-              Vault Directory ({filesCount} {filesCount === 1 ? "item" : "items"})
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-sm text-foreground">
+                Vault Directory ({filesCount} {filesCount === 1 ? "item" : "items"})
+              </h3>
+              {isCheckingCloud && (
+                <Badge
+                  variant="outline"
+                  className="text-xs font-normal border-sky-500/30 text-sky-400 bg-sky-500/10 gap-1.5"
+                >
+                  <Spinner />
+                  <span>{statusLabel}</span>
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground tabular-nums">
               Total pooled archive: {formatBytes(totalBytes)}
             </p>
