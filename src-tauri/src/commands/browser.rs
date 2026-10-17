@@ -5,7 +5,7 @@ use specta::Type;
 use tauri::Emitter;
 use tauri_plugin_dialog::DialogExt;
 
-use crate::engine::{build_union_upstreams, RcloneItem, VAULT_UNION_NAME};
+use crate::engine::{build_union_upstreams, RcloneItem, VAULT_SUBDIR, VAULT_UNION_NAME};
 use crate::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -97,6 +97,18 @@ pub async fn list_vault_files(
         return Ok(Vec::new());
     }
     let fs = format!("{}:", VAULT_UNION_NAME);
+    client.list_files(&fs, "").await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn list_provider_vault_files(
+    state: tauri::State<'_, AppState>,
+    provider: String,
+) -> Result<Vec<RcloneItem>, String> {
+    let client_guard = state.client.read().await;
+    let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
+    let fs = format!("{}:{}", provider, VAULT_SUBDIR);
     client.list_files(&fs, "").await
 }
 
@@ -277,12 +289,29 @@ pub async fn get_file_share_link(
     }
 
     let clean_path = path.trim_start_matches('/').to_string();
-    let mut last_error = String::new();
 
-    for upstream in &upstreams {
-        match client.get_public_link(upstream, &clean_path).await {
-            Ok(url) => return Ok(url),
-            Err(e) => last_error = e,
+    let mut set = tokio::task::JoinSet::new();
+    for upstream in upstreams {
+        let client_clone = client.clone();
+        let target_path = clean_path.clone();
+        set.spawn(async move {
+            client_clone.get_public_link(&upstream, &target_path).await
+        });
+    }
+
+    let mut last_error = String::new();
+    while let Some(res) = set.join_next().await {
+        match res {
+            Ok(Ok(link)) => {
+                set.abort_all();
+                return Ok(link);
+            }
+            Ok(Err(err)) => {
+                last_error = err;
+            }
+            Err(join_err) => {
+                last_error = join_err.to_string();
+            }
         }
     }
 
@@ -342,5 +371,12 @@ mod tests {
         assert_eq!(resolve_unique_destination_name(&tmp, "report.pdf", false), "report (2).pdf");
 
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_browser_commands_engine_not_running() {
+        let state = AppState::default();
+        let client_guard = state.client.read().await;
+        assert!(client_guard.is_none());
     }
 }
