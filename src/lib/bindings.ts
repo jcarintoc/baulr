@@ -25,9 +25,15 @@ export const commands = {
 	pickDestinationFolder: () => typedError<string | null, string>(__TAURI_INVOKE("pick_destination_folder")),
 	startMobileReceiver: () => typedError<MobileReceiverInfo, string>(__TAURI_INVOKE("start_mobile_receiver")),
 	stopMobileReceiver: () => typedError<null, string>(__TAURI_INVOKE("stop_mobile_receiver")),
+	getBandwidthLimit: () => typedError<BandwidthLimit, string>(__TAURI_INVOKE("get_bandwidth_limit")),
+	setBandwidthLimit: (rate: string) => typedError<BandwidthLimit, string>(__TAURI_INVOKE("set_bandwidth_limit", { rate })),
 };
 
 /* Types */
+export type BandwidthLimit = {
+	rate: string,
+};
+
 export type CloudAccount = {
 	name: string,
 	provider: string,

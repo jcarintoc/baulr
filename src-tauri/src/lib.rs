@@ -8,6 +8,7 @@ use tauri_specta::{collect_commands, Builder};
 use tokio::sync::RwLock;
 
 use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_account};
+use crate::commands::bandwidth::{get_bandwidth_limit, set_bandwidth_limit};
 use crate::commands::browser::{
     delete_vault_item, download_vault_item, list_vault_files, pick_destination_folder,
 };
@@ -63,7 +64,9 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         download_vault_item,
         pick_destination_folder,
         start_mobile_receiver,
-        stop_mobile_receiver
+        stop_mobile_receiver,
+        get_bandwidth_limit,
+        set_bandwidth_limit
     ])
 }
 

@@ -2,7 +2,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
 use crate::engine::models::{
-    AboutFs, CheckResult, CoreStats, JobStatus, OAuthStatus, RcloneItem, RcloneListResponse,
+    AboutFs, BandwidthLimit, CheckResult, CoreStats, JobStatus, OAuthStatus, RcloneItem,
+    RcloneListResponse,
 };
 
 #[derive(Deserialize)]
@@ -518,6 +519,43 @@ impl RcloneClient {
         }
     }
 
+    pub async fn get_bandwidth_limit(&self) -> Result<BandwidthLimit, String> {
+        let url = format!("{}/core/bwlimit", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({}))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to query bandwidth limit: {e}"))?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Daemon returned HTTP error: {}", resp.status()));
+        }
+
+        resp.json::<BandwidthLimit>()
+            .await
+            .map_err(|e| format!("Failed to parse bandwidth limit: {e}"))
+    }
+
+    pub async fn set_bandwidth_limit(&self, rate: &str) -> Result<BandwidthLimit, String> {
+        let url = format!("{}/core/bwlimit", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "rate": rate }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to set bandwidth limit: {e}"))?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Daemon returned HTTP error: {}", resp.status()));
+        }
+
+        resp.json::<BandwidthLimit>()
+            .await
+            .map_err(|e| format!("Failed to parse bandwidth limit response: {e}"))
+    }
 
     pub async fn quit(&self) -> Result<(), String> {
         let url = format!("{}/core/quit", self.base_url);
@@ -618,5 +656,27 @@ mod tests {
         assert_eq!(fail_check.differ, vec!["corrupt.png".to_string()]);
         assert_eq!(fail_check.error, vec!["failed to read".to_string()]);
     }
+
+    #[test]
+    fn test_bandwidth_limit_deserialization() {
+        let json = r#"{
+            "bytesPerSecond": 10485760,
+            "bytesPerSecondTx": 10485760,
+            "bytesPerSecondRx": -1,
+            "rate": "10M:off"
+        }"#;
+        let limit: BandwidthLimit = serde_json::from_str(json).expect("deserialize bandwidth limit");
+        assert_eq!(limit.rate, "10M:off");
+
+        let off_json = r#"{
+            "bytesPerSecond": -1,
+            "bytesPerSecondTx": -1,
+            "bytesPerSecondRx": -1,
+            "rate": "off"
+        }"#;
+        let off_limit: BandwidthLimit = serde_json::from_str(off_json).expect("deserialize off limit");
+        assert_eq!(off_limit.rate, "off");
+    }
 }
+
 
