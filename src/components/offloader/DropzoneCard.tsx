@@ -78,7 +78,8 @@ export function DropzoneCard({
             Drag and drop folders or files here to offload
           </h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
-            Files are backed up to your unified cloud vault and removed from this computer once safely saved.
+            Files are backed up to your unified cloud vault and removed from
+            this computer once safely saved.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
@@ -90,7 +91,7 @@ export function DropzoneCard({
             disabled={disabled}
           >
             <IconFolder />
-            <span>Select Folder to Free Up Space</span>
+            <span>Select Folder/Files to upload</span>
           </Button>
 
           {onOpenMobile && (
