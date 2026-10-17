@@ -276,4 +276,28 @@ describe("VaultBrowserTable", () => {
     expect(screen.getByText("Share File")).toBeInTheDocument();
     expect(within(dialog).getByText("vacation.jpg")).toBeInTheDocument();
   });
+
+  it("renders ProviderSyncAlert when provider has errors", () => {
+    useRemoteFilesStore.setState({
+      files: [{ Path: "gdoc.pdf", Name: "gdoc.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false }],
+      providerErrors: { onedrive: "Network failure" },
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("Unable to load OneDrive files")).toBeInTheDocument();
+    expect(screen.getByText("gdoc.pdf")).toBeInTheDocument();
+  });
+
+  it("renders cached files immediately without skeleton during background revalidation", () => {
+    useRemoteFilesStore.setState({
+      files: [{ Path: "cached.pdf", Name: "cached.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false }],
+      isLoading: true,
+      isInitialLoading: false,
+      isRevalidating: true,
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("cached.pdf")).toBeInTheDocument();
+    expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
+  });
 });

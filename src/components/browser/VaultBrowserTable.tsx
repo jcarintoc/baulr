@@ -13,10 +13,11 @@ import { VaultItemRow } from "@/components/browser/VaultItemRow";
 import { DownloadBanner } from "@/components/browser/DownloadBanner";
 import { DeleteVaultItemDialog } from "@/components/browser/DeleteVaultItemDialog";
 import { ShareLinkModal } from "@/components/browser/ShareLinkModal";
+import { ProviderSyncAlert } from "@/components/browser/ProviderSyncAlert";
 
 export function VaultBrowserTable() {
   const {
-    files, isLoading, error, searchQuery, activeDownloads,
+    files, isLoading, isInitialLoading, error, searchQuery, activeDownloads,
     setSearchQuery, fetchFiles, deleteFile, downloadFile,
     handleDownloadProgress, dismissDownload,
   } = useRemoteFilesStore();
@@ -56,6 +57,8 @@ export function VaultBrowserTable() {
     }
   };
 
+  const showSkeleton = isInitialLoading && files.length === 0;
+
   return (
     <div className="flex flex-col gap-4">
       <VaultBrowserHeader
@@ -64,6 +67,8 @@ export function VaultBrowserTable() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
+
+      <ProviderSyncAlert />
 
       {error && !isLoading && (
         <Alert variant="destructive" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -84,7 +89,7 @@ export function VaultBrowserTable() {
       <DownloadBanner downloads={Object.values(activeDownloads)} onDismiss={dismissDownload} />
 
       <Card className="border-border bg-card/75 overflow-hidden p-0">
-        {isLoading ? (
+        {showSkeleton ? (
           <div className="p-4 space-y-3">
             {[...Array(3)].map((_, i) => (
               <Skeleton key={i} className="h-10 w-full" />
