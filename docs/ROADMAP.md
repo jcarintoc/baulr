@@ -24,6 +24,7 @@
 - [[Milestone 6: LAN Wi-Fi QR Mobile Upload]]
 - [[Bandwidth Throttler]]
 - [[Share link]]
+- [[Vault Files Progressive Loading & Share Link Performance Optimizations]]
 
 
 

@@ -317,5 +317,11 @@
 - **decided:** Rclone's `union` remote backend does not implement `PublicLinker`. Update `get_file_share_link` in `browser.rs` to dynamically query connected upstreams (e.g. `gdrive:BaulrVault`, `onedrive:BaulrVault`) from `build_union_upstreams(&config)`, calling `client.get_public_link(upstream, &clean_path)` to retrieve its native cloud link; prune speculative double-query fallback and collapse error checks (-17 lines); sanitize error formatting in `client.rs` to avoid exposing raw JSON payloads.
 - **shipped:** updated `src-tauri/src/commands/browser.rs` and `src-tauri/src/engine/client.rs`; verified with `cargo check`, `cargo test`, `pnpm test` (84/84), and `cargo build`.
 
+### [2026-10-17] Vault Files Progressive Loading & Share Link Performance Optimizations
+- **asked:** optimize slow loading when opening the Vault Files tab and when generating share links; implement progressive loading so the fastest provider renders first, isolate failing providers with localized retry, and add hover prefetching.
+- **decided:** parallelize cloud upstreams in Rust backend using `tokio::task::JoinSet` to race public link lookups across all connected remotes simultaneously, aborting remaining tasks on first success; add in-memory share link caching for 0ms repeat clicks; expose `list_provider_vault_files` in Tauri backend; refactor `useRemoteFilesStore.ts` to manage per-provider state (`filesByProvider`, `providerErrors`, `providerLoading`) with progressive streaming merge and stale-while-revalidate; extract `<ProviderSyncAlert />` (< 55 lines) with human-friendly copy complying with `RULE[user_global]`; add intent-driven hover prefetch on `ViewToggle.tsx` with 30s freshness window; keep all components under 150 lines.
+- **shipped:** updated `src-tauri/src/commands/browser.rs`, `src-tauri/src/lib.rs`, `src/lib/bindings.ts`, `src/lib/api/browser.ts`, `src/store/useRemoteFilesStore.ts`, `src/components/common/ViewToggle.tsx`, `src/components/browser/VaultBrowserTable.tsx`; created `src/components/browser/ProviderSyncAlert.tsx`; added comprehensive unit and component tests (`provider-sync-alert.test.tsx`, `view-toggle.test.tsx`, expanded `browser-store.test.ts`, `browser-api.test.ts`, `browser-table.test.tsx`); verified 98/98 vitest tests passing, 0 TypeScript errors on `pnpm build`, and updated `docs/ROADMAP.md`.
+
+
 
 
