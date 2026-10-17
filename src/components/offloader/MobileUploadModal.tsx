@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cn } from "cn";
 import { IconAlertCircle } from "@tabler/icons-react";
 import {
   AlertDialog,
@@ -6,39 +7,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { useMobileReceiver } from "./useMobileReceiver";
 import { MobileQrViewfinder } from "./MobileQrViewfinder";
 import { MobileReceivedList } from "./MobileReceivedList";
 import { DisconnectMobileDialog } from "./DisconnectMobileDialog";
-import { Badge } from "../ui/badge";
 
 interface MobileUploadModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-type ReceiverState =
-  | "starting"
-  | "waiting"
-  | "connected"
-  | "receiving"
-  | "error";
-
-const STATUS_CONFIG: Record<
-  ReceiverState,
-  { label: string; dotClass: string }
-> = {
+const STATUS_CONFIG: Record<string, { label: string; dotClass: string }> = {
   starting: { label: "Initializing...", dotClass: "bg-zinc-500 animate-pulse" },
-  waiting: { label: "Waiting for connection", dotClass: "bg-amber-500" },
+  waiting: { label: "Ready for scan", dotClass: "bg-amber-500" },
   connected: { label: "Phone connected", dotClass: "bg-emerald-500" },
-  receiving: {
-    label: "Receiving files...",
-    dotClass: "bg-emerald-500 animate-pulse",
-  },
+  receiving: { label: "Receiving files...", dotClass: "bg-emerald-500 animate-pulse" },
   error: { label: "Connection error", dotClass: "bg-destructive" },
 };
 
@@ -63,23 +53,21 @@ export function MobileUploadModal({ open, onClose }: MobileUploadModalProps) {
     onClose();
   };
 
-  const status =
-    STATUS_CONFIG[receiverState as ReceiverState] ?? STATUS_CONFIG.waiting;
+  const status = STATUS_CONFIG[receiverState] ?? STATUS_CONFIG.waiting;
   const isConnected =
     receiverState === "connected" || receiverState === "receiving";
 
   return (
     <>
       <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <AlertDialogContent className="flex flex-col p-6 gap-5">
-          <AlertDialogHeader className="gap-0">
-            <AlertDialogTitle>Transfer from Phone</AlertDialogTitle>
+        <AlertDialogContent className="flex flex-col p-6 gap-4 max-w-sm sm:max-w-md">
+          <AlertDialogHeader className="gap-0 items-center text-center">
+            <AlertDialogTitle>Receive Photos & Videos from Phone</AlertDialogTitle>
             <AlertDialogDescription>
-              Direct local Wi-Fi transfer
+              Direct local Wi-Fi transfer without cloud servers
             </AlertDialogDescription>
-            {/* Status pill */}
-            <Badge variant="secondary" className="mt-2">
-              <span className={`size-1.5 rounded-full ${status.dotClass}`} />
+            <Badge variant="secondary" className="mt-2 gap-1.5 text-xs font-normal">
+              <span className={cn("size-1.5 rounded-full", status.dotClass)} />
               {status.label}
             </Badge>
           </AlertDialogHeader>
@@ -124,8 +112,7 @@ export function MobileUploadModal({ open, onClose }: MobileUploadModalProps) {
             )
           )}
 
-          {/* Footer */}
-          <div className="flex items-center justify-between">
+          <AlertDialogFooter className="pt-2 sm:justify-between items-center flex-row">
             <Button
               type="button"
               variant="ghost"
@@ -133,18 +120,12 @@ export function MobileUploadModal({ open, onClose }: MobileUploadModalProps) {
               onClick={() => setIsConfirmingDisconnect(true)}
               className="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-2"
             >
-              Disconnect Session
+              Close Connection
             </Button>
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={onClose}
-              className="h-8 text-xs px-4"
-            >
+            <AlertDialogCancel onClick={onClose} className="h-8 text-xs px-4">
               Done
-            </Button>
-          </div>
+            </AlertDialogCancel>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 

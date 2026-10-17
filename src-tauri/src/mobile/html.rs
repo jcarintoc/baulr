@@ -12,8 +12,6 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       --card-muted: #18181b;
       --border: #27272a;
       --border-subtle: rgba(255, 255, 255, 0.07);
-      --primary: #fafafa;
-      --primary-foreground: #18181b;
       --muted: #a1a1aa;
       --muted-foreground: #71717a;
       --success: #22c55e;
@@ -30,17 +28,23 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       -webkit-tap-highlight-color: transparent;
     }
 
+    html, body {
+      min-height: 100%;
+      background-color: var(--background);
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background-color: var(--background);
       color: var(--foreground);
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: max(1.25rem, env(safe-area-inset-top)) 1rem max(1.5rem, env(safe-area-inset-bottom));
+      padding: max(1.25rem, env(safe-area-inset-top)) 1rem max(3.5rem, env(safe-area-inset-bottom));
       -webkit-font-smoothing: antialiased;
       touch-action: manipulation;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .container {
@@ -48,8 +52,7 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       max-width: 440px;
       display: flex;
       flex-direction: column;
-      flex: 1;
-      gap: 1.25rem;
+      gap: 1.15rem;
     }
 
     /* Top App Bar */
@@ -57,7 +60,7 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.25rem 0.25rem 0.5rem;
+      padding: 0.25rem 0.25rem 0.25rem;
     }
 
     .brand {
@@ -106,7 +109,7 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       background: var(--card);
       border: 1px dashed var(--border);
       border-radius: var(--radius);
-      padding: 2.25rem 1.25rem;
+      padding: 1.65rem 1.25rem;
       text-align: center;
       cursor: pointer;
       transition: background-color 0.15s ease, border-color 0.15s ease;
@@ -119,8 +122,8 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
     }
 
     .upload-icon-box {
-      width: 3rem;
-      height: 3rem;
+      width: 2.75rem;
+      height: 2.75rem;
       border-radius: 50%;
       background: var(--card-muted);
       border: 1px solid var(--border);
@@ -128,14 +131,14 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       align-items: center;
       justify-content: center;
       color: var(--foreground);
-      margin-bottom: 0.85rem;
+      margin-bottom: 0.65rem;
     }
 
     .upload-title {
       font-size: 0.95rem;
       font-weight: 600;
       color: var(--foreground);
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.2rem;
     }
 
     .upload-desc {
@@ -175,7 +178,6 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       font-variant-numeric: tabular-nums;
     }
 
-    /* Progress Bar (Shadcn style) */
     .progress-bar {
       height: 4px;
       background: var(--border);
@@ -186,19 +188,18 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
 
     .progress-fill {
       height: 100%;
-      background: var(--foreground);
+      background: var(--success);
       width: 0%;
       border-radius: 9999px;
       transition: width 0.15s ease;
     }
 
-    /* File List */
+    /* Continuous Flow File List */
     .file-list {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
-      flex: 1;
-      padding-right: 2px;
+      width: 100%;
     }
 
     .file-card {
@@ -224,8 +225,8 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
     }
 
     .file-thumb {
-      width: 2.5rem;
-      height: 2.5rem;
+      width: 2.25rem;
+      height: 2.25rem;
       border-radius: 0.5rem;
       background: var(--card-muted);
       border: 1px solid var(--border);
@@ -234,13 +235,6 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       justify-content: center;
       color: var(--muted);
       flex-shrink: 0;
-      overflow: hidden;
-    }
-
-    .file-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
     }
 
     .file-info {
@@ -313,12 +307,35 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       background: var(--card-muted);
     }
 
+    .add-more-btn {
+      display: none;
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      border-radius: var(--radius);
+      padding: 0.65rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-height: 40px;
+      transition: color 0.15s ease;
+      margin-top: 0.25rem;
+    }
+
+    .add-more-btn:active {
+      background: var(--card-muted);
+      color: var(--foreground);
+    }
+
     .footer {
-      margin-top: auto;
       text-align: center;
       font-size: 0.72rem;
       color: var(--muted-foreground);
       padding-top: 1.5rem;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -361,11 +378,19 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- Active and Completed Files -->
+    <!-- Active and Completed Files (Continuous Flow) -->
     <div class="file-list" id="file-list"></div>
 
+    <button type="button" class="add-more-btn" id="add-more-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Add more photos or files
+    </button>
+
     <footer class="footer">
-      Files transfer peer-to-peer on your local network.
+      Files transfer peer-to-peer on your local network.<br>Your media never leaves your home.
     </footer>
   </div>
 
@@ -379,6 +404,7 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
     const batchTitle = document.getElementById("batch-title");
     const batchStats = document.getElementById("batch-stats");
     const batchProgressFill = document.getElementById("batch-progress-fill");
+    const addMoreBtn = document.getElementById("add-more-btn");
 
     function formatBytes(bytes) {
       if (!bytes || bytes === 0) return "0 B";
@@ -419,32 +445,27 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
     let totalBatchBytes = 0;
     let uploadedBatchBytes = 0;
 
-    function renderThumb(container, file) {
-      if (file.type.startsWith("image/")) {
-        const img = document.createElement("img");
-        img.src = URL.createObjectURL(file);
-        img.onload = () => URL.revokeObjectURL(img.src);
-        container.appendChild(img);
-        return;
-      }
-
-      const ext = (file.name.split(".").pop() || "").toLowerCase();
-      let icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-
+    function getMediaIconSvg(fileName) {
+      const ext = (fileName.split(".").pop() || "").toLowerCase();
       if (["mp4", "mov", "m4v", "webm"].includes(ext)) {
-        icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>`;
+        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>`;
       }
-      container.innerHTML = icon;
+      if (["pdf", "doc", "docx", "txt"].includes(ext)) {
+        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+      }
+      return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`;
     }
 
     function updateBatchTelemetry() {
       if (totalBatchCount === 0) {
         batchCard.style.display = "none";
+        addMoreBtn.style.display = "none";
         headerStatusText.textContent = "Connected";
         return;
       }
 
       batchCard.style.display = "flex";
+      addMoreBtn.style.display = "inline-flex";
 
       if (isProcessing) {
         const percent = totalBatchBytes > 0
@@ -481,6 +502,10 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       fileInput.value = "";
     });
 
+    addMoreBtn.addEventListener("click", () => {
+      fileInput.click();
+    });
+
     dropzone.addEventListener("dragover", (e) => {
       e.preventDefault();
       dropzone.classList.add("dragover");
@@ -499,7 +524,7 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       card.className = "file-card";
       card.innerHTML = `
         <div class="file-main">
-          <div class="file-thumb"></div>
+          <div class="file-thumb">${getMediaIconSvg(file.name)}</div>
           <div class="file-info">
             <span class="file-name"></span>
             <span class="file-meta">${formatBytes(file.size)}</span>
@@ -520,7 +545,6 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
         <div class="progress-bar"><div class="progress-fill"></div></div>
       `;
       card.querySelector(".file-name").textContent = file.name;
-      renderThumb(card.querySelector(".file-thumb"), file);
       fileList.prepend(card);
 
       const pill = card.querySelector(".pill");

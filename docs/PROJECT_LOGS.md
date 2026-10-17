@@ -282,6 +282,14 @@
 - **decided:** upgrade mobile uploader (`html.rs`) with Apple/Android native ergonomics, Obsidian Vault design tokens, batch telemetry progress bar, and media-type SVG icons (photo, video, doc); extract `MobileQrViewfinder.tsx` to provide a framed viewfinder QR code presentation while keeping `MobileUploadModal.tsx` strictly under 150 lines (133 lines); enhance `MobileReceivedList.tsx` with media-type icons and parent-driven Tailwind selectors; ensure zero mechanical detector violations.
 - **shipped:** created `src/components/offloader/MobileQrViewfinder.tsx`, updated `src/components/offloader/MobileUploadModal.tsx`, `src/components/offloader/MobileReceivedList.tsx`, and `src-tauri/src/mobile/html.rs`; verified 36/36 cargo tests, 61/61 vitest tests, and clean production build.
 
+### [2026-10-17] Revert Upload Modal Layout to Single-Column Format
+- **asked:** revert the desktop upload modal layout back to the single-column centered format.
+- **decided:** revert `MobileUploadModal.tsx` from the 2-column grid (`grid-cols-2`) back to a focused, single-column vertical stack (`max-w-sm sm:max-w-md`); utilize adaptive `compact` QR sizing (`size-32` vs `size-44`) to maintain ergonomic dialog height while files are transferring; preserve continuous scrolling in the mobile uploader; keep component at 140 lines.
+- **shipped:** updated `src/components/offloader/MobileUploadModal.tsx`; verified 61/61 vitest tests, 5/5 Rust mobile tests, and clean production build.
+
+
+
+
 
 
 

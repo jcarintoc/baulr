@@ -18,40 +18,32 @@ export function MobileQrViewfinder({
 }: MobileQrViewfinderProps) {
   return (
     <div className="flex flex-col items-center gap-3 w-full">
-      {/* Crisp QR Container */}
       <div
-        className={`bg-white p-3 rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center [&_svg]:size-full ${
+        className={`bg-white p-3 rounded-xl shadow-xs flex items-center justify-center [&_svg]:size-full transition-all duration-200 ${
           compact ? "size-32" : "size-44"
         }`}
         dangerouslySetInnerHTML={{ __html: qrSvg }}
       />
 
-      {/* Connection link pill */}
-      <div className="flex items-center gap-2 w-full px-2.5 py-1 rounded-md border border-border bg-zinc-900/80 text-xs">
-        <IconWifi className="size-3 text-muted-foreground shrink-0" />
-        <span className="text-zinc-400 font-mono text-[11px] truncate select-all">
+      <div className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-md border border-border bg-zinc-900/80 text-xs">
+        <IconWifi className="size-3.5 text-muted-foreground shrink-0" />
+        <span className="text-zinc-400 font-mono truncate select-all flex-1">
           {url}
         </span>
         <Button
-          size="icon"
+          size="sm"
           variant="ghost"
           onClick={onCopyUrl}
-          className="size-5 text-muted-foreground hover:text-foreground shrink-0"
-          title="Copy upload URL"
+          className="h-6 px-1.5 text-muted-foreground hover:text-foreground shrink-0"
+          title="Copy web uploader link"
         >
           {copied ? (
-            <IconCheck className="size-3 text-emerald-500" />
+            <IconCheck className="text-emerald-500" />
           ) : (
-            <IconCopy className="size-3" />
+            <IconCopy />
           )}
         </Button>
       </div>
-
-      {!compact && (
-        <p className="text-[11px] text-muted-foreground text-center">
-          Connect your phone to the same Wi-Fi and scan with your camera
-        </p>
-      )}
     </div>
   );
 }
