@@ -257,4 +257,39 @@
 - **decided:** eliminate unreachable fallback path reconstruction in `offload.rs` telemetry loop; replace manual mutable counter loop in `resolve_unique_cloud_name` with standard iterator pipeline; remove redundant `useEffect` for mutable ref syncing in `useWebviewDrop.ts`.
 - **shipped:** net -14 lines across `src-tauri/src/commands/offload.rs` and `src/components/offloader/useWebviewDrop.ts`; verified 31/31 cargo tests, 54/54 vitest tests, and production build.
 
+### [2026-10-16] Milestone 6: LAN Wi-Fi QR Mobile Upload (REQ-07)
+- **asked:** implement Milestone 6: allow users to offload photos and videos from mobile phones directly to Baulr over local Wi-Fi without installing a mobile app.
+- **decided:** build an embedded local network Axum HTTP streaming receiver on dynamic port with pairing token authentication; generate crisp vector QR code in Rust (`qrcode`); serve a responsive dark-mode mobile web uploader page; stream multipart chunks directly to disk staging to prevent OOM on large 4K video uploads; emit `mobile://file-received` to automatically enqueue files into `useTransferStore`; modularize UI into `MobileUploadModal.tsx`, `MobileReceivedList.tsx`, `DestinationCloudDropdown.tsx`, and `useMobileReceiver.ts` keeping all components strictly under 150 lines.
+- **shipped:** created `src-tauri/src/mobile/`, `src-tauri/src/commands/mobile.rs`, `src/lib/api/mobile.ts`, `src/components/offloader/useMobileReceiver.ts`, `src/components/offloader/MobileUploadModal.tsx`, `src/components/offloader/MobileReceivedList.tsx`, `src/components/offloader/DestinationCloudDropdown.tsx`, `src/components/offloader/ReclaimSuccessToast.tsx`, updated `DropzoneCard.tsx`, `OffloadWorkspace.tsx`, `lib.rs`, `Cargo.toml`, and added unit tests in `mobile-api.test.ts` and `mobile-receiver.test.tsx`; verified 33/33 cargo tests, 61/61 vitest tests, and clean production build.
+
+### [2026-10-16] Ponytail Review Simplification (-81 Lines)
+- **asked:** prune speculative abstractions, redundant code, and verbose DOM constructions in Milestone 6.
+- **decided:** delete unused `get_mobile_receiver_status` command and `MobileReceiverStatus` struct; streamline `get_local_ip` with stdlib combinators; replace 27 lines of imperative DOM construction in mobile uploader with template literal; collapse badge state switch into static lookup table; deduplicate `useMobileReceiver` cleanup hook.
+- **shipped:** net -81 lines across `src-tauri/src/commands/mobile.rs`, `src-tauri/src/mobile/server.rs`, `src-tauri/src/mobile/html.rs`, `src/lib/api/mobile.ts`, `src/components/offloader/useMobileReceiver.ts`, and `src/components/offloader/MobileUploadModal.tsx`; verified 33/33 cargo tests, 60/60 vitest tests, and clean production build.
+
+### [2026-10-17] Mobile Upload Multi-File & Video Resilience
+- **asked:** resolve connection errors and dropped transfers when uploading batches of mixed photos and large videos from mobile devices.
+- **decided:** disable Axum's default 2MB request body limit on the receiver (`DefaultBodyLimit::disable()`); replace concurrent request flooding in the mobile web uploader with an autonomous sequential queue; integrate Screen Wake Lock API (`navigator.wakeLock`) to prevent mobile OS sleep during multi-gigabyte video transfers; implement zero-loss staging filename auto-disambiguation (`resolve_unique_staging_name`); add inline retry button on interrupted files; restore activeLabel fallback in `DestinationCloudDropdown.tsx`.
+- **shipped:** updated `src-tauri/src/mobile/server.rs`, `src-tauri/src/mobile/html.rs`, `src/components/offloader/DestinationCloudDropdown.tsx`, updated `walkthrough.md`, and added unit tests in `src-tauri/src/mobile/server.rs`; verified 36/36 cargo tests, 60/60 vitest tests, and clean production build.
+
+### [2026-10-17] Background Mobile Connection & Disconnect Confirmation Dialog
+- **asked:** prevent closing the QR code dialog from unintentionally closing the active phone connection; add a "Close Connection" action with confirmation alert dialog.
+- **decided:** separate modal visibility (`Done`) from receiver lifecycle; keep receiver active in the background when modal is closed so uploads continue; add dedicated "Close Connection" button with an `AlertDialog` confirmation (`DisconnectMobileDialog.tsx`) that warns user before disconnecting; maintain components strictly under 150 lines.
+- **shipped:** created `src/components/offloader/DisconnectMobileDialog.tsx`, updated `MobileUploadModal.tsx`, `useMobileReceiver.ts`, `mobile-receiver.test.tsx`, and `walkthrough.md`; verified 36/36 cargo tests, 61/61 vitest tests, and clean production build.
+
+### [2026-10-17] Impeccable UI & Layout Polish for Mobile Web & QR Modal
+- **asked:** polish mobile web uploader UI and desktop QR code modal layout using shadcn components and Baulr's Obsidian Vault design language.
+- **decided:** upgrade mobile uploader (`html.rs`) with Apple/Android native ergonomics, Obsidian Vault design tokens, batch telemetry progress bar, and media-type SVG icons (photo, video, doc); extract `MobileQrViewfinder.tsx` to provide a framed viewfinder QR code presentation while keeping `MobileUploadModal.tsx` strictly under 150 lines (133 lines); enhance `MobileReceivedList.tsx` with media-type icons and parent-driven Tailwind selectors; ensure zero mechanical detector violations.
+- **shipped:** created `src/components/offloader/MobileQrViewfinder.tsx`, updated `src/components/offloader/MobileUploadModal.tsx`, `src/components/offloader/MobileReceivedList.tsx`, and `src-tauri/src/mobile/html.rs`; verified 36/36 cargo tests, 61/61 vitest tests, and clean production build.
+
+### [2026-10-17] Revert Upload Modal Layout to Single-Column Format
+- **asked:** revert the desktop upload modal layout back to the single-column centered format.
+- **decided:** revert `MobileUploadModal.tsx` from the 2-column grid (`grid-cols-2`) back to a focused, single-column vertical stack (`max-w-sm sm:max-w-md`); utilize adaptive `compact` QR sizing (`size-32` vs `size-44`) to maintain ergonomic dialog height while files are transferring; preserve continuous scrolling in the mobile uploader; keep component at 140 lines.
+- **shipped:** updated `src/components/offloader/MobileUploadModal.tsx`; verified 61/61 vitest tests, 5/5 Rust mobile tests, and clean production build.
+
+
+
+
+
+
 

@@ -4,11 +4,9 @@ import { DropzoneCard } from "./DropzoneCard";
 import { TransferQueue } from "./TransferQueue";
 import { ReclaimBanner } from "./ReclaimBanner";
 import { ReclaimConfirmDialog } from "./ReclaimConfirmDialog";
+import { ReclaimSuccessToast } from "./ReclaimSuccessToast";
+import { MobileUploadModal } from "./MobileUploadModal";
 import { OnboardingPrompt } from "../accounts/OnboardingPrompt";
-import { IconCircleCheck } from "@tabler/icons-react";
-import { formatBytes } from "@/lib/formatters";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { listenOffloadProgress, reclaimPaths } from "@/lib/api/offload";
 
@@ -33,6 +31,7 @@ export function OffloadWorkspace({
   } = useTransferStore();
 
   const [isConfirmingReclaim, setIsConfirmingReclaim] = useState(false);
+  const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [successToast, setSuccessToast] = useState<{
     bytes: number;
     count: number;
@@ -56,9 +55,7 @@ export function OffloadWorkspace({
   const handleSelectPaths = async (paths: string[], targetProvider?: string) => {
     try {
       await enqueuePaths(paths, targetProvider);
-    } catch {
-      // Error is set in store
-    }
+    } catch {}
   };
 
   const verifiedItems = items.filter((i) => i.status === "verified");
@@ -102,17 +99,11 @@ export function OffloadWorkspace({
       )}
 
       {successToast && (
-        <Card className="p-3 px-4 flex items-center justify-between text-xs bg-card border-border">
-          <div className="flex items-center gap-2 text-foreground/90">
-            <IconCircleCheck className="size-4 text-vault-accent-text shrink-0" />
-            <span>
-              Freed up <strong className="text-foreground tabular-nums">{formatBytes(successToast.bytes)}</strong>. Files removed from this computer.
-            </span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleDismissToast} className="h-7 text-xs">
-            Dismiss
-          </Button>
-        </Card>
+        <ReclaimSuccessToast
+          bytes={successToast.bytes}
+          count={successToast.count}
+          onDismiss={handleDismissToast}
+        />
       )}
 
       {isVerified && totalReclaimBytes > 0 && (
@@ -131,7 +122,10 @@ export function OffloadWorkspace({
         />
       )}
 
-      <DropzoneCard onSelectPaths={handleSelectPaths} />
+      <DropzoneCard
+        onSelectPaths={handleSelectPaths}
+        onOpenMobile={() => setIsMobileModalOpen(true)}
+      />
 
       <ReclaimConfirmDialog
         open={isConfirmingReclaim}
@@ -139,6 +133,11 @@ export function OffloadWorkspace({
         itemCount={verifiedItems.length}
         onConfirm={confirmReclaim}
         onCancel={() => setIsConfirmingReclaim(false)}
+      />
+
+      <MobileUploadModal
+        open={isMobileModalOpen}
+        onClose={() => setIsMobileModalOpen(false)}
       />
     </div>
   );

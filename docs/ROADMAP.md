@@ -2,12 +2,11 @@
 
 ## Backlog
 - [[Share link]]
-- [[LAN Wi-Fi QR Mobile Upload]]
 - [[Dropbox & Box Providers]]
 - [[Bandwidth Throttler]]
+- [[Media Preview & Thumbnail Grid]]
 
 ## In Progress
-- [[Milestone 5: End-to-End Testing & Cross-Platform Packaging]]
 
 ## Done
 - [[Decision log]]
@@ -22,6 +21,9 @@
 - [[Vault Sync]]
 - [[Integrity Verification & Safe Reclamation]]
 - [[Milestone 4: Cloud Browser & File Retrieval]]
+- [[Milestone 5: End-to-End Testing & Cross-Platform Packaging]]
+- [[Post-MVP Stabilization (Phases 1-3)]]
+- [[Milestone 6: LAN Wi-Fi QR Mobile Upload]]
 
 
 

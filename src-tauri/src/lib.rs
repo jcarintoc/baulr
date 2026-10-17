@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod engine;
+pub mod mobile;
 
 use std::sync::Arc;
 use tauri::Manager;
@@ -10,6 +11,7 @@ use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_accoun
 use crate::commands::browser::{
     delete_vault_item, download_vault_item, list_vault_files, pick_destination_folder,
 };
+use crate::commands::mobile::{start_mobile_receiver, stop_mobile_receiver};
 use crate::commands::offload::{
     cancel_offload, inspect_path, pick_offload_folder, reclaim_paths, start_offload,
 };
@@ -23,6 +25,7 @@ pub struct AppState {
     pub daemon: Arc<RwLock<Option<RcloneDaemon>>>,
     pub client: Arc<RwLock<Option<RcloneClient>>>,
     pub cached_quota: Arc<RwLock<Option<VaultQuota>>>,
+    pub mobile_server: Arc<RwLock<Option<crate::mobile::MobileServerHandle>>>,
 }
 
 #[tauri::command]
@@ -58,7 +61,9 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         list_vault_files,
         delete_vault_item,
         download_vault_item,
-        pick_destination_folder
+        pick_destination_folder,
+        start_mobile_receiver,
+        stop_mobile_receiver
     ])
 }
 
@@ -67,6 +72,7 @@ pub fn run() {
     let app_state = AppState::default();
     let daemon_holder = app_state.daemon.clone();
     let daemon_exit_holder = app_state.daemon.clone();
+    let mobile_exit_holder = app_state.mobile_server.clone();
     let client_holder = app_state.client.clone();
 
     let specta_builder = create_specta_builder();
@@ -117,6 +123,9 @@ pub fn run() {
     app.run(move |_app_handle, event| {
         if let tauri::RunEvent::Exit = event {
             let _ = daemon_exit_holder.blocking_write().take();
+            if let Some(mut server) = mobile_exit_holder.blocking_write().take() {
+                server.stop();
+            }
         }
     });
 }
