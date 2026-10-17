@@ -10,7 +10,8 @@ use tokio::sync::RwLock;
 use crate::commands::accounts::{cancel_oauth, connect_account, disconnect_account};
 use crate::commands::bandwidth::{get_bandwidth_limit, set_bandwidth_limit};
 use crate::commands::browser::{
-    delete_vault_item, download_vault_item, list_vault_files, pick_destination_folder,
+    delete_vault_item, download_vault_item, get_file_share_link, list_provider_vault_files,
+    list_vault_files, pick_destination_folder,
 };
 use crate::commands::mobile::{start_mobile_receiver, stop_mobile_receiver};
 use crate::commands::offload::{
@@ -60,9 +61,11 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         pick_offload_folder,
         reclaim_paths,
         list_vault_files,
+        list_provider_vault_files,
         delete_vault_item,
         download_vault_item,
         pick_destination_folder,
+        get_file_share_link,
         start_mobile_receiver,
         stop_mobile_receiver,
         get_bandwidth_limit,

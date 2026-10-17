@@ -16,8 +16,28 @@ export interface DownloadProgress {
   destinationDir: string;
 }
 
+const shareLinkCache = new Map<string, string>();
+
+export function clearShareLinkCache(path?: string): void {
+  if (path) {
+    shareLinkCache.delete(path);
+  } else {
+    shareLinkCache.clear();
+  }
+}
+
 export async function fetchVaultFiles(): Promise<RemoteVaultItem[]> {
   const result = await commands.listVaultFiles();
+  if (result.status === "error") {
+    throw new Error(result.error);
+  }
+  return result.data;
+}
+
+export async function fetchProviderVaultFiles(
+  provider: string
+): Promise<RemoteVaultItem[]> {
+  const result = await commands.listProviderVaultFiles(provider);
   if (result.status === "error") {
     throw new Error(result.error);
   }
@@ -66,4 +86,17 @@ export function listenToDownloadProgress(
   return listen<DownloadProgress>("vault://download-progress", (event) => {
     callback(event.payload);
   });
+}
+
+export async function fetchFileShareLink(path: string): Promise<string> {
+  const cached = shareLinkCache.get(path);
+  if (cached) {
+    return cached;
+  }
+  const result = await commands.getFileShareLink(path);
+  if (result.status === "error") {
+    throw new Error(result.error);
+  }
+  shareLinkCache.set(path, result.data);
+  return result.data;
 }

@@ -1,7 +1,6 @@
 # Roadmap
 
 ## Backlog
-- [[Share link]]
 - [[Dropbox & Box Providers]]
 - [[Media Preview & Thumbnail Grid]]
 
@@ -24,6 +23,8 @@
 - [[Post-MVP Stabilization (Phases 1-3)]]
 - [[Milestone 6: LAN Wi-Fi QR Mobile Upload]]
 - [[Bandwidth Throttler]]
+- [[Share link]]
+- [[Vault Files Progressive Loading & Share Link Performance Optimizations]]
 
 
 

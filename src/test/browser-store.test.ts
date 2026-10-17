@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
+import { useVaultStore } from "@/store/useVaultStore";
 import * as browserApi from "@/lib/api/browser";
 
 vi.mock("@/lib/api/browser", () => ({
   fetchVaultFiles: vi.fn(),
+  fetchProviderVaultFiles: vi.fn(),
   removeVaultItem: vi.fn(),
   downloadVaultItemToDirectory: vi.fn(),
   pickDownloadDestination: vi.fn(),
+  clearShareLinkCache: vi.fn(),
 }));
 
 describe("useRemoteFilesStore actions", () => {
@@ -14,13 +17,23 @@ describe("useRemoteFilesStore actions", () => {
     vi.clearAllMocks();
     useRemoteFilesStore.setState({
       files: [],
+      filesByProvider: {},
+      providerErrors: {},
+      providerLoading: {},
       isLoading: false,
+      isInitialLoading: false,
+      isRevalidating: false,
+      lastFetchedAt: null,
       error: null,
       searchQuery: "",
+      activeDownloads: {},
+    });
+    useVaultStore.setState({
+      quota: null,
     });
   });
 
-  it("fetches vault files successfully", async () => {
+  it("fetches vault files successfully via fallback when no connected accounts are known", async () => {
     const mockFiles = [
       {
         Path: "report.pdf",
@@ -41,7 +54,7 @@ describe("useRemoteFilesStore actions", () => {
     expect(state.files).toEqual(mockFiles);
   });
 
-  it("sets error and clears existing stale files when fetch fails", async () => {
+  it("sets error and clears existing stale files when fallback fetch fails", async () => {
     useRemoteFilesStore.setState({
       files: [
         {
@@ -65,7 +78,136 @@ describe("useRemoteFilesStore actions", () => {
     expect(state.files).toEqual([]);
   });
 
-  it("clearFiles resets files and error", () => {
+  it("progressively loads files from multiple providers and merges them", async () => {
+    useVaultStore.setState({
+      quota: {
+        totalBytes: 1000,
+        usedBytes: 500,
+        freeBytes: 500,
+        accounts: [
+          { name: "Google Drive", provider: "gdrive", isConnected: true, needsAuth: false, usedBytes: 200, totalBytes: 500 },
+          { name: "OneDrive", provider: "onedrive", isConnected: true, needsAuth: false, usedBytes: 300, totalBytes: 500 },
+        ],
+      },
+    });
+
+    let resolveGdrive: (items: browserApi.RemoteVaultItem[]) => void = () => {};
+    const gdrivePromise = new Promise<browserApi.RemoteVaultItem[]>((resolve) => {
+      resolveGdrive = resolve;
+    });
+
+    vi.mocked(browserApi.fetchProviderVaultFiles).mockImplementation((provider) => {
+      if (provider === "gdrive") return gdrivePromise;
+      return Promise.resolve([
+        { Path: "b_one.docx", Name: "b_one.docx", Size: 50, MimeType: "", ModTime: null, IsDir: false },
+      ]);
+    });
+
+    const fetchPromise = useRemoteFilesStore.getState().fetchFiles();
+
+    // OneDrive finishes first
+    await new Promise((r) => setTimeout(r, 10));
+    expect(useRemoteFilesStore.getState().files.map((f) => f.Name)).toEqual(["b_one.docx"]);
+    expect(useRemoteFilesStore.getState().providerLoading["onedrive"]).toBe(false);
+    expect(useRemoteFilesStore.getState().providerLoading["gdrive"]).toBe(true);
+
+    // Gdrive finishes second
+    resolveGdrive([
+      { Path: "a_gdoc.pdf", Name: "a_gdoc.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false },
+    ]);
+    await fetchPromise;
+
+    expect(useRemoteFilesStore.getState().files.map((f) => f.Name)).toEqual(["a_gdoc.pdf", "b_one.docx"]);
+    expect(useRemoteFilesStore.getState().providerLoading["gdrive"]).toBe(false);
+  });
+
+  it("isolates provider failure: displays healthy provider files and records failure error", async () => {
+    useVaultStore.setState({
+      quota: {
+        totalBytes: 1000,
+        usedBytes: 500,
+        freeBytes: 500,
+        accounts: [
+          { name: "Google Drive", provider: "gdrive", isConnected: true, needsAuth: false, usedBytes: 200, totalBytes: 500 },
+          { name: "OneDrive", provider: "onedrive", isConnected: true, needsAuth: false, usedBytes: 300, totalBytes: 500 },
+        ],
+      },
+    });
+
+    vi.mocked(browserApi.fetchProviderVaultFiles).mockImplementation((provider) => {
+      if (provider === "onedrive") return Promise.reject(new Error("Connection timed out"));
+      return Promise.resolve([
+        { Path: "gdoc.pdf", Name: "gdoc.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false },
+      ]);
+    });
+
+    await useRemoteFilesStore.getState().fetchFiles();
+
+    const state = useRemoteFilesStore.getState();
+    expect(state.files.map((f) => f.Name)).toEqual(["gdoc.pdf"]);
+    expect(state.providerErrors["onedrive"]).toBe("Connection timed out");
+    expect(state.providerErrors["gdrive"]).toBeNull();
+  });
+
+  it("allows retrying only the failing provider", async () => {
+    useRemoteFilesStore.setState({
+      files: [
+        { Path: "gdoc.pdf", Name: "gdoc.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false },
+      ],
+      filesByProvider: {
+        gdrive: [{ Path: "gdoc.pdf", Name: "gdoc.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false }],
+        onedrive: [],
+      },
+      providerErrors: {
+        onedrive: "Connection timed out",
+      },
+      providerLoading: {
+        onedrive: false,
+      },
+    });
+
+    vi.mocked(browserApi.fetchProviderVaultFiles).mockResolvedValueOnce([
+      { Path: "one.docx", Name: "one.docx", Size: 50, MimeType: "", ModTime: null, IsDir: false },
+    ]);
+
+    await useRemoteFilesStore.getState().retryProvider("onedrive");
+
+    const state = useRemoteFilesStore.getState();
+    expect(state.providerErrors["onedrive"]).toBeNull();
+    expect(state.files.map((f) => f.Name)).toEqual(["gdoc.pdf", "one.docx"]);
+  });
+
+  it("skips prefetch if files were fetched within 30s TTL", () => {
+    const fetchSpy = vi.spyOn(useRemoteFilesStore.getState(), "fetchFiles");
+    useRemoteFilesStore.setState({ lastFetchedAt: Date.now() - 5_000, isLoading: false });
+
+    useRemoteFilesStore.getState().prefetchFiles();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    useRemoteFilesStore.setState({ lastFetchedAt: Date.now() - 35_000 });
+    useRemoteFilesStore.getState().prefetchFiles();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("stale-while-revalidate keeps existing files visible while revalidating", async () => {
+    const cachedFiles = [
+      { Path: "cached.pdf", Name: "cached.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false },
+    ];
+    useRemoteFilesStore.setState({
+      files: cachedFiles,
+      lastFetchedAt: Date.now() - 40_000,
+    });
+
+    vi.mocked(browserApi.fetchVaultFiles).mockImplementation(async () => {
+      expect(useRemoteFilesStore.getState().files).toEqual(cachedFiles);
+      expect(useRemoteFilesStore.getState().isInitialLoading).toBe(false);
+      return cachedFiles;
+    });
+
+    await useRemoteFilesStore.getState().fetchFiles();
+  });
+
+  it("clearFiles resets files, provider state, and error", () => {
     useRemoteFilesStore.setState({
       files: [
         {
@@ -77,14 +219,22 @@ describe("useRemoteFilesStore actions", () => {
           IsDir: false,
         },
       ],
+      filesByProvider: {
+        gdrive: [{ Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false }],
+      },
+      providerErrors: { gdrive: "Error" },
       error: "Previous error",
+      lastFetchedAt: 12345,
     });
 
     useRemoteFilesStore.getState().clearFiles();
 
     const state = useRemoteFilesStore.getState();
     expect(state.files).toEqual([]);
+    expect(state.filesByProvider).toEqual({});
+    expect(state.providerErrors).toEqual({});
     expect(state.error).toBeNull();
+    expect(state.lastFetchedAt).toBeNull();
   });
 
   it("deletes file from cloud vault and updates store", async () => {
@@ -107,6 +257,11 @@ describe("useRemoteFilesStore actions", () => {
           IsDir: true,
         },
       ],
+      filesByProvider: {
+        gdrive: [
+          { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+        ],
+      },
     });
 
     vi.mocked(browserApi.removeVaultItem).mockResolvedValueOnce();
@@ -114,6 +269,7 @@ describe("useRemoteFilesStore actions", () => {
     await useRemoteFilesStore.getState().deleteFile("doc.txt", false);
 
     expect(browserApi.removeVaultItem).toHaveBeenCalledWith("doc.txt", false);
+    expect(browserApi.clearShareLinkCache).toHaveBeenCalledWith("doc.txt");
     const files = useRemoteFilesStore.getState().files;
     expect(files.length).toBe(1);
     expect(files[0].Path).toBe("photos");

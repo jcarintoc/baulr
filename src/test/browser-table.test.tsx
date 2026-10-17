@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { VaultBrowserTable } from "@/components/browser/VaultBrowserTable";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 
@@ -10,6 +10,7 @@ vi.mock("@/lib/api/browser", () => ({
   downloadVaultItemToDirectory: vi.fn().mockResolvedValue(1),
   pickDownloadDestination: vi.fn().mockResolvedValue("/tmp"),
   listenToDownloadProgress: vi.fn().mockResolvedValue(vi.fn()),
+  fetchFileShareLink: vi.fn().mockResolvedValue("https://drive.google.com/share/test"),
 }));
 
 describe("VaultBrowserTable", () => {
@@ -248,5 +249,81 @@ describe("VaultBrowserTable", () => {
     fireEvent.click(retryBtn);
 
     expect(fetchSpy).toHaveBeenCalled();
+  });
+
+  it("opens share modal when clicking share button on file row", async () => {
+    useRemoteFilesStore.setState({
+      files: [
+        {
+          Path: "vacation.jpg",
+          Name: "vacation.jpg",
+          Size: 2048,
+          MimeType: "image/jpeg",
+          ModTime: null,
+          IsDir: false,
+        },
+      ],
+    });
+
+    render(<VaultBrowserTable />);
+
+    const shareBtn = screen.getByTitle("Share link");
+    expect(shareBtn).toBeInTheDocument();
+    fireEvent.click(shareBtn);
+
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText("Share File")).toBeInTheDocument();
+    expect(within(dialog).getByText("vacation.jpg")).toBeInTheDocument();
+  });
+
+  it("renders ProviderSyncAlert when provider has errors", () => {
+    useRemoteFilesStore.setState({
+      files: [{ Path: "gdoc.pdf", Name: "gdoc.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false }],
+      providerErrors: { onedrive: "Network failure" },
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("Unable to load OneDrive files")).toBeInTheDocument();
+    expect(screen.getByText("gdoc.pdf")).toBeInTheDocument();
+  });
+
+  it("renders cached files immediately without skeleton during background revalidation", () => {
+    useRemoteFilesStore.setState({
+      files: [{ Path: "cached.pdf", Name: "cached.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false }],
+      isLoading: true,
+      isInitialLoading: false,
+      isRevalidating: true,
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("cached.pdf")).toBeInTheDocument();
+    expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
+  });
+
+  it("displays reassuring looking for files message instead of empty state while provider is checking", () => {
+    useRemoteFilesStore.setState({
+      files: [],
+      isLoading: false,
+      providerLoading: { onedrive: true },
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("Looking for your vault files")).toBeInTheDocument();
+    expect(screen.getByText(/Checking OneDrive for saved files.../i)).toBeInTheDocument();
+    expect(screen.queryByText("No files found")).not.toBeInTheDocument();
+    expect(screen.queryByText("No files offloaded to the vault yet.")).not.toBeInTheDocument();
+  });
+
+  it("displays live header status and table streaming row when files exist and another provider is checking", () => {
+    useRemoteFilesStore.setState({
+      files: [{ Path: "gdoc.pdf", Name: "gdoc.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false }],
+      providerLoading: { onedrive: true },
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("Checking OneDrive...")).toBeInTheDocument();
+    expect(screen.getByText(/Checking OneDrive for additional files.../i)).toBeInTheDocument();
+    expect(screen.getByText("gdoc.pdf")).toBeInTheDocument();
   });
 });

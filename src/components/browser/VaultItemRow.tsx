@@ -1,8 +1,9 @@
 import {
-  IconFileText,
   IconDownload,
   IconTrash,
   IconFolder,
+  IconShare,
+  IconFile,
 } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { TableRow, TableCell } from "@/components/ui/table";
@@ -19,6 +20,7 @@ interface VaultItemRowProps {
   activeDownload?: DownloadProgress;
   onDownload: (item: RemoteVaultItem) => void;
   onDelete: (item: RemoteVaultItem) => void;
+  onShare: (item: RemoteVaultItem) => void;
 }
 
 export function VaultItemRow({
@@ -27,6 +29,7 @@ export function VaultItemRow({
   activeDownload,
   onDownload,
   onDelete,
+  onShare,
 }: VaultItemRowProps) {
   const percent =
     activeDownload?.totalBytes && activeDownload.totalBytes > 0
@@ -41,11 +44,11 @@ export function VaultItemRow({
   return (
     <TableRow className="border-border/60 hover:bg-muted/30">
       <TableCell className="text-foreground font-medium">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 [&>svg]:size-4 [&>svg]:shrink-0">
           {item.IsDir ? (
-            <IconFolder className="size-4 text-vault-accent-text shrink-0" />
+            <IconFolder className="text-vault-accent-text fill-current" />
           ) : (
-            <IconFileText className="size-4 text-muted-foreground shrink-0" />
+            <IconFile className="text-vault-accent-text" />
           )}
           <span className="truncate max-w-xs">{item.Name}</span>
         </div>
@@ -58,6 +61,14 @@ export function VaultItemRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="Share link"
+            onClick={() => onShare(item)}
+          >
+            <IconShare />
+          </Button>
           {activeDownload?.status === "downloading" ? (
             <div className="flex items-center gap-1.5 text-xs text-vault-accent-text tabular-nums py-1 px-2">
               <Spinner className="size-3.5" />

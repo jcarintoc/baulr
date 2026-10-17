@@ -557,6 +557,39 @@ impl RcloneClient {
             .map_err(|e| format!("Failed to parse bandwidth limit response: {e}"))
     }
 
+    pub async fn get_public_link(&self, fs: &str, remote: &str) -> Result<String, String> {
+        let url = format!("{}/operations/publiclink", self.base_url);
+        let payload = serde_json::json!({
+            "fs": fs,
+            "remote": remote,
+        });
+
+        let resp = self
+            .http
+            .post(&url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to generate share link: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            let msg = serde_json::from_str::<serde_json::Value>(&body)
+                .ok()
+                .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(ToString::to_string))
+                .unwrap_or(body);
+            return Err(format!("Cloud provider error generating link: {msg}"));
+        }
+
+        let mut res: HashMap<String, String> = resp
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse public link response: {e}"))?;
+
+        res.remove("url")
+            .ok_or_else(|| "No URL returned for public link".to_string())
+    }
+
     pub async fn quit(&self) -> Result<(), String> {
         let url = format!("{}/core/quit", self.base_url);
         let _ = self
@@ -572,6 +605,16 @@ impl RcloneClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_public_link_response_deserialization() {
+        let json = r#"{"url": "https://drive.google.com/file/d/test1234/view?usp=sharing"}"#;
+        let mut res: HashMap<String, String> = serde_json::from_str(json).expect("deserialize public link");
+        assert_eq!(
+            res.remove("url").as_deref(),
+            Some("https://drive.google.com/file/d/test1234/view?usp=sharing")
+        );
+    }
 
     #[test]
     fn test_models_deserialization() {
