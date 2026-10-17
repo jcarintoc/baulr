@@ -112,15 +112,14 @@ pub fn resolve_unique_staging_name(staging_dir: &Path, file_name: &str) -> (Stri
         .map(|s| format!(".{}", s.to_string_lossy()))
         .unwrap_or_default();
 
-    let mut counter = 1;
-    loop {
-        let candidate_name = format!("{}_{}{}", stem, counter, ext);
-        let candidate_path = staging_dir.join(&candidate_name);
-        if !candidate_path.exists() {
-            return (candidate_name, candidate_path);
-        }
-        counter += 1;
-    }
+    (1..)
+        .map(|i| {
+            let name = format!("{stem}_{i}{ext}");
+            let path = staging_dir.join(&name);
+            (name, path)
+        })
+        .find(|(_, p)| !p.exists())
+        .unwrap()
 }
 
 pub async fn start_server(

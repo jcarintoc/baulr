@@ -260,8 +260,7 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
     }
 
     fileInput.addEventListener("change", (e) => {
-      const files = Array.from(e.target.files || []);
-      enqueueFiles(files);
+      enqueueFiles(Array.from(e.target.files || []));
       fileInput.value = "";
     });
 
