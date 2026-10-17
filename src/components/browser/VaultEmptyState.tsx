@@ -12,21 +12,16 @@ interface VaultEmptyStateProps {
   isCheckingCloud: boolean;
   hasQuery: boolean;
   totalFiles: number;
-  checkingAccountNames?: string[];
+  checkingTarget?: string;
 }
 
 export function VaultEmptyState({
   isCheckingCloud,
   hasQuery,
   totalFiles,
-  checkingAccountNames = [],
+  checkingTarget = "cloud accounts",
 }: VaultEmptyStateProps) {
   if (isCheckingCloud) {
-    const accountNotice =
-      checkingAccountNames.length > 0
-        ? `Checking ${checkingAccountNames.join(", ")} for saved files...`
-        : "Checking your connected accounts for saved files...";
-
     return (
       <div className="py-12 flex flex-col items-center justify-center gap-2.5 text-center">
         <Spinner className="text-vault-accent" />
@@ -36,7 +31,7 @@ export function VaultEmptyState({
         <p className="text-xs text-muted-foreground max-w-sm">
           {hasQuery
             ? "Looking across your connected accounts for matches..."
-            : accountNotice}
+            : `Checking ${checkingTarget} for saved files...`}
         </p>
       </div>
     );

@@ -11,7 +11,7 @@ interface VaultBrowserHeaderProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   isCheckingCloud?: boolean;
-  checkingAccountNames?: string[];
+  checkingTarget?: string;
 }
 
 export function VaultBrowserHeader({
@@ -20,12 +20,9 @@ export function VaultBrowserHeader({
   searchQuery,
   onSearchChange,
   isCheckingCloud = false,
-  checkingAccountNames = [],
+  checkingTarget = "cloud accounts",
 }: VaultBrowserHeaderProps) {
-  const statusLabel =
-    checkingAccountNames.length > 0
-      ? `Checking ${checkingAccountNames.join(", ")}...`
-      : "Checking cloud accounts...";
+  const statusLabel = `Checking ${checkingTarget}...`;
 
   return (
     <Card className="bg-card/75 border-border">

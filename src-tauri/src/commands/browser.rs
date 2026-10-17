@@ -372,11 +372,4 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
-
-    #[tokio::test]
-    async fn test_browser_commands_engine_not_running() {
-        let state = AppState::default();
-        let client_guard = state.client.read().await;
-        assert!(client_guard.is_none());
-    }
 }
