@@ -267,4 +267,9 @@
 - **decided:** delete unused `get_mobile_receiver_status` command and `MobileReceiverStatus` struct; streamline `get_local_ip` with stdlib combinators; replace 27 lines of imperative DOM construction in mobile uploader with template literal; collapse badge state switch into static lookup table; deduplicate `useMobileReceiver` cleanup hook.
 - **shipped:** net -81 lines across `src-tauri/src/commands/mobile.rs`, `src-tauri/src/mobile/server.rs`, `src-tauri/src/mobile/html.rs`, `src/lib/api/mobile.ts`, `src/components/offloader/useMobileReceiver.ts`, and `src/components/offloader/MobileUploadModal.tsx`; verified 33/33 cargo tests, 60/60 vitest tests, and clean production build.
 
+### [2026-10-17] Mobile Upload Multi-File & Video Resilience
+- **asked:** resolve connection errors and dropped transfers when uploading batches of mixed photos and large videos from mobile devices.
+- **decided:** disable Axum's default 2MB request body limit on the receiver (`DefaultBodyLimit::disable()`); replace concurrent request flooding in the mobile web uploader with an autonomous sequential queue; integrate Screen Wake Lock API (`navigator.wakeLock`) to prevent mobile OS sleep during multi-gigabyte video transfers; implement zero-loss staging filename auto-disambiguation (`resolve_unique_staging_name`); add inline retry button on interrupted files; restore activeLabel fallback in `DestinationCloudDropdown.tsx`.
+- **shipped:** updated `src-tauri/src/mobile/server.rs`, `src-tauri/src/mobile/html.rs`, `src/components/offloader/DestinationCloudDropdown.tsx`, updated `walkthrough.md`, and added unit tests in `src-tauri/src/mobile/server.rs`; verified 36/36 cargo tests, 60/60 vitest tests, and clean production build.
+
 

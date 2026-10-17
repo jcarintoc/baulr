@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Multipart, Query, State},
+    extract::{DefaultBodyLimit, Multipart, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse, Response},
     routing::{get, post},
@@ -90,6 +90,39 @@ pub fn generate_pairing_token() -> String {
     format!("{:x}", millis)
 }
 
+pub fn resolve_unique_staging_name(staging_dir: &Path, file_name: &str) -> (String, PathBuf) {
+    let sanitized = Path::new(file_name)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "upload.bin".to_string());
+
+    let initial_path = staging_dir.join(&sanitized);
+    if !initial_path.exists() {
+        return (sanitized, initial_path);
+    }
+
+    let stem = Path::new(&sanitized)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "file".to_string());
+
+    let ext = Path::new(&sanitized)
+        .extension()
+        .map(|s| format!(".{}", s.to_string_lossy()))
+        .unwrap_or_default();
+
+    let mut counter = 1;
+    loop {
+        let candidate_name = format!("{}_{}{}", stem, counter, ext);
+        let candidate_path = staging_dir.join(&candidate_name);
+        if !candidate_path.exists() {
+            return (candidate_name, candidate_path);
+        }
+        counter += 1;
+    }
+}
+
 pub async fn start_server(
     app: AppHandle,
     staging_dir: PathBuf,
@@ -122,6 +155,7 @@ pub async fn start_server(
     let app_router = Router::new()
         .route("/", get(handle_index))
         .route("/upload", post(handle_upload))
+        .layer(DefaultBodyLimit::disable())
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -189,12 +223,8 @@ async fn handle_upload(
             .map(|s| s.to_string())
             .unwrap_or_else(|| format!("upload_{}.bin", generate_pairing_token()));
 
-        let sanitized_name = Path::new(&file_name)
-            .file_name()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or(file_name);
-
-        let target_path = state.staging_dir.join(&sanitized_name);
+        let (sanitized_name, target_path) =
+            resolve_unique_staging_name(&state.staging_dir, &file_name);
 
         let mut file = match tokio::fs::File::create(&target_path).await {
             Ok(f) => f,
@@ -244,5 +274,37 @@ async fn handle_upload(
         (StatusCode::OK, "Files received successfully").into_response()
     } else {
         (StatusCode::BAD_REQUEST, "No files found in payload").into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_resolve_unique_staging_name_no_collision() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let (name, path) = resolve_unique_staging_name(temp_dir.path(), "photo.jpg");
+        assert_eq!(name, "photo.jpg");
+        assert_eq!(path, temp_dir.path().join("photo.jpg"));
+    }
+
+    #[test]
+    fn test_resolve_unique_staging_name_with_collision() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        std::fs::write(temp_dir.path().join("photo.jpg"), "existing").unwrap();
+        let (name, path) = resolve_unique_staging_name(temp_dir.path(), "photo.jpg");
+        assert_eq!(name, "photo_1.jpg");
+        assert_eq!(path, temp_dir.path().join("photo_1.jpg"));
+    }
+
+    #[test]
+    fn test_resolve_unique_staging_name_multiple_collisions() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        std::fs::write(temp_dir.path().join("video.mp4"), "existing1").unwrap();
+        std::fs::write(temp_dir.path().join("video_1.mp4"), "existing2").unwrap();
+        let (name, path) = resolve_unique_staging_name(temp_dir.path(), "video.mp4");
+        assert_eq!(name, "video_2.mp4");
+        assert_eq!(path, temp_dir.path().join("video_2.mp4"));
     }
 }

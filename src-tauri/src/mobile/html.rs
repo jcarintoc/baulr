@@ -138,6 +138,22 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
     }
     .file-status.done { color: var(--accent); }
     .file-status.error { color: var(--danger); }
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .retry-btn {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .retry-btn:active { transform: scale(0.96); }
     .progress-bar {
       height: 0.35rem;
       background: rgba(255, 255, 255, 0.1);
@@ -161,7 +177,7 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
 </head>
 <body>
   <div class="header">
-    <div class="badge">Connected to your computer</div>
+    <div class="badge" id="header-badge">Connected to your computer</div>
     <h1>Baulr Mobile Vault</h1>
     <p class="subtitle">Select photos or videos to safely offload to your cloud vault</p>
   </div>
@@ -191,6 +207,7 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
     const fileInput = document.getElementById("file-input");
     const fileList = document.getElementById("file-list");
     const dropzone = document.getElementById("dropzone");
+    const headerBadge = document.getElementById("header-badge");
 
     function formatBytes(bytes) {
       if (bytes === 0) return "0 B";
@@ -200,20 +217,78 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
       return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
     }
 
+    let wakeLock = null;
+    async function acquireWakeLock() {
+      if ("wakeLock" in navigator && !wakeLock) {
+        try {
+          wakeLock = await navigator.wakeLock.request("screen");
+        } catch {}
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        try { wakeLock.release(); } catch {}
+        wakeLock = null;
+      }
+    }
+
+    const queue = [];
+    let isProcessing = false;
+    let completedCount = 0;
+    let totalBatchCount = 0;
+
+    function updateHeaderBadge() {
+      if (!headerBadge) return;
+      if (isProcessing) {
+        headerBadge.textContent = "Sending " + (completedCount + 1) + " of " + totalBatchCount + " files...";
+      } else if (completedCount > 0 && queue.length === 0) {
+        headerBadge.textContent = completedCount + " files safely transferred";
+      } else {
+        headerBadge.textContent = "Connected to your computer";
+      }
+    }
+
+    function enqueueFiles(files) {
+      if (!files || files.length === 0) return;
+      totalBatchCount += files.length;
+      files.forEach((file) => {
+        const item = createCard(file);
+        queue.push(item);
+      });
+      processQueue();
+    }
+
     fileInput.addEventListener("change", (e) => {
       const files = Array.from(e.target.files || []);
-      if (files.length === 0) return;
-      files.forEach(uploadFile);
+      enqueueFiles(files);
       fileInput.value = "";
     });
 
-    function uploadFile(file) {
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.classList.remove("dragover");
+    });
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      const files = Array.from(e.dataTransfer.files || []);
+      enqueueFiles(files);
+    });
+
+    function createCard(file) {
       const card = document.createElement("div");
       card.className = "file-card";
       card.innerHTML = `
         <div class="file-header">
           <span class="file-name"></span>
-          <span class="file-status">Sending (${formatBytes(file.size)})...</span>
+          <div class="status-group">
+            <span class="file-status">Queued</span>
+            <button type="button" class="retry-btn" style="display:none;">Retry</button>
+          </div>
         </div>
         <div class="progress-bar"><div class="progress-fill"></div></div>
       `;
@@ -222,6 +297,51 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
 
       const status = card.querySelector(".file-status");
       const fill = card.querySelector(".progress-fill");
+      const retryBtn = card.querySelector(".retry-btn");
+
+      const item = {
+        file,
+        card,
+        status,
+        fill,
+        retryBtn,
+      };
+
+      retryBtn.addEventListener("click", () => {
+        retryBtn.style.display = "none";
+        status.className = "file-status";
+        status.textContent = "Queued";
+        fill.style.width = "0%";
+        queue.push(item);
+        processQueue();
+      });
+
+      return item;
+    }
+
+    async function processQueue() {
+      if (isProcessing) return;
+      if (queue.length === 0) {
+        releaseWakeLock();
+        updateHeaderBadge();
+        return;
+      }
+
+      isProcessing = true;
+      await acquireWakeLock();
+      updateHeaderBadge();
+
+      const item = queue.shift();
+      uploadItem(item, () => {
+        isProcessing = false;
+        processQueue();
+      });
+    }
+
+    function uploadItem(item, onDone) {
+      const { file, status, fill, retryBtn } = item;
+      status.className = "file-status";
+      status.textContent = "Sending (" + formatBytes(file.size) + ")...";
 
       const formData = new FormData();
       formData.append("file", file);
@@ -242,15 +362,21 @@ pub const MOBILE_UPLOAD_HTML: &str = r#"<!DOCTYPE html>
           fill.style.width = "100%";
           status.className = "file-status done";
           status.textContent = "Saved on computer";
+          retryBtn.style.display = "none";
+          completedCount += 1;
         } else {
           status.className = "file-status error";
           status.textContent = "Upload failed (" + xhr.status + ")";
+          retryBtn.style.display = "inline-block";
         }
+        onDone();
       };
 
       xhr.onerror = () => {
         status.className = "file-status error";
-        status.textContent = "Connection error";
+        status.textContent = "Connection interrupted";
+        retryBtn.style.display = "inline-block";
+        onDone();
       };
 
       xhr.send(formData);
