@@ -336,4 +336,10 @@
 - **decided:** bump version synchronously across `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml`; keep `Cargo.lock` synchronized.
 - **shipped:** updated version strings to 0.2.0 in `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and `src-tauri/Cargo.lock`; verified with `pnpm test` (100/100 passing), `pnpm build`, and `cargo check`.
 
+### [2026-10-17] Standardize Release & Versioning Technology Rules
+- **asked:** create permanent engineering rule for release versioning standards and Tauri desktop packaging workflow in `.agents/rules/`.
+- **decided:** formalize SemVer 2.0 rules, zero-major 0.x.x promotion guidelines, the 3-file version sync invariant (`package.json`, `tauri.conf.json`, `Cargo.toml`), and CI/CD release instructions in `.agents/rules/release-versioning.md`; index in `BRAIN.md`.
+- **shipped:** created `.agents/rules/release-versioning.md` and linked in `BRAIN.md`.
+
+
 

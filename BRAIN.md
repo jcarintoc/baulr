@@ -64,3 +64,5 @@ Agents must follow these skill protocols during work:
 - **[shadcn/ui Component Rules](.agents/rules/component-shadcn.md):** shadcn-first protocol, local ui check, MCP registry search, strict fallback.
 - **[Component Pattern Rules](.agents/rules/component-pattern.md):** Composition over configuration, 150-line limit, custom hooks.
 - **[Tailwind Styling Rules](.agents/rules/code-styling-tailwind.md):** Parent-driven styling, data-state attributes, no child class duplication.
+- **[Release & Versioning Rules](.agents/rules/release-versioning.md):** SemVer 2.0, 3-file version sync invariant, CI/CD desktop packaging.
+
