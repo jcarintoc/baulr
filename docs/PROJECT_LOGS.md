@@ -331,3 +331,9 @@
 - **decided:** simplify file deduplication in `useRemoteFilesStore.ts` using flattened Map constructor; extract shared `loadProvider(provider: string)` helper in store to eliminate redundant try/catch blocks across `fetchFiles` and `retryProvider`; inline `<Table>` directly into `VaultBrowserTable.tsx` and delete single-caller pass-through component `VaultFilesList.tsx` while keeping `VaultBrowserTable.tsx` strictly under 150 lines (149 lines); deduplicate ternary account formatting by hoisting pre-formatted `checkingTarget` prop to `VaultBrowserHeader` and `VaultEmptyState`; remove redundant dummy test `test_browser_commands_engine_not_running` in `browser.rs`.
 - **shipped:** net -133 lines across `src/store/useRemoteFilesStore.ts`, `src/components/browser/VaultBrowserTable.tsx`, `src/components/browser/VaultBrowserHeader.tsx`, `src/components/browser/VaultEmptyState.tsx`, and `src-tauri/src/commands/browser.rs`; deleted `src/components/browser/VaultFilesList.tsx`; verified 100/100 vitest tests, 2/2 cargo browser tests, clean `pnpm build`, and 0 defects on `impeccable detect`.
 
+### [2026-10-17] Version Bump to v0.2.0
+- **asked:** bump version to v0.2.0 after merging share link, progressive loading, and milestone features into main.
+- **decided:** bump version synchronously across `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml`; keep `Cargo.lock` synchronized.
+- **shipped:** updated version strings to 0.2.0 in `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and `src-tauri/Cargo.lock`; verified with `pnpm test` (100/100 passing), `pnpm build`, and `cargo check`.
+
+
