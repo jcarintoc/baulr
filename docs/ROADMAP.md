@@ -2,11 +2,11 @@
 
 ## Backlog
 - [[Dropbox & Box Providers]]
-- [[Media Preview & Thumbnail Grid]]
 
 ## In Progress
 
 ## Done
+- [[Media Preview & Thumbnail Grid]]
 - [[Decision log]]
 - [[PRD & Architecture Specifications]]
 - [[Global & Technology Rules]]

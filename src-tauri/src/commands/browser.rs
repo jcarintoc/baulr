@@ -89,6 +89,7 @@ pub fn format_download_targets(
 #[specta::specta]
 pub async fn list_vault_files(
     state: tauri::State<'_, AppState>,
+    path: Option<String>,
 ) -> Result<Vec<RcloneItem>, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
@@ -97,7 +98,8 @@ pub async fn list_vault_files(
         return Ok(Vec::new());
     }
     let fs = format!("{}:", VAULT_UNION_NAME);
-    client.list_files(&fs, "").await
+    let remote = path.unwrap_or_default();
+    client.list_files(&fs, &remote).await
 }
 
 #[tauri::command]
@@ -105,11 +107,56 @@ pub async fn list_vault_files(
 pub async fn list_provider_vault_files(
     state: tauri::State<'_, AppState>,
     provider: String,
+    path: Option<String>,
 ) -> Result<Vec<RcloneItem>, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
     let fs = format!("{}:{}", provider, VAULT_SUBDIR);
-    client.list_files(&fs, "").await
+    let remote = path.unwrap_or_default();
+    client.list_files(&fs, &remote).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_vault_media_base_url(
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    {
+        let url_guard = state.media_server_url.read().await;
+        if let Some(ref url) = *url_guard {
+            return Ok(Some(url.clone()));
+        }
+    }
+
+    let client_guard = state.client.read().await;
+    let client = match client_guard.as_ref() {
+        Some(c) => c,
+        None => return Ok(None),
+    };
+
+    let config = client.dump_config().await?;
+    if !config.contains_key(VAULT_UNION_NAME) {
+        return Ok(None);
+    }
+
+    let fs = format!("{}:", VAULT_UNION_NAME);
+    let info = client.start_http_server(&fs, "127.0.0.1:0").await?;
+    let base_url = format!("http://{}", info.addr);
+
+    *state.media_server_id.write().await = Some(info.id);
+    *state.media_server_url.write().await = Some(base_url.clone());
+
+    Ok(Some(base_url))
+}
+
+pub async fn stop_media_server(state: &AppState) {
+    let id_opt = state.media_server_id.write().await.take();
+    let _ = state.media_server_url.write().await.take();
+    if let Some(id) = id_opt {
+        if let Some(client) = state.client.read().await.as_ref() {
+            let _ = client.stop_http_server(&id).await;
+        }
+    }
 }
 
 #[tauri::command]

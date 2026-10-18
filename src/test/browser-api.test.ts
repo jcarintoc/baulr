@@ -3,6 +3,7 @@ import {
   fetchFileShareLink,
   clearShareLinkCache,
   fetchProviderVaultFiles,
+  fetchVaultMediaBaseUrl,
 } from "@/lib/api/browser";
 import { commands } from "@/lib/bindings";
 
@@ -10,6 +11,7 @@ vi.mock("@/lib/bindings", () => ({
   commands: {
     getFileShareLink: vi.fn(),
     listProviderVaultFiles: vi.fn(),
+    getVaultMediaBaseUrl: vi.fn(),
   },
 }));
 
@@ -67,7 +69,7 @@ describe("Browser API module", () => {
   });
 
   describe("fetchProviderVaultFiles", () => {
-    it("fetches provider vault files via bindings", async () => {
+    it("fetches provider vault files via bindings with optional path", async () => {
       const mockFiles = [
         {
           Path: "doc.pdf",
@@ -84,8 +86,15 @@ describe("Browser API module", () => {
       });
 
       const files = await fetchProviderVaultFiles("gdrive");
-      expect(commands.listProviderVaultFiles).toHaveBeenCalledWith("gdrive");
+      expect(commands.listProviderVaultFiles).toHaveBeenCalledWith("gdrive", null);
       expect(files).toEqual(mockFiles);
+
+      vi.mocked(commands.listProviderVaultFiles).mockResolvedValueOnce({
+        status: "ok",
+        data: mockFiles,
+      });
+      await fetchProviderVaultFiles("gdrive", "Vacation");
+      expect(commands.listProviderVaultFiles).toHaveBeenCalledWith("gdrive", "Vacation");
     });
 
     it("throws error when listing provider files fails", async () => {
@@ -95,6 +104,18 @@ describe("Browser API module", () => {
       });
 
       await expect(fetchProviderVaultFiles("unknown")).rejects.toThrow("Provider not configured");
+    });
+  });
+
+  describe("fetchVaultMediaBaseUrl", () => {
+    it("returns base URL when available", async () => {
+      vi.mocked(commands.getVaultMediaBaseUrl).mockResolvedValueOnce({
+        status: "ok",
+        data: "http://127.0.0.1:57104",
+      });
+
+      const url = await fetchVaultMediaBaseUrl();
+      expect(url).toBe("http://127.0.0.1:57104");
     });
   });
 });

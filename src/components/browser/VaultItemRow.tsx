@@ -21,6 +21,8 @@ interface VaultItemRowProps {
   onDownload: (item: RemoteVaultItem) => void;
   onDelete: (item: RemoteVaultItem) => void;
   onShare: (item: RemoteVaultItem) => void;
+  onOpenFolder?: (item: RemoteVaultItem) => void;
+  onOpenFile?: (item: RemoteVaultItem) => void;
 }
 
 export function VaultItemRow({
@@ -30,6 +32,8 @@ export function VaultItemRow({
   onDownload,
   onDelete,
   onShare,
+  onOpenFolder,
+  onOpenFile,
 }: VaultItemRowProps) {
   const percent =
     activeDownload?.totalBytes && activeDownload.totalBytes > 0
@@ -44,13 +48,26 @@ export function VaultItemRow({
   return (
     <TableRow className="border-border/60 hover:bg-muted/30">
       <TableCell className="text-foreground font-medium">
-        <div className="flex items-center gap-2 [&>svg]:size-4 [&>svg]:shrink-0">
+        <div className="flex items-center gap-2 [&_svg]:size-4">
           {item.IsDir ? (
-            <IconFolder className="text-vault-accent-text fill-current" />
+            <button
+              type="button"
+              onClick={() => onOpenFolder?.(item)}
+              className="flex items-center gap-2 hover:underline text-vault-accent-text cursor-pointer text-left"
+            >
+              <IconFolder className="fill-current shrink-0" />
+              <span className="truncate max-w-xs font-medium">{item.Name}</span>
+            </button>
           ) : (
-            <IconFile className="text-vault-accent-text" />
+            <button
+              type="button"
+              onClick={() => onOpenFile?.(item)}
+              className="flex items-center gap-2 hover:underline text-foreground cursor-pointer text-left"
+            >
+              <IconFile className="text-vault-accent-text shrink-0" />
+              <span className="truncate max-w-xs">{item.Name}</span>
+            </button>
           )}
-          <span className="truncate max-w-xs">{item.Name}</span>
         </div>
       </TableCell>
       <TableCell className="text-foreground/90 tabular-nums">
