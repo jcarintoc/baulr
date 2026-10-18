@@ -20,7 +20,7 @@ interface VaultBreadcrumbsProps {
 export function VaultBreadcrumbs({
   currentPath,
   onNavigate,
-  maxVisible = 2,
+  maxVisible = 3,
 }: VaultBreadcrumbsProps) {
   const segments = currentPath.split("/").filter(Boolean);
 
