@@ -60,6 +60,24 @@ describe("Vault Navigation & Media Components", () => {
       fireEvent.click(screen.getByText("Vault"));
       expect(onNavigate).toHaveBeenCalledWith("");
     });
+
+    it("collapses intermediate segments into ... when path has more than 3 segments", () => {
+      const onNavigate = vi.fn();
+      render(
+        <VaultBreadcrumbs
+          currentPath="Photos/Vacation/2026/Summer/Beach"
+          onNavigate={onNavigate}
+        />
+      );
+
+      expect(screen.getByText("Vault")).toBeInTheDocument();
+      expect(screen.getByText("Photos")).toBeInTheDocument();
+      expect(screen.getByText("...")).toBeInTheDocument();
+      expect(screen.getByText("Beach")).toBeInTheDocument();
+      expect(screen.queryByText("Vacation")).not.toBeInTheDocument();
+      expect(screen.queryByText("2026")).not.toBeInTheDocument();
+      expect(screen.queryByText("Summer")).not.toBeInTheDocument();
+    });
   });
 
   describe("VaultItemRow", () => {
