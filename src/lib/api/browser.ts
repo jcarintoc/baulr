@@ -26,8 +26,8 @@ export function clearShareLinkCache(path?: string): void {
   }
 }
 
-export async function fetchVaultFiles(): Promise<RemoteVaultItem[]> {
-  const result = await commands.listVaultFiles();
+export async function fetchVaultFiles(path?: string): Promise<RemoteVaultItem[]> {
+  const result = await commands.listVaultFiles(path || null);
   if (result.status === "error") {
     throw new Error(result.error);
   }
@@ -35,9 +35,18 @@ export async function fetchVaultFiles(): Promise<RemoteVaultItem[]> {
 }
 
 export async function fetchProviderVaultFiles(
-  provider: string
+  provider: string,
+  path?: string
 ): Promise<RemoteVaultItem[]> {
-  const result = await commands.listProviderVaultFiles(provider);
+  const result = await commands.listProviderVaultFiles(provider, path || null);
+  if (result.status === "error") {
+    throw new Error(result.error);
+  }
+  return result.data;
+}
+
+export async function fetchVaultMediaBaseUrl(): Promise<string | null> {
+  const result = await commands.getVaultMediaBaseUrl();
   if (result.status === "error") {
     throw new Error(result.error);
   }

@@ -119,6 +119,12 @@ pub struct BandwidthLimit {
     pub rate: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HttpServerInfo {
+    pub addr: String,
+    pub id: String,
+}
+
 
 
 

@@ -4,6 +4,7 @@ import {
   DownloadProgress,
   fetchVaultFiles,
   fetchProviderVaultFiles,
+  fetchVaultMediaBaseUrl,
   removeVaultItem,
   downloadVaultItemToDirectory,
   pickDownloadDestination,
@@ -12,6 +13,14 @@ import {
 import { useVaultStore } from "@/store/useVaultStore";
 
 export type { RemoteVaultItem, DownloadProgress };
+
+function getInitialViewMode(): "table" | "grid" {
+  try {
+    const saved = localStorage.getItem("baulr:vault_view_mode");
+    if (saved === "grid" || saved === "table") return saved;
+  } catch {}
+  return "table";
+}
 
 export function mergeProviderFiles(
   filesByProvider: Record<string, RemoteVaultItem[]>
@@ -36,7 +45,13 @@ export interface RemoteFilesState {
   lastFetchedAt: number | null;
   searchQuery: string;
   activeDownloads: Record<string, DownloadProgress>;
+  currentPath: string;
+  viewMode: "table" | "grid";
+  mediaBaseUrl: string | null;
   setSearchQuery: (searchQuery: string) => void;
+  setVaultPath: (path: string) => Promise<void>;
+  setViewMode: (mode: "table" | "grid") => void;
+  ensureMediaBaseUrl: () => Promise<string | null>;
   fetchFiles: () => Promise<void>;
   retryProvider: (provider: string) => Promise<void>;
   prefetchFiles: () => void;
@@ -49,8 +64,9 @@ export interface RemoteFilesState {
 
 export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
   const loadProvider = async (provider: string) => {
+    const currentPath = get().currentPath;
     try {
-      const items = await fetchProviderVaultFiles(provider);
+      const items = await fetchProviderVaultFiles(provider, currentPath);
       set((state) => {
         const nextFilesByProvider = {
           ...state.filesByProvider,
@@ -95,8 +111,42 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
     lastFetchedAt: null,
     searchQuery: "",
     activeDownloads: {},
+    currentPath: "",
+    viewMode: getInitialViewMode(),
+    mediaBaseUrl: null,
 
     setSearchQuery: (searchQuery) => set({ searchQuery }),
+
+    setVaultPath: async (path: string) => {
+      set({
+        currentPath: path,
+        files: [],
+        filesByProvider: {},
+        providerErrors: {},
+        providerLoading: {},
+        isInitialLoading: true,
+      });
+      await get().fetchFiles();
+    },
+
+    setViewMode: (viewMode: "table" | "grid") => {
+      try {
+        localStorage.setItem("baulr:vault_view_mode", viewMode);
+      } catch {}
+      set({ viewMode });
+    },
+
+    ensureMediaBaseUrl: async () => {
+      const existing = get().mediaBaseUrl;
+      if (existing) return existing;
+      try {
+        const url = await fetchVaultMediaBaseUrl();
+        set({ mediaBaseUrl: url });
+        return url;
+      } catch {
+        return null;
+      }
+    },
 
     clearFiles: () =>
       set({
@@ -108,6 +158,7 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         isInitialLoading: false,
         isRevalidating: false,
         lastFetchedAt: null,
+        currentPath: "",
       }),
 
     fetchFiles: async () => {
@@ -127,7 +178,7 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
 
       if (providers.length === 0) {
         try {
-          const files = await fetchVaultFiles();
+          const files = await fetchVaultFiles(get().currentPath);
           set({
             files,
             isLoading: false,

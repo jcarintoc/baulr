@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Spinner } from "@/components/ui/spinner";
 import { VaultBrowserHeader } from "@/components/browser/VaultBrowserHeader";
+import { VaultBrowserToolbar } from "@/components/browser/VaultBrowserToolbar";
 import { VaultItemRow } from "@/components/browser/VaultItemRow";
+import { MediaGridView } from "@/components/browser/MediaGridView";
 import { DownloadBanner } from "@/components/browser/DownloadBanner";
 import { DeleteVaultItemDialog } from "@/components/browser/DeleteVaultItemDialog";
 import { ShareLinkModal } from "@/components/browser/ShareLinkModal";
@@ -19,8 +21,9 @@ import { VaultEmptyState } from "@/components/browser/VaultEmptyState";
 export function VaultBrowserTable() {
   const {
     files, isLoading, isInitialLoading, providerLoading, error,
-    searchQuery, activeDownloads, setSearchQuery, fetchFiles,
-    deleteFile, downloadFile, handleDownloadProgress, dismissDownload,
+    searchQuery, activeDownloads, currentPath, viewMode, mediaBaseUrl,
+    setSearchQuery, setVaultPath, setViewMode, ensureMediaBaseUrl,
+    fetchFiles, deleteFile, downloadFile, handleDownloadProgress, dismissDownload,
   } = useRemoteFilesStore();
   const [pendingDelete, setPendingDelete] = useState<RemoteVaultItem | null>(null);
   const [sharingItem, setSharingItem] = useState<RemoteVaultItem | null>(null);
@@ -29,13 +32,12 @@ export function VaultBrowserTable() {
 
   useEffect(() => {
     fetchFiles();
+    ensureMediaBaseUrl();
     const unlisten = listenToDownloadProgress(handleDownloadProgress);
     return () => { unlisten.then((fn) => fn()); };
-  }, [fetchFiles, handleDownloadProgress]);
+  }, [fetchFiles, ensureMediaBaseUrl, handleDownloadProgress]);
 
-  const checkingAccounts = Object.entries(providerLoading)
-    .filter(([, loading]) => loading)
-    .map(([p]) => PROVIDER_NAMES[p] || p);
+  const checkingAccounts = Object.entries(providerLoading).filter(([, l]) => l).map(([p]) => PROVIDER_NAMES[p] || p);
   const isCheckingCloud = isLoading || checkingAccounts.length > 0;
   const checkingTarget = checkingAccounts.join(", ") || "cloud accounts";
   const filtered = files.filter((f) => f.Name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -54,22 +56,27 @@ export function VaultBrowserTable() {
 
   const handleDownload = async (item: RemoteVaultItem) => {
     setDownloadingPath(item.Path);
+    try { await downloadFile(item); } finally { setDownloadingPath(null); }
+  };
+
+  const handleOpenFile = async (item: RemoteVaultItem) => {
+    const baseUrl = mediaBaseUrl || (await ensureMediaBaseUrl());
+    if (!baseUrl) return;
+    const url = `${baseUrl}/${item.Path.split("/").map(encodeURIComponent).join("/")}`;
     try {
-      await downloadFile(item);
-    } finally {
-      setDownloadingPath(null);
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(url);
+    } catch {
+      window.open(url, "_blank");
     }
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3.5">
       <VaultBrowserHeader
-        filesCount={files.length}
-        totalBytes={totalBytes}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        isCheckingCloud={isCheckingCloud}
-        checkingTarget={checkingTarget}
+        filesCount={files.length} totalBytes={totalBytes}
+        searchQuery={searchQuery} onSearchChange={setSearchQuery}
+        isCheckingCloud={isCheckingCloud} checkingTarget={checkingTarget}
       />
       <ProviderSyncAlert />
       {error && !isLoading && (
@@ -82,23 +89,24 @@ export function VaultBrowserTable() {
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={fetchFiles} className="self-start sm:self-auto cursor-pointer">
-            <IconRefresh />
-            <span>Try again</span>
+            <IconRefresh /><span>Try again</span>
           </Button>
         </Alert>
       )}
       <DownloadBanner downloads={Object.values(activeDownloads)} onDismiss={dismissDownload} />
+      <VaultBrowserToolbar
+        currentPath={currentPath} onNavigatePath={setVaultPath}
+        viewMode={viewMode} onViewModeChange={setViewMode}
+      />
       <Card className="border-border bg-card/75 overflow-hidden p-0">
         {isInitialLoading && files.length === 0 ? (
-          <div className="p-4 space-y-3">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-          </div>
+          <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
         ) : filtered.length === 0 ? (
-          <VaultEmptyState
-            isCheckingCloud={isCheckingCloud}
-            hasQuery={Boolean(searchQuery)}
-            totalFiles={files.length}
-            checkingTarget={checkingTarget}
+          <VaultEmptyState isCheckingCloud={isCheckingCloud} hasQuery={Boolean(searchQuery)} totalFiles={files.length} checkingTarget={checkingTarget} />
+        ) : viewMode === "grid" ? (
+          <MediaGridView
+            items={filtered} mediaBaseUrl={mediaBaseUrl} onOpenFolder={(i) => setVaultPath(i.Path)}
+            onOpenFile={handleOpenFile} onDownload={handleDownload} onDelete={setPendingDelete} onShare={setSharingItem}
           />
         ) : (
           <Table>
@@ -113,13 +121,10 @@ export function VaultBrowserTable() {
             <TableBody className="divide-y divide-border/60">
               {filtered.map((item) => (
                 <VaultItemRow
-                  key={item.Path}
-                  item={item}
-                  isDownloading={downloadingPath === item.Path}
-                  activeDownload={activeDownloads[item.Path]}
-                  onDownload={handleDownload}
-                  onDelete={setPendingDelete}
-                  onShare={setSharingItem}
+                  key={item.Path} item={item} isDownloading={downloadingPath === item.Path}
+                  activeDownload={activeDownloads[item.Path]} onDownload={handleDownload}
+                  onDelete={setPendingDelete} onShare={setSharingItem} onOpenFolder={(f) => setVaultPath(f.Path)}
+                  onOpenFile={handleOpenFile}
                 />
               ))}
               {isCheckingCloud && (
@@ -136,13 +141,7 @@ export function VaultBrowserTable() {
           </Table>
         )}
       </Card>
-      <DeleteVaultItemDialog
-        item={pendingDelete}
-        isOpen={pendingDelete !== null}
-        onClose={() => setPendingDelete(null)}
-        onConfirm={confirmDelete}
-        isDeleting={isDeleting}
-      />
+      <DeleteVaultItemDialog item={pendingDelete} isOpen={pendingDelete !== null} onClose={() => setPendingDelete(null)} onConfirm={confirmDelete} isDeleting={isDeleting} />
       <ShareLinkModal item={sharingItem} open={Boolean(sharingItem)} onClose={() => setSharingItem(null)} />
     </div>
   );

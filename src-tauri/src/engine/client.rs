@@ -2,8 +2,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
 use crate::engine::models::{
-    AboutFs, BandwidthLimit, CheckResult, CoreStats, JobStatus, OAuthStatus, RcloneItem,
-    RcloneListResponse,
+    AboutFs, BandwidthLimit, CheckResult, CoreStats, HttpServerInfo, JobStatus, OAuthStatus,
+    RcloneItem, RcloneListResponse,
 };
 
 #[derive(Deserialize)]
@@ -590,6 +590,48 @@ impl RcloneClient {
             .ok_or_else(|| "No URL returned for public link".to_string())
     }
 
+    pub async fn start_http_server(&self, fs: &str, addr: &str) -> Result<HttpServerInfo, String> {
+        let url = format!("{}/serve/start", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({
+                "type": "http",
+                "fs": fs,
+                "addr": addr,
+            }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to start media server: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Media server startup failed: {body}"));
+        }
+
+        resp.json::<HttpServerInfo>()
+            .await
+            .map_err(|e| format!("Failed to parse media server response: {e}"))
+    }
+
+    pub async fn stop_http_server(&self, id: &str) -> Result<(), String> {
+        let url = format!("{}/serve/stop", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "id": id }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to stop media server: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Stopping media server failed: {body}"));
+        }
+
+        Ok(())
+    }
+
     pub async fn quit(&self) -> Result<(), String> {
         let url = format!("{}/core/quit", self.base_url);
         let _ = self
@@ -719,6 +761,14 @@ mod tests {
         }"#;
         let off_limit: BandwidthLimit = serde_json::from_str(off_json).expect("deserialize off limit");
         assert_eq!(off_limit.rate, "off");
+    }
+
+    #[test]
+    fn test_http_server_info_deserialization() {
+        let json = r#"{"addr": "127.0.0.1:57104", "id": "http-60e63eb7"}"#;
+        let info: HttpServerInfo = serde_json::from_str(json).expect("deserialize http server info");
+        assert_eq!(info.addr, "127.0.0.1:57104");
+        assert_eq!(info.id, "http-60e63eb7");
     }
 }
 
