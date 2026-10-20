@@ -105,6 +105,7 @@ impl RcloneClient {
             return Err(format!("Failed to create remote '{name}': {body}"));
         }
 
+        let _ = self.clear_fs_cache().await;
         Ok(())
     }
 
@@ -134,6 +135,7 @@ impl RcloneClient {
             return Err(format!("Authentication failed for '{name}': {body}"));
         }
 
+        let _ = self.clear_fs_cache().await;
         Ok(())
     }
 
@@ -152,6 +154,7 @@ impl RcloneClient {
             return Err(format!("Failed to delete remote '{name}': {body}"));
         }
 
+        let _ = self.clear_fs_cache().await;
         Ok(())
     }
 
@@ -177,6 +180,25 @@ impl RcloneClient {
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
             return Err(format!("Failed to update remote '{name}': {body}"));
+        }
+
+        let _ = self.clear_fs_cache().await;
+        Ok(())
+    }
+
+    pub async fn clear_fs_cache(&self) -> Result<(), String> {
+        let url = format!("{}/fscache/clear", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({}))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to clear rclone fs cache: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Failed to clear rclone fs cache: {body}"));
         }
 
         Ok(())

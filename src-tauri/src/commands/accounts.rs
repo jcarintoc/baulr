@@ -73,6 +73,10 @@ pub async fn connect_account(
     let client = state.client.read().await.clone().ok_or("Vault engine is not running")?;
     let (name, remote_type, params) = resolve_provider_config(&provider)?;
 
+    // Delete any pre-existing remote for this provider and clear fs cache before starting OAuth
+    let _ = client.delete_remote(name).await;
+    let _ = client.clear_fs_cache().await;
+
     client.create_oauth_remote(name, remote_type, &params).await?;
 
     if name == "onedrive" {
@@ -81,6 +85,7 @@ pub async fn connect_account(
 
     let _ = sync_vault_union(&client).await;
     crate::commands::browser::stop_media_server(&state).await;
+    let _ = client.clear_fs_cache().await;
 
     *state.cached_quota.write().await = None;
     let quota = fetch_vault_quota_internal(&client, None).await?;
@@ -102,6 +107,7 @@ pub async fn disconnect_account(
     client.delete_remote(name).await?;
     let _ = sync_vault_union(&client).await;
     crate::commands::browser::stop_media_server(&state).await;
+    let _ = client.clear_fs_cache().await;
 
     *state.cached_quota.write().await = None;
     let quota = fetch_vault_quota_internal(&client, None).await?;

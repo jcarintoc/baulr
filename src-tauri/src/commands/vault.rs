@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::engine::{AboutFs, CloudAccount, RcloneClient, VaultQuota, VAULT_UNION_NAME};
+use crate::engine::{AboutFs, CloudAccount, RcloneClient, VaultQuota};
 use crate::AppState;
 
 const KNOWN_PROVIDERS: &[(&str, &str)] = &[
@@ -58,20 +58,10 @@ pub fn calculate_vault_quota(
     }
 
 
-    // Vault pool aggregated metrics
-    let (total_bytes, used_bytes, free_bytes) = match about_map.get(VAULT_UNION_NAME) {
-        Some(Ok(about)) => (
-            about.total.unwrap_or(0),
-            about.used.unwrap_or(0),
-            about.free.unwrap_or(0),
-        ),
-        _ => {
-            let total: u64 = accounts.iter().filter(|a| a.is_connected).map(|a| a.total_bytes).sum();
-            let used: u64 = accounts.iter().filter(|a| a.is_connected).map(|a| a.used_bytes).sum();
-            let free = total.saturating_sub(used);
-            (total, used, free)
-        }
-    };
+    // Vault pool aggregated metrics directly from active connected accounts
+    let total_bytes: u64 = accounts.iter().filter(|a| a.is_connected).map(|a| a.total_bytes).sum();
+    let used_bytes: u64 = accounts.iter().filter(|a| a.is_connected).map(|a| a.used_bytes).sum();
+    let free_bytes = total_bytes.saturating_sub(used_bytes);
 
     VaultQuota {
         total_bytes,
@@ -103,27 +93,13 @@ pub async fn fetch_vault_quota_internal(
         }
     };
 
-    let union_fut = async {
-        if config.contains_key(VAULT_UNION_NAME) {
-            Some((
-                VAULT_UNION_NAME.to_string(),
-                client.get_about(&format!("{}:", VAULT_UNION_NAME)).await,
-            ))
-        } else {
-            None
-        }
-    };
-
-    let (gdrive_res, onedrive_res, union_res) = tokio::join!(gdrive_fut, onedrive_fut, union_fut);
+    let (gdrive_res, onedrive_res) = tokio::join!(gdrive_fut, onedrive_fut);
 
     let mut about_map = HashMap::new();
     if let Some((id, res)) = gdrive_res {
         about_map.insert(id, res);
     }
     if let Some((id, res)) = onedrive_res {
-        about_map.insert(id, res);
-    }
-    if let Some((id, res)) = union_res {
         about_map.insert(id, res);
     }
 

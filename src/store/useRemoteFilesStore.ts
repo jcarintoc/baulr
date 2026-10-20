@@ -51,7 +51,7 @@ export interface RemoteFilesState {
   setSearchQuery: (searchQuery: string) => void;
   setVaultPath: (path: string) => Promise<void>;
   setViewMode: (mode: "table" | "grid") => void;
-  ensureMediaBaseUrl: () => Promise<string | null>;
+  ensureMediaBaseUrl: (forceRefresh?: boolean) => Promise<string | null>;
   fetchFiles: () => Promise<void>;
   retryProvider: (provider: string) => Promise<void>;
   removeProviderFiles: (provider: string) => void;
@@ -137,9 +137,9 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
       set({ viewMode });
     },
 
-    ensureMediaBaseUrl: async () => {
+    ensureMediaBaseUrl: async (forceRefresh = false) => {
       const existing = get().mediaBaseUrl;
-      if (existing) return existing;
+      if (!forceRefresh && existing) return existing;
       try {
         const url = await fetchVaultMediaBaseUrl();
         set({ mediaBaseUrl: url });
@@ -160,6 +160,7 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         isRevalidating: false,
         lastFetchedAt: null,
         currentPath: "",
+        mediaBaseUrl: null,
       }),
 
     removeProviderFiles: (provider: string) =>
@@ -176,6 +177,7 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
           providerErrors: nextErrors,
           providerLoading: nextLoading,
           files: mergeProviderFiles(nextFilesByProvider),
+          mediaBaseUrl: null,
         };
       }),
 
@@ -206,6 +208,7 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
             isInitialLoading: false,
             isRevalidating: false,
             lastFetchedAt: Date.now(),
+            mediaBaseUrl: null,
           });
         } catch (err) {
           set({
@@ -217,6 +220,7 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
             isLoading: false,
             isInitialLoading: false,
             isRevalidating: false,
+            mediaBaseUrl: null,
           });
         }
         return;
@@ -228,6 +232,13 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         const nextFilesByProvider: Record<string, RemoteVaultItem[]> = {};
         const nextErrors: Record<string, string | null> = {};
         const nextLoading: Record<string, boolean> = {};
+        let changed = false;
+
+        for (const p of Object.keys(state.filesByProvider)) {
+          if (!activeProviders.has(p)) {
+            changed = true;
+          }
+        }
 
         for (const [p, list] of Object.entries(state.filesByProvider)) {
           if (activeProviders.has(p)) {
@@ -242,6 +253,7 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
           providerErrors: nextErrors,
           providerLoading: nextLoading,
           files: mergeProviderFiles(nextFilesByProvider),
+          ...(changed ? { mediaBaseUrl: null } : {}),
         };
       });
 
@@ -267,6 +279,10 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         lastFetchedAt: Date.now(),
         error: allFailed ? "Could not reach your cloud accounts." : null,
       });
+
+      if (providers.length > 0 && !get().mediaBaseUrl) {
+        get().ensureMediaBaseUrl().catch(() => {});
+      }
     },
 
     retryProvider: async (provider: string) => {

@@ -60,7 +60,7 @@ export function VaultBrowserTable() {
   };
 
   const handleOpenFile = async (item: RemoteVaultItem) => {
-    const baseUrl = mediaBaseUrl || (await ensureMediaBaseUrl());
+    const baseUrl = await ensureMediaBaseUrl();
     if (!baseUrl) return;
     const url = `${baseUrl}/${item.Path.split("/").map(encodeURIComponent).join("/")}`;
     try {
