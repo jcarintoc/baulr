@@ -5,6 +5,7 @@ import { useThemeStore } from "@/store/useThemeStore";
 import { useVaultStore } from "@/store/useVaultStore";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 import * as accountsApi from "@/lib/api/accounts";
+import type { VaultQuota } from "@/lib/bindings";
 import { startOffloadJob } from "@/lib/api/offload";
 
 vi.mock("@/lib/api/offload", () => ({
@@ -376,6 +377,38 @@ describe("useVaultStore", () => {
 
     expect(useVaultStore.getState().quota).toEqual(emptyQuota);
     expect(useRemoteFilesStore.getState().files).toEqual([]);
+  });
+
+  it("calls removeProviderFiles on useRemoteFilesStore when disconnecting a provider while other accounts remain", async () => {
+    const remainingQuota: VaultQuota = {
+      totalBytes: 500,
+      usedBytes: 10,
+      freeBytes: 490,
+      accounts: [
+        { name: "Google Drive", provider: "gdrive", isConnected: true, needsAuth: false, usedBytes: 10, totalBytes: 500 },
+        { name: "OneDrive", provider: "onedrive", isConnected: false, needsAuth: false, usedBytes: 0, totalBytes: 0 },
+      ],
+    };
+    vi.spyOn(accountsApi, "disconnectAccount").mockResolvedValueOnce(remainingQuota);
+
+    useRemoteFilesStore.setState({
+      filesByProvider: {
+        gdrive: [{ Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false }],
+        onedrive: [{ Path: "sheet.xlsx", Name: "sheet.xlsx", Size: 20, MimeType: "application/vnd.ms-excel", ModTime: null, IsDir: false }],
+      },
+      files: [
+        { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+        { Path: "sheet.xlsx", Name: "sheet.xlsx", Size: 20, MimeType: "application/vnd.ms-excel", ModTime: null, IsDir: false },
+      ],
+    });
+
+    await useVaultStore.getState().disconnectAccount("onedrive");
+
+    expect(useVaultStore.getState().quota).toEqual(remainingQuota);
+    expect(useRemoteFilesStore.getState().filesByProvider["onedrive"]).toBeUndefined();
+    expect(useRemoteFilesStore.getState().files).toEqual([
+      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+    ]);
   });
 
   it("handles cancelOAuth properly", async () => {

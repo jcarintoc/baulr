@@ -82,8 +82,8 @@ pub async fn connect_account(
     let _ = sync_vault_union(&client).await;
     crate::commands::browser::stop_media_server(&state).await;
 
-    let prev_cached = state.cached_quota.read().await.clone();
-    let quota = fetch_vault_quota_internal(&client, prev_cached.as_ref()).await?;
+    *state.cached_quota.write().await = None;
+    let quota = fetch_vault_quota_internal(&client, None).await?;
     *state.cached_quota.write().await = Some(quota.clone());
     Ok(quota)
 }
@@ -97,12 +97,14 @@ pub async fn disconnect_account(
     let client = state.client.read().await.clone().ok_or("Vault engine is not running")?;
     let (name, _, _) = resolve_provider_config(&provider)?;
 
+    // Cleanly delete the union/alias remote first to prevent dangling alias locks on the provider
+    let _ = client.delete_remote(crate::engine::VAULT_UNION_NAME).await;
     client.delete_remote(name).await?;
     let _ = sync_vault_union(&client).await;
     crate::commands::browser::stop_media_server(&state).await;
 
-    let prev_cached = state.cached_quota.read().await.clone();
-    let quota = fetch_vault_quota_internal(&client, prev_cached.as_ref()).await?;
+    *state.cached_quota.write().await = None;
+    let quota = fetch_vault_quota_internal(&client, None).await?;
     *state.cached_quota.write().await = Some(quota.clone());
     Ok(quota)
 }

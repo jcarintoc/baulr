@@ -49,10 +49,14 @@ export const useVaultStore = create<VaultState>((set) => ({
     }
   },
   connectAccount: async (provider: string) => {
+    const wasEmpty = !useVaultStore.getState().quota?.accounts?.some((a) => a.isConnected);
     set({ isAuthenticating: true, authenticatingProvider: provider, error: null });
     try {
       const updatedQuota = await apiConnectAccount(provider);
       set({ quota: updatedQuota, isAuthenticating: false, authenticatingProvider: null });
+      if (wasEmpty) {
+        useRemoteFilesStore.getState().clearFiles();
+      }
       useRemoteFilesStore.getState().fetchFiles().catch(() => {});
     } catch (err) {
       set({ error: String(err), isAuthenticating: false, authenticatingProvider: null });
@@ -63,6 +67,7 @@ export const useVaultStore = create<VaultState>((set) => ({
     try {
       const updatedQuota = await apiDisconnectAccount(provider);
       set({ quota: updatedQuota, isLoading: false });
+      useRemoteFilesStore.getState().removeProviderFiles(provider);
       updatedQuota.accounts?.some((a) => a.isConnected)
         ? useRemoteFilesStore.getState().fetchFiles().catch(() => {})
         : useRemoteFilesStore.getState().clearFiles();

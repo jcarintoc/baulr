@@ -36,8 +36,11 @@ pub fn calculate_vault_quota(
                     (false, true, 0, 0)
                 }
                 _ => {
-                    let (u, t) = prev_account.map_or((0, 0), |a| (a.used_bytes, a.total_bytes));
-                    (true, false, u, t)
+                    if let Some(prev) = prev_account {
+                        (prev.is_connected, prev.needs_auth, prev.used_bytes, prev.total_bytes)
+                    } else {
+                        (false, false, 0, 0)
+                    }
                 }
             }
         } else {
@@ -231,6 +234,62 @@ mod tests {
         assert!(!gdrive.needs_auth, "Transient error should not flag needs_auth");
         assert_eq!(gdrive.total_bytes, 15 * 1024 * 1024 * 1024);
         assert_eq!(gdrive.used_bytes, 2 * 1024 * 1024 * 1024);
+        assert_eq!(quota.total_bytes, 15 * 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_calculate_vault_quota_disconnected_provider_cleared_even_with_prev_cache() {
+        // config has gdrive, but onedrive was removed from config
+        let mut config = HashMap::new();
+        config.insert("gdrive".to_string(), HashMap::new());
+
+        let mut about_map = HashMap::new();
+        about_map.insert(
+            "gdrive".to_string(),
+            Ok(AboutFs {
+                total: Some(15 * 1024 * 1024 * 1024),
+                used: Some(1024),
+                free: Some(15 * 1024 * 1024 * 1024 - 1024),
+                ..Default::default()
+            }),
+        );
+
+        // Previous cache had BOTH gdrive and onedrive connected
+        let prev = VaultQuota {
+            total_bytes: 20 * 1024 * 1024 * 1024,
+            used_bytes: 2 * 1024 * 1024 * 1024,
+            free_bytes: 18 * 1024 * 1024 * 1024,
+            accounts: vec![
+                CloudAccount {
+                    name: "Google Drive".into(),
+                    provider: "gdrive".into(),
+                    used_bytes: 1024,
+                    total_bytes: 15 * 1024 * 1024 * 1024,
+                    is_connected: true,
+                    needs_auth: false,
+                },
+                CloudAccount {
+                    name: "OneDrive".into(),
+                    provider: "onedrive".into(),
+                    used_bytes: 1024 * 1024 * 1024,
+                    total_bytes: 5 * 1024 * 1024 * 1024,
+                    is_connected: true,
+                    needs_auth: false,
+                },
+            ],
+        };
+
+        let quota = calculate_vault_quota(&config, &about_map, Some(&prev));
+        let onedrive = quota.accounts.iter().find(|a| a.provider == "onedrive").unwrap();
+        assert!(!onedrive.is_connected, "Disconnected provider must not be marked connected");
+        assert_eq!(onedrive.total_bytes, 0, "Disconnected provider must have 0 total bytes");
+        assert_eq!(onedrive.used_bytes, 0, "Disconnected provider must have 0 used bytes");
+
+        let gdrive = quota.accounts.iter().find(|a| a.provider == "gdrive").unwrap();
+        assert!(gdrive.is_connected);
+        assert_eq!(gdrive.total_bytes, 15 * 1024 * 1024 * 1024);
+
+        // Combined pool must only sum gdrive
         assert_eq!(quota.total_bytes, 15 * 1024 * 1024 * 1024);
     }
 }

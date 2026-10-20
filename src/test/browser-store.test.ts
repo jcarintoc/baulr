@@ -317,6 +317,98 @@ describe("useRemoteFilesStore actions", () => {
     expect(browserApi.downloadVaultItemToDirectory).not.toHaveBeenCalled();
   });
 
+  it("removes provider files and re-merges when removeProviderFiles is called", () => {
+    useRemoteFilesStore.setState({
+      filesByProvider: {
+        gdrive: [{ Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false }],
+        onedrive: [{ Path: "sheet.xlsx", Name: "sheet.xlsx", Size: 20, MimeType: "application/vnd.ms-excel", ModTime: null, IsDir: false }],
+      },
+      files: [
+        { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+        { Path: "sheet.xlsx", Name: "sheet.xlsx", Size: 20, MimeType: "application/vnd.ms-excel", ModTime: null, IsDir: false },
+      ],
+      providerErrors: { onedrive: "Timeout" },
+      providerLoading: { onedrive: false },
+    });
+
+    useRemoteFilesStore.getState().removeProviderFiles("onedrive");
+
+    const state = useRemoteFilesStore.getState();
+    expect(state.filesByProvider["onedrive"]).toBeUndefined();
+    expect(state.providerErrors["onedrive"]).toBeUndefined();
+    expect(state.providerLoading["onedrive"]).toBeUndefined();
+    expect(state.files).toEqual([
+      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+    ]);
+  });
+
+  it("automatically prunes removed providers from filesByProvider on fetchFiles", async () => {
+    // Initial state has gdrive and onedrive files in memory
+    useRemoteFilesStore.setState({
+      filesByProvider: {
+        gdrive: [{ Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false }],
+        onedrive: [{ Path: "sheet.xlsx", Name: "sheet.xlsx", Size: 20, MimeType: "application/vnd.ms-excel", ModTime: null, IsDir: false }],
+      },
+      files: [
+        { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+        { Path: "sheet.xlsx", Name: "sheet.xlsx", Size: 20, MimeType: "application/vnd.ms-excel", ModTime: null, IsDir: false },
+      ],
+    });
+
+    // Quota now only has gdrive connected (onedrive was disconnected)
+    useVaultStore.setState({
+      quota: {
+        totalBytes: 500,
+        usedBytes: 10,
+        freeBytes: 490,
+        accounts: [
+          { name: "Google Drive", provider: "gdrive", isConnected: true, needsAuth: false, usedBytes: 10, totalBytes: 500 },
+          { name: "OneDrive", provider: "onedrive", isConnected: false, needsAuth: false, usedBytes: 0, totalBytes: 0 },
+        ],
+      },
+    });
+
+    vi.mocked(browserApi.fetchProviderVaultFiles).mockResolvedValueOnce([
+      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+    ]);
+
+    await useRemoteFilesStore.getState().fetchFiles();
+
+    const state = useRemoteFilesStore.getState();
+    expect(state.filesByProvider["onedrive"]).toBeUndefined();
+    expect(state.files).toEqual([
+      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+    ]);
+  });
+
+  it("clears all provider maps when providers array is empty on fetchFiles", async () => {
+    useRemoteFilesStore.setState({
+      filesByProvider: {
+        onedrive: [{ Path: "sheet.xlsx", Name: "sheet.xlsx", Size: 20, MimeType: "application/vnd.ms-excel", ModTime: null, IsDir: false }],
+      },
+      files: [
+        { Path: "sheet.xlsx", Name: "sheet.xlsx", Size: 20, MimeType: "application/vnd.ms-excel", ModTime: null, IsDir: false },
+      ],
+    });
+
+    useVaultStore.setState({
+      quota: {
+        totalBytes: 0,
+        usedBytes: 0,
+        freeBytes: 0,
+        accounts: [],
+      },
+    });
+
+    vi.mocked(browserApi.fetchVaultFiles).mockResolvedValueOnce([]);
+
+    await useRemoteFilesStore.getState().fetchFiles();
+
+    const state = useRemoteFilesStore.getState();
+    expect(state.filesByProvider).toEqual({});
+    expect(state.files).toEqual([]);
+  });
+
   it("updates search query", () => {
     useRemoteFilesStore.getState().setSearchQuery("vacation");
     expect(useRemoteFilesStore.getState().searchQuery).toBe("vacation");

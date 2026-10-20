@@ -54,6 +54,7 @@ export interface RemoteFilesState {
   ensureMediaBaseUrl: () => Promise<string | null>;
   fetchFiles: () => Promise<void>;
   retryProvider: (provider: string) => Promise<void>;
+  removeProviderFiles: (provider: string) => void;
   prefetchFiles: () => void;
   clearFiles: () => void;
   deleteFile: (path: string, isDir: boolean) => Promise<void>;
@@ -161,6 +162,23 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         currentPath: "",
       }),
 
+    removeProviderFiles: (provider: string) =>
+      set((state) => {
+        const nextFilesByProvider = { ...state.filesByProvider };
+        delete nextFilesByProvider[provider];
+        const nextErrors = { ...state.providerErrors };
+        delete nextErrors[provider];
+        const nextLoading = { ...state.providerLoading };
+        delete nextLoading[provider];
+
+        return {
+          filesByProvider: nextFilesByProvider,
+          providerErrors: nextErrors,
+          providerLoading: nextLoading,
+          files: mergeProviderFiles(nextFilesByProvider),
+        };
+      }),
+
     fetchFiles: async () => {
       const accounts =
         useVaultStore.getState().quota?.accounts?.filter((a) => a.isConnected) ?? [];
@@ -181,6 +199,9 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
           const files = await fetchVaultFiles(get().currentPath);
           set({
             files,
+            filesByProvider: {},
+            providerErrors: {},
+            providerLoading: {},
             isLoading: false,
             isInitialLoading: false,
             isRevalidating: false,
@@ -189,6 +210,9 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         } catch (err) {
           set({
             files: [],
+            filesByProvider: {},
+            providerErrors: {},
+            providerLoading: {},
             error: err instanceof Error ? err.message : String(err),
             isLoading: false,
             isInitialLoading: false,
@@ -197,6 +221,29 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         }
         return;
       }
+
+      // Reconcile and prune any providers no longer connected
+      const activeProviders = new Set(providers);
+      set((state) => {
+        const nextFilesByProvider: Record<string, RemoteVaultItem[]> = {};
+        const nextErrors: Record<string, string | null> = {};
+        const nextLoading: Record<string, boolean> = {};
+
+        for (const [p, list] of Object.entries(state.filesByProvider)) {
+          if (activeProviders.has(p)) {
+            nextFilesByProvider[p] = list;
+            nextErrors[p] = state.providerErrors[p] ?? null;
+            nextLoading[p] = state.providerLoading[p] ?? false;
+          }
+        }
+
+        return {
+          filesByProvider: nextFilesByProvider,
+          providerErrors: nextErrors,
+          providerLoading: nextLoading,
+          files: mergeProviderFiles(nextFilesByProvider),
+        };
+      });
 
       const initialLoading: Record<string, boolean> = {};
       for (const p of providers) {
