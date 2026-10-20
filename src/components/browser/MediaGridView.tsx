@@ -5,10 +5,10 @@ import {
   IconDownload,
   IconShare,
   IconTrash,
+  IconFolderOpen,
 } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type { RemoteVaultItem } from "@/store/useRemoteFilesStore";
 
 function isImageItem(name: string, mime?: string | null): boolean {
@@ -41,7 +41,9 @@ export function MediaGridView({
   onShare,
 }: MediaGridViewProps) {
   const getMediaUrl = (path: string) =>
-    mediaBaseUrl ? `${mediaBaseUrl}/${path.split("/").map(encodeURIComponent).join("/")}` : "";
+    mediaBaseUrl
+      ? `${mediaBaseUrl}/${path.split("/").map(encodeURIComponent).join("/")}`
+      : "";
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 p-3.5">
@@ -55,31 +57,48 @@ export function MediaGridView({
             <div
               key={item.Path}
               onClick={() => onOpenFolder(item)}
-              className="group relative flex flex-col justify-between p-3.5 rounded-xl border border-border/70 bg-card/40 hover:bg-card/80 hover:border-vault-accent/40 hover:shadow-md transition-all duration-200 cursor-pointer aspect-square"
+              className="relative group cursor-pointer aspect-square -translate-y-5"
             >
-              <div className="flex items-center justify-between">
-                <div className="size-11 rounded-xl bg-vault-accent/10 border border-vault-accent/20 flex items-center justify-center text-vault-accent-text group-hover:scale-105 transition-transform duration-200">
-                  <IconFolder className="size-5.5 fill-current" />
-                </div>
-                <Badge variant="outline" className="text-xs font-mono uppercase bg-muted/30 border-border/60 text-muted-foreground">
-                  Folder
-                </Badge>
-              </div>
+              <IconFolder className="group-hover:opacity-0 absolute inset-0 w-full h-full text-vault-accent-text fill-current scale-105 stroke-1 transition-opacity duration-300" />
+              <IconFolderOpen className="group-hover:opacity-100 opacity-0 absolute inset-0 w-full h-full text-vault-accent-text fill-vault-accent scale-105 stroke-1 transition-opacity duration-300" />
 
-              <div className="mt-auto">
-                <p className="font-medium text-xs text-foreground truncate group-hover:text-vault-accent-text transition-colors">
+              <div className="absolute bottom-0 left-6">
+                <p className="text-foreground truncate font-medium">
                   {item.Name}
                 </p>
-                <p className="text-xs text-muted-foreground/80 mt-0.5">Click to open</p>
               </div>
 
               <div
-                className="absolute top-2.5 right-2.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-background/85 backdrop-blur-md border border-border/60 rounded-lg p-0.5 shadow-sm"
+                className="absolute top-6.5 right-2.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-background/85 backdrop-blur-md border border-border/60 rounded-lg p-0.5 shadow-sm"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button variant="ghost" size="icon-xs" title="Share" onClick={() => onShare(item)} className="size-6 p-0"><IconShare /></Button>
-                <Button variant="ghost" size="icon-xs" title="Download" onClick={() => onDownload(item)} className="size-6 p-0"><IconDownload /></Button>
-                <Button variant="ghost" size="icon-xs" title="Remove" onClick={() => onDelete(item)} className="size-6 p-0 hover:text-destructive"><IconTrash /></Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="Share"
+                  onClick={() => onShare(item)}
+                  className="size-6 p-0"
+                >
+                  <IconShare />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="Download"
+                  onClick={() => onDownload(item)}
+                  className="size-6 p-0"
+                >
+                  <IconDownload />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="Remove"
+                  onClick={() => onDelete(item)}
+                  className="size-6 p-0 hover:text-destructive"
+                >
+                  <IconTrash />
+                </Button>
               </div>
             </div>
           );
@@ -120,9 +139,33 @@ export function MediaGridView({
                 className="absolute top-2 right-2 z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-background/85 backdrop-blur-md border border-border/60 rounded-lg p-0.5 shadow-sm"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button variant="ghost" size="icon-xs" title="Share" onClick={() => onShare(item)} className="size-6 p-0"><IconShare /></Button>
-                <Button variant="ghost" size="icon-xs" title="Download" onClick={() => onDownload(item)} className="size-6 p-0"><IconDownload /></Button>
-                <Button variant="ghost" size="icon-xs" title="Remove" onClick={() => onDelete(item)} className="size-6 p-0 hover:text-destructive"><IconTrash /></Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="Share"
+                  onClick={() => onShare(item)}
+                  className="size-6 p-0"
+                >
+                  <IconShare />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="Download"
+                  onClick={() => onDownload(item)}
+                  className="size-6 p-0"
+                >
+                  <IconDownload />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="Remove"
+                  onClick={() => onDelete(item)}
+                  className="size-6 p-0 hover:text-destructive"
+                >
+                  <IconTrash />
+                </Button>
               </div>
             </div>
 
