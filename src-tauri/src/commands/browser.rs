@@ -5,7 +5,7 @@ use specta::Type;
 use tauri::Emitter;
 use tauri_plugin_dialog::DialogExt;
 
-use crate::engine::{build_union_upstreams, RcloneItem, VAULT_SUBDIR, VAULT_UNION_NAME};
+use crate::engine::{build_union_upstreams, RcloneItem, VaultQuota, VAULT_SUBDIR, VAULT_UNION_NAME};
 use crate::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -180,12 +180,57 @@ pub fn validate_folder_name(name: &str) -> Result<&str, String> {
     Ok(trimmed)
 }
 
+pub fn resolve_target_folder_upstream(
+    target_provider: Option<&str>,
+    connected_upstreams: &[String],
+    quota: Option<&VaultQuota>,
+) -> Result<String, String> {
+    if connected_upstreams.is_empty() {
+        return Err("No cloud accounts connected to create folder".to_string());
+    }
+
+    let is_auto = target_provider.map_or(true, |p| p.trim().is_empty() || p.eq_ignore_ascii_case("auto"));
+
+    if !is_auto {
+        let prov = target_provider.unwrap().trim();
+        let expected_prefix = format!("{}:", prov.to_lowercase());
+        if let Some(upstream) = connected_upstreams
+            .iter()
+            .find(|u| u.to_lowercase().starts_with(&expected_prefix))
+        {
+            return Ok(upstream.clone());
+        }
+        return Err(format!("Selected provider '{prov}' is not connected"));
+    }
+
+    // Auto / pooled mode: pick the upstream provider with the most free space if quota is available
+    if let Some(q) = quota {
+        let candidate = q
+            .accounts
+            .iter()
+            .filter(|a| a.is_connected && !a.needs_auth)
+            .filter(|a| {
+                let prefix = format!("{}:", a.provider.to_lowercase());
+                connected_upstreams.iter().any(|u| u.to_lowercase().starts_with(&prefix))
+            })
+            .max_by_key(|a| a.total_bytes.saturating_sub(a.used_bytes));
+
+        if let Some(best) = candidate {
+            return Ok(format!("{}:{}", best.provider, VAULT_SUBDIR));
+        }
+    }
+
+    // Fallback: pick the first available connected upstream
+    Ok(connected_upstreams[0].clone())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn create_vault_folder(
     state: tauri::State<'_, AppState>,
     folder_path: String,
-) -> Result<(), String> {
+    provider: Option<String>,
+) -> Result<String, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
 
@@ -203,12 +248,21 @@ pub async fn create_vault_folder(
         return Err("No cloud accounts connected to create folder".to_string());
     }
 
-    for upstream in upstreams {
-        client.mkdir(&upstream, clean_path).await?;
-    }
+    let cached_quota = state.cached_quota.read().await.clone();
+    let target_upstream = resolve_target_folder_upstream(provider.as_deref(), &upstreams, cached_quota.as_ref())?;
 
+    // Create folder on the single target upstream remote
+    client.mkdir(&target_upstream, clean_path).await?;
     let _ = client.clear_fs_cache().await;
-    Ok(())
+
+    // Extract provider identifier from target_upstream (e.g. "gdrive:BaulrVault" -> "gdrive")
+    let provider_id = target_upstream
+        .split(':')
+        .next()
+        .unwrap_or(&target_upstream)
+        .to_string();
+
+    Ok(provider_id)
 }
 
 #[tauri::command]
@@ -516,5 +570,70 @@ mod tests {
         assert!(validate_folder_name("\"Quotes\"").is_err());
         assert!(validate_folder_name("<Angle>").is_err());
         assert!(validate_folder_name("Pipe|Line").is_err());
+    }
+
+    #[test]
+    fn test_resolve_target_folder_upstream_specific_provider() {
+        let upstreams = vec![
+            "gdrive:BaulrVault".to_string(),
+            "onedrive:BaulrVault".to_string(),
+        ];
+        // Exact match
+        let chosen = resolve_target_folder_upstream(Some("gdrive"), &upstreams, None).unwrap();
+        assert_eq!(chosen, "gdrive:BaulrVault");
+
+        // Provider not connected returns error
+        let err = resolve_target_folder_upstream(Some("dropbox"), &upstreams, None).unwrap_err();
+        assert!(err.contains("Selected provider 'dropbox' is not connected"));
+    }
+
+    #[test]
+    fn test_resolve_target_folder_upstream_auto_picks_max_free_space() {
+        use crate::engine::CloudAccount;
+        let upstreams = vec![
+            "gdrive:BaulrVault".to_string(),
+            "onedrive:BaulrVault".to_string(),
+        ];
+        let quota = VaultQuota {
+            total_bytes: 30_000_000_000,
+            used_bytes: 10_000_000_000,
+            free_bytes: 20_000_000_000,
+            accounts: vec![
+                CloudAccount {
+                    name: "Google Drive".to_string(),
+                    provider: "gdrive".to_string(),
+                    total_bytes: 15_000_000_000,
+                    used_bytes: 12_000_000_000, // 3 GB free
+                    is_connected: true,
+                    needs_auth: false,
+                },
+                CloudAccount {
+                    name: "OneDrive".to_string(),
+                    provider: "onedrive".to_string(),
+                    total_bytes: 15_000_000_000,
+                    used_bytes: 5_000_000_000, // 10 GB free
+                    is_connected: true,
+                    needs_auth: false,
+                },
+            ],
+        };
+
+        // Auto mode should pick onedrive because it has 10 GB free vs 3 GB
+        let chosen_auto = resolve_target_folder_upstream(Some("auto"), &upstreams, Some(&quota)).unwrap();
+        assert_eq!(chosen_auto, "onedrive:BaulrVault");
+
+        // None provider should also behave like auto
+        let chosen_none = resolve_target_folder_upstream(None, &upstreams, Some(&quota)).unwrap();
+        assert_eq!(chosen_none, "onedrive:BaulrVault");
+    }
+
+    #[test]
+    fn test_resolve_target_folder_upstream_auto_fallback_without_quota() {
+        let upstreams = vec![
+            "gdrive:BaulrVault".to_string(),
+            "onedrive:BaulrVault".to_string(),
+        ];
+        let chosen = resolve_target_folder_upstream(None, &upstreams, None).unwrap();
+        assert_eq!(chosen, "gdrive:BaulrVault");
     }
 }
