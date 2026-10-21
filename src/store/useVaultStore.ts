@@ -70,7 +70,18 @@ export const useVaultStore = create<VaultState>((set) => ({
       }
       useRemoteFilesStore.getState().fetchFiles().catch(() => {});
     } catch (err) {
-      set({ error: String(err), isAuthenticating: false, isFinalizing: false, authenticatingProvider: null });
+      const errStr = String(err);
+      const isCancelled =
+        errStr.toLowerCase().includes("access_denied") ||
+        errStr.toLowerCase().includes("cancelled") ||
+        errStr.toLowerCase().includes("canceled");
+
+      set({
+        error: isCancelled ? null : errStr,
+        isAuthenticating: false,
+        isFinalizing: false,
+        authenticatingProvider: null,
+      });
     } finally {
       unlistenPromise.then((unlisten) => unlisten?.()).catch(() => {});
     }

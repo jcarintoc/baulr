@@ -79,7 +79,11 @@ pub async fn connect_account(
     let _ = client.delete_remote(name).await;
     let _ = client.clear_fs_cache().await;
 
-    client.create_oauth_remote(name, remote_type, &params).await?;
+    if let Err(e) = client.create_oauth_remote(name, remote_type, &params).await {
+        let _ = client.delete_remote(name).await;
+        let _ = client.clear_fs_cache().await;
+        return Err(e);
+    }
 
     let _ = app.emit("oauth:finalizing", &provider);
 
