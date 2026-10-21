@@ -26,7 +26,7 @@ describe("Offload API module", () => {
   it("inspects path successfully", async () => {
     vi.mocked(commands.inspectPath).mockResolvedValue({
       status: "ok",
-      data: { path: "/test", name: "test", sizeBytes: 1024, isDir: true },
+      data: { path: "/test", name: "test", sizeBytes: 1024, isDir: true, maxFileBytes: 1024 },
     });
 
     const result = await inspectLocalPath("/test");
