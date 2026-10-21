@@ -6,6 +6,7 @@
 ## In Progress
 
 ## Done
+- [[Folder Creation & Organization Inside the Vault]]
 - [[Pre-Flight Capacity Gate & Oversized File Handling]]
 - [[Media Preview & Thumbnail Grid]]
 - [[Decision log]]
