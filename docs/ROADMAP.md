@@ -6,6 +6,7 @@
 ## In Progress
 
 ## Done
+- [[Pre-Flight Capacity Gate & Oversized File Handling]]
 - [[Media Preview & Thumbnail Grid]]
 - [[Decision log]]
 - [[PRD & Architecture Specifications]]
