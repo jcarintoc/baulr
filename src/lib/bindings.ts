@@ -19,6 +19,7 @@ export const commands = {
 	isDir: boolean,
 	maxFileBytes: number | null,
 } | null, string>(__TAURI_INVOKE("pick_offload_folder")),
+	pickOffloadFiles: () => typedError<string[] | null, string>(__TAURI_INVOKE("pick_offload_files")),
 	reclaimPaths: (paths: string[]) => typedError<ReclaimResult, string>(__TAURI_INVOKE("reclaim_paths", { paths })),
 	listVaultFiles: (path: string | null) => typedError<RcloneItem[], string>(__TAURI_INVOKE("list_vault_files", { path })),
 	listProviderVaultFiles: (provider: string, path: string | null) => typedError<RcloneItem[], string>(__TAURI_INVOKE("list_provider_vault_files", { provider, path })),

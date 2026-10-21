@@ -15,6 +15,7 @@ import * as browserApi from "@/lib/api/browser";
 
 vi.mock("@/lib/api/offload", () => ({
   selectOffloadFolder: vi.fn(),
+  selectOffloadFiles: vi.fn(),
   startOffloadJob: vi.fn(),
   cancelOffloadJob: vi.fn(),
   listenOffloadProgress: vi.fn(() => Promise.resolve(() => {})),
@@ -460,12 +461,12 @@ describe("Vault Navigation & Media Components", () => {
       expect(screen.getByText("Inside: Vault / Documents")).toBeInTheDocument();
     });
 
-    it("triggers file picker and enqueues upload to currentPath when clicking Upload here", async () => {
+    it("triggers folder picker and enqueues upload to currentPath when clicking Upload folder", async () => {
       vi.mocked(offloadApi.selectOffloadFolder).mockResolvedValueOnce({
-        path: "/local/my_file.pdf",
-        name: "my_file.pdf",
+        path: "/local/my_folder",
+        name: "my_folder",
         sizeBytes: 1024,
-        isDir: false,
+        isDir: true,
         maxFileBytes: 1024,
       });
 
@@ -482,11 +483,47 @@ describe("Vault Navigation & Media Components", () => {
       );
 
       fireEvent.click(screen.getByRole("button", { name: /Upload here/i }));
+      fireEvent.click(screen.getByText(/Upload folder/i));
 
       await waitFor(() => {
         expect(offloadApi.selectOffloadFolder).toHaveBeenCalled();
         expect(enqueueSpy).toHaveBeenCalledWith(
-          ["/local/my_file.pdf"],
+          ["/local/my_folder"],
+          undefined,
+          "Documents/Projects"
+        );
+        expect(setViewSpy).toHaveBeenCalledWith("dashboard");
+      });
+
+      enqueueSpy.mockRestore();
+      setViewSpy.mockRestore();
+    });
+
+    it("triggers file picker and enqueues upload to currentPath when clicking Upload files", async () => {
+      vi.mocked(offloadApi.selectOffloadFiles).mockResolvedValueOnce([
+        "/local/file1.pdf",
+        "/local/file2.png",
+      ]);
+
+      const enqueueSpy = vi.spyOn(useTransferStore.getState(), "enqueuePaths").mockResolvedValue();
+      const setViewSpy = vi.spyOn(useViewStore.getState(), "setActiveView");
+
+      render(
+        <VaultBrowserToolbar
+          currentPath="Documents/Projects"
+          onNavigatePath={vi.fn()}
+          viewMode="table"
+          onViewModeChange={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Upload here/i }));
+      fireEvent.click(screen.getByText(/Upload files/i));
+
+      await waitFor(() => {
+        expect(offloadApi.selectOffloadFiles).toHaveBeenCalled();
+        expect(enqueueSpy).toHaveBeenCalledWith(
+          ["/local/file1.pdf", "/local/file2.png"],
           undefined,
           "Documents/Projects"
         );

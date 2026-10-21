@@ -465,6 +465,28 @@ pub async fn pick_offload_folder(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn pick_offload_files(
+    app: tauri::AppHandle,
+) -> Result<Option<Vec<String>>, String> {
+    let dialog_app = app.clone();
+    let files_opt = tokio::task::spawn_blocking(move || {
+        dialog_app
+            .dialog()
+            .file()
+            .set_title("Select Files to Free Up Space")
+            .blocking_pick_files()
+    })
+    .await
+    .map_err(|e| format!("Dialog task failed: {e}"))?;
+
+    let Some(files) = files_opt else {
+        return Ok(None);
+    };
+    Ok(Some(files.into_iter().map(|f| f.to_string()).collect()))
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn reclaim_paths(paths: Vec<String>) -> Result<ReclaimResult, String> {
     tokio::task::spawn_blocking(move || {
         let mut count = 0u32;
