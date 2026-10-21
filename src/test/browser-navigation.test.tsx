@@ -288,18 +288,16 @@ describe("Vault Navigation & Media Components", () => {
     });
 
     it("creates folder at root and inside nested directories", async () => {
-      vi.mocked(browserApi.createVaultFolder).mockResolvedValue(undefined);
-      const fetchSpy = vi.spyOn(useRemoteFilesStore.getState(), "fetchFiles").mockResolvedValue();
+      vi.mocked(browserApi.createVaultFolder).mockResolvedValue("gdrive");
 
       // Root creation
       await useRemoteFilesStore.getState().createFolder("Projects");
-      expect(browserApi.createVaultFolder).toHaveBeenCalledWith("Projects");
+      expect(browserApi.createVaultFolder).toHaveBeenCalledWith("Projects", undefined);
 
       // Subdirectory creation
       useRemoteFilesStore.setState({ currentPath: "Projects/Q4" });
       await useRemoteFilesStore.getState().createFolder("Taxes");
-      expect(browserApi.createVaultFolder).toHaveBeenCalledWith("Projects/Q4/Taxes");
-      fetchSpy.mockRestore();
+      expect(browserApi.createVaultFolder).toHaveBeenCalledWith("Projects/Q4/Taxes", undefined);
     });
   });
 

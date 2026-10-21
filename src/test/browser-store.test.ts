@@ -7,6 +7,7 @@ vi.mock("@/lib/api/browser", () => ({
   fetchVaultFiles: vi.fn(),
   fetchProviderVaultFiles: vi.fn(),
   removeVaultItem: vi.fn(),
+  createVaultFolder: vi.fn(),
   downloadVaultItemToDirectory: vi.fn(),
   pickDownloadDestination: vi.fn(),
   clearShareLinkCache: vi.fn(),
@@ -521,5 +522,39 @@ describe("useRemoteFilesStore actions", () => {
     expect(files.length).toBe(1);
     expect(files[0].provider).toBe("gdrive");
     expect(files[0].Size).toBe(100);
+  });
+
+  describe("createFolder optimistic updates and rollback", () => {
+    it("optimistically inserts folder into files and filesByProvider without re-fetching", async () => {
+      vi.mocked(browserApi.createVaultFolder).mockResolvedValueOnce("gdrive");
+      useRemoteFilesStore.setState({ files: [], filesByProvider: { gdrive: [] }, currentPath: "" });
+
+      const promise = useRemoteFilesStore.getState().createFolder("NewDocs", "gdrive");
+
+      // Instantly available in state before promise resolves
+      const stateImmediate = useRemoteFilesStore.getState();
+      expect(stateImmediate.files).toHaveLength(1);
+      expect(stateImmediate.files[0].Name).toBe("NewDocs");
+      expect(stateImmediate.files[0].IsDir).toBe(true);
+      expect(stateImmediate.files[0].provider).toBe("gdrive");
+      expect(stateImmediate.filesByProvider.gdrive).toHaveLength(1);
+
+      await promise;
+      expect(browserApi.createVaultFolder).toHaveBeenCalledWith("NewDocs", "gdrive");
+    });
+
+    it("rolls back optimistic folder and sets error on backend failure", async () => {
+      vi.mocked(browserApi.createVaultFolder).mockRejectedValueOnce(new Error("Network timeout"));
+      useRemoteFilesStore.setState({ files: [], filesByProvider: { gdrive: [] }, currentPath: "" });
+
+      await expect(
+        useRemoteFilesStore.getState().createFolder("FailedFolder", "gdrive")
+      ).rejects.toThrow("Network timeout");
+
+      const state = useRemoteFilesStore.getState();
+      expect(state.files).toHaveLength(0);
+      expect(state.filesByProvider.gdrive).toHaveLength(0);
+      expect(state.error).toBe("Network timeout");
+    });
   });
 });

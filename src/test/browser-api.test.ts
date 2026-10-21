@@ -133,14 +133,26 @@ describe("Browser API module", () => {
   });
 
   describe("createVaultFolder", () => {
-    it("creates vault folder successfully", async () => {
+    it("creates vault folder successfully without provider", async () => {
       vi.mocked(commands.createVaultFolder).mockResolvedValueOnce({
         status: "ok",
-        data: null,
+        data: "gdrive",
       });
 
-      await createVaultFolder("Documents/Projects");
-      expect(commands.createVaultFolder).toHaveBeenCalledWith("Documents/Projects");
+      const res = await createVaultFolder("Documents/Projects");
+      expect(commands.createVaultFolder).toHaveBeenCalledWith("Documents/Projects", null);
+      expect(res).toBe("gdrive");
+    });
+
+    it("creates vault folder targeted to specific provider", async () => {
+      vi.mocked(commands.createVaultFolder).mockResolvedValueOnce({
+        status: "ok",
+        data: "onedrive",
+      });
+
+      const res = await createVaultFolder("Documents/Projects", "onedrive");
+      expect(commands.createVaultFolder).toHaveBeenCalledWith("Documents/Projects", "onedrive");
+      expect(res).toBe("onedrive");
     });
 
     it("throws error when creating folder fails", async () => {

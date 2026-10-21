@@ -71,11 +71,15 @@ export async function removeVaultItem(
   }
 }
 
-export async function createVaultFolder(folderPath: string): Promise<void> {
-  const result = await commands.createVaultFolder(folderPath);
+export async function createVaultFolder(
+  folderPath: string,
+  provider?: string | null
+): Promise<string> {
+  const result = await commands.createVaultFolder(folderPath, provider ?? null);
   if (result.status === "error") {
     throw new Error(result.error);
   }
+  return result.data;
 }
 
 export async function downloadVaultItemToDirectory(
