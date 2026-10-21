@@ -10,14 +10,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DestinationCloudDropdown } from "@/components/offloader/DestinationCloudDropdown";
+import { useVaultStore } from "@/store/useVaultStore";
 
 interface CreateFolderModalProps {
   open: boolean;
   onClose: () => void;
   currentPath: string;
-  onCreateFolder: (name: string) => Promise<void>;
+  onCreateFolder: (name: string, provider?: string) => Promise<unknown>;
 }
 
 const INVALID_CHARS = ["/", "\\", ":", "*", "?", '"', "<", ">", "|"];
@@ -29,18 +30,22 @@ export function CreateFolderModal({
   onCreateFolder,
 }: CreateFolderModalProps) {
   const [folderName, setFolderName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState("auto");
   const [error, setError] = useState<string | null>(null);
+
+  const quota = useVaultStore((s) => s.quota);
+  const accounts = (quota?.accounts ?? []).filter((a) => a.isConnected && !a.needsAuth);
+  const totalFreeBytes = quota?.freeBytes;
 
   useEffect(() => {
     if (open) {
       setFolderName("");
+      setSelectedProvider("auto");
       setError(null);
-      setIsSubmitting(false);
     }
   }, [open]);
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = folderName.trim();
     if (!trimmed) {
@@ -53,16 +58,9 @@ export function CreateFolderModal({
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await onCreateFolder(trimmed);
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsSubmitting(false);
-    }
+    const providerArg = selectedProvider === "auto" ? undefined : selectedProvider;
+    onClose();
+    onCreateFolder(trimmed, providerArg).catch(() => {});
   };
 
   return (
@@ -103,9 +101,21 @@ export function CreateFolderModal({
               }}
               placeholder="e.g. Invoices, Family Photos"
               autoFocus
-              disabled={isSubmitting}
             />
           </div>
+
+          {accounts.length > 1 && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-foreground">Destination</label>
+              <DestinationCloudDropdown
+                accounts={accounts}
+                selectedProvider={selectedProvider}
+                onSelectProvider={setSelectedProvider}
+                totalFreeBytes={totalFreeBytes}
+                triggerClassName="w-full justify-between gap-1.5 text-xs text-foreground bg-background"
+              />
+            </div>
+          )}
 
           <AlertDialogFooter className="mt-2">
             <Button
@@ -113,17 +123,15 @@ export function CreateFolderModal({
               variant="outline"
               size="sm"
               onClick={onClose}
-              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               size="sm"
-              disabled={isSubmitting || !folderName.trim()}
+              disabled={!folderName.trim()}
               className="gap-2"
             >
-              {isSubmitting && <Spinner className="size-3.5" />}
               <span>Create folder</span>
             </Button>
           </AlertDialogFooter>

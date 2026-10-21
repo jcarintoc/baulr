@@ -21,6 +21,7 @@ interface DestinationCloudDropdownProps {
   onSelectProvider: (provider: string) => void;
   disabled?: boolean;
   totalFreeBytes?: number;
+  triggerClassName?: string;
 }
 
 export function DestinationCloudDropdown({
@@ -29,6 +30,7 @@ export function DestinationCloudDropdown({
   onSelectProvider,
   disabled,
   totalFreeBytes,
+  triggerClassName,
 }: DestinationCloudDropdownProps) {
   if (accounts.length <= 1) return null;
 
@@ -47,7 +49,7 @@ export function DestinationCloudDropdown({
             variant="outline"
             size="sm"
             disabled={disabled}
-            className="gap-1.5 text-xs text-muted-foreground"
+            className={triggerClassName ?? "gap-1.5 text-xs text-muted-foreground"}
             title="Choose cloud destination"
           >
             <IconCloudUpload />

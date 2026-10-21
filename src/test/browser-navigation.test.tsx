@@ -9,6 +9,7 @@ import { Table, TableBody } from "@/components/ui/table";
 import { useRemoteFilesStore, RemoteVaultItem } from "@/store/useRemoteFilesStore";
 import { useTransferStore } from "@/store/useTransferStore";
 import { useViewStore } from "@/store/useViewStore";
+import { useVaultStore } from "@/store/useVaultStore";
 import * as offloadApi from "@/lib/api/offload";
 import * as browserApi from "@/lib/api/browser";
 
@@ -335,7 +336,7 @@ describe("Vault Navigation & Media Components", () => {
       fireEvent.click(submitBtn);
 
       await waitFor(() => {
-        expect(onCreateFolder).toHaveBeenCalledWith("Valid Folder");
+        expect(onCreateFolder).toHaveBeenCalledWith("Valid Folder", undefined);
         expect(onClose).toHaveBeenCalled();
       });
 
@@ -349,6 +350,43 @@ describe("Vault Navigation & Media Components", () => {
         />
       );
       expect(screen.getByText("Inside: Vault / Documents/Work")).toBeInTheDocument();
+    });
+
+    it("renders destination cloud selection when multiple accounts are connected and closes immediately on submit", async () => {
+      useVaultStore.setState({
+        quota: {
+          totalBytes: 30000000000,
+          usedBytes: 10000000000,
+          freeBytes: 20000000000,
+          accounts: [
+            { name: "Google Drive", provider: "gdrive", usedBytes: 2000, totalBytes: 10000, isConnected: true, needsAuth: false },
+            { name: "OneDrive", provider: "onedrive", usedBytes: 3000, totalBytes: 10000, isConnected: true, needsAuth: false },
+          ],
+        },
+      });
+
+      const onClose = vi.fn();
+      const onCreateFolder = vi.fn().mockReturnValue(new Promise(() => {})); // Never resolves
+
+      render(
+        <CreateFolderModal
+          open={true}
+          onClose={onClose}
+          currentPath=""
+          onCreateFolder={onCreateFolder}
+        />
+      );
+
+      expect(screen.getByText("Destination")).toBeInTheDocument();
+      const input = screen.getByPlaceholderText(/e\.g\. Invoices/i);
+      fireEvent.change(input, { target: { value: "Finances" } });
+
+      const submitBtn = screen.getByRole("button", { name: /Create folder/i });
+      fireEvent.click(submitBtn);
+
+      // Modal must close immediately (0ms perceived latency)
+      expect(onClose).toHaveBeenCalled();
+      expect(onCreateFolder).toHaveBeenCalledWith("Finances", undefined);
     });
   });
 
