@@ -13,12 +13,14 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { CloudAccount } from "@/lib/bindings";
+import { formatBytes } from "@/lib/formatters";
 
 interface DestinationCloudDropdownProps {
   accounts: CloudAccount[];
   selectedProvider: string;
   onSelectProvider: (provider: string) => void;
   disabled?: boolean;
+  totalFreeBytes?: number;
 }
 
 export function DestinationCloudDropdown({
@@ -26,6 +28,7 @@ export function DestinationCloudDropdown({
   selectedProvider,
   onSelectProvider,
   disabled,
+  totalFreeBytes,
 }: DestinationCloudDropdownProps) {
   if (accounts.length <= 1) return null;
 
@@ -53,22 +56,37 @@ export function DestinationCloudDropdown({
           </Button>
         }
       />
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel>Destination Cloud</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onSelectProvider("auto")}>
-          <span className="flex-1">Let Baulr decide (Auto)</span>
+          <div className="flex items-center justify-between w-full gap-2">
+            <span>Let Baulr decide (Auto)</span>
+            {totalFreeBytes !== undefined && (
+              <span className="text-[11px] text-muted-foreground font-normal">
+                {formatBytes(totalFreeBytes)} free
+              </span>
+            )}
+          </div>
           {selectedProvider === "auto" && <IconCheck />}
         </DropdownMenuItem>
-        {accounts.map((account) => (
-          <DropdownMenuItem
-            key={account.provider}
-            onClick={() => onSelectProvider(account.provider)}
-          >
-            <span className="flex-1">{account.name}</span>
-            {selectedProvider === account.provider && <IconCheck />}
-          </DropdownMenuItem>
-        ))}
+        {accounts.map((account) => {
+          const free = Math.max(0, (account.totalBytes ?? 0) - (account.usedBytes ?? 0));
+          return (
+            <DropdownMenuItem
+              key={account.provider}
+              onClick={() => onSelectProvider(account.provider)}
+            >
+              <div className="flex items-center justify-between w-full gap-2">
+                <span>{account.name}</span>
+                <span className="text-[11px] text-muted-foreground font-normal">
+                  {formatBytes(free)} free
+                </span>
+              </div>
+              {selectedProvider === account.provider && <IconCheck />}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

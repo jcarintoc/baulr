@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TransferQueue } from "@/components/offloader/TransferQueue";
 import { DropzoneCard } from "@/components/offloader/DropzoneCard";
+import { DestinationCloudDropdown } from "@/components/offloader/DestinationCloudDropdown";
 import { useVaultStore } from "@/store/useVaultStore";
 
 describe("Offloader Components", () => {
@@ -221,6 +222,43 @@ describe("Offloader Components", () => {
     const dismissErrBtn = screen.getByTitle("Dismiss failed transfer");
     fireEvent.click(dismissErrBtn);
     expect(onDismiss).toHaveBeenCalledWith("err-1");
+  });
+
+  it("renders free space badges for each account in DestinationCloudDropdown", () => {
+    const accounts = [
+      {
+        name: "Google Drive",
+        provider: "gdrive",
+        usedBytes: 1 * 1024 * 1024 * 1024,
+        totalBytes: 5 * 1024 * 1024 * 1024,
+        isConnected: true,
+        needsAuth: false,
+      },
+      {
+        name: "OneDrive",
+        provider: "onedrive",
+        usedBytes: 2 * 1024 * 1024 * 1024,
+        totalBytes: 5 * 1024 * 1024 * 1024,
+        isConnected: true,
+        needsAuth: false,
+      },
+    ];
+
+    render(
+      <DestinationCloudDropdown
+        accounts={accounts}
+        selectedProvider="auto"
+        onSelectProvider={vi.fn()}
+        totalFreeBytes={7 * 1024 * 1024 * 1024}
+      />
+    );
+
+    const trigger = screen.getByTitle("Choose cloud destination");
+    fireEvent.click(trigger);
+
+    expect(screen.getByText(/7(\.0)? GB free/i)).toBeInTheDocument();
+    expect(screen.getByText(/4(\.0)? GB free/i)).toBeInTheDocument();
+    expect(screen.getByText(/3(\.0)? GB free/i)).toBeInTheDocument();
   });
 });
 

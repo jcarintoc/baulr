@@ -112,6 +112,7 @@ export function DropzoneCard({
             selectedProvider={selectedProvider}
             onSelectProvider={setSelectedProvider}
             disabled={disabled}
+            totalFreeBytes={quota?.freeBytes ?? 0}
           />
         </div>
       </CardContent>
