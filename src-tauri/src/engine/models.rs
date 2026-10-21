@@ -125,6 +125,36 @@ pub struct HttpServerInfo {
     pub id: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct RcloneConfigExample {
+    #[serde(default)]
+    pub value: String,
+    #[serde(default)]
+    pub help: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct RcloneConfigOption {
+    pub name: String,
+    #[serde(default)]
+    pub default_str: String,
+    #[serde(default)]
+    pub examples: Vec<RcloneConfigExample>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct RcloneConfigResponse {
+    #[serde(default)]
+    pub state: String,
+    #[serde(default)]
+    pub option: Option<RcloneConfigOption>,
+    #[serde(default)]
+    pub error: String,
+}
+
 
 
 

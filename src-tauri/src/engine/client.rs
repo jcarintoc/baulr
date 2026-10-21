@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 use crate::engine::models::{
     AboutFs, BandwidthLimit, CheckResult, CoreStats, HttpServerInfo, JobStatus, OAuthStatus,
-    RcloneItem, RcloneListResponse,
+    RcloneConfigExample, RcloneConfigResponse, RcloneItem, RcloneListResponse,
 };
 
 #[derive(Deserialize)]
@@ -17,6 +17,34 @@ pub struct RcloneClient {
     base_url: String,
     http: reqwest::Client,
     http_oauth: reqwest::Client,
+}
+
+pub fn resolve_config_answer(name: &str, default_str: &str, examples: &[RcloneConfigExample]) -> String {
+    match name {
+        "config_is_local" => "true".to_string(),
+        "config_shared_client_id" => "true".to_string(),
+        "teamdrive" => "false".to_string(),
+        "config_refresh_token" => "true".to_string(),
+        "config_type" | "choose_type" => "onedrive".to_string(),
+        "choose_drive" => {
+            if let Some(first) = examples.first() {
+                first.value.clone()
+            } else if !default_str.is_empty() {
+                default_str.to_string()
+            } else {
+                "0".to_string()
+            }
+        }
+        _ => {
+            if !default_str.is_empty() {
+                default_str.to_string()
+            } else if let Some(first) = examples.first() {
+                first.value.clone()
+            } else {
+                String::new()
+            }
+        }
+    }
 }
 
 impl RcloneClient {
@@ -116,27 +144,61 @@ impl RcloneClient {
         parameters: &HashMap<String, String>,
     ) -> Result<(), String> {
         let url = format!("{}/config/create", self.base_url);
-        let payload = serde_json::json!({
-            "name": name,
-            "type": remote_type,
-            "parameters": parameters,
-        });
+        let mut state: Option<String> = None;
+        let mut result: Option<String> = None;
 
-        let resp = self
-            .http_oauth
-            .post(&url)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| format!("Authentication request failed for '{name}': {e}"))?;
+        for _ in 0..15 {
+            let mut opt = serde_json::json!({ "nonInteractive": true });
+            if let Some(s) = &state {
+                opt["continue"] = serde_json::json!(true);
+                opt["state"] = serde_json::json!(s);
+                opt["result"] = serde_json::json!(result.unwrap_or_default());
+            }
 
-        if !resp.status().is_success() {
-            let body = resp.text().await.unwrap_or_default();
-            return Err(format!("Authentication failed for '{name}': {body}"));
+            let payload = serde_json::json!({
+                "name": name,
+                "type": remote_type,
+                "parameters": parameters,
+                "opt": opt,
+            });
+
+            let resp = self
+                .http_oauth
+                .post(&url)
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Authentication request failed for '{name}': {e}"))?;
+
+            if !resp.status().is_success() {
+                let body = resp.text().await.unwrap_or_default();
+                return Err(format!("Authentication failed for '{name}': {body}"));
+            }
+
+            let config_res: RcloneConfigResponse = resp
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse config response: {e}"))?;
+
+            if !config_res.error.is_empty() {
+                return Err(format!("Authentication error for '{name}': {}", config_res.error));
+            }
+
+            if config_res.state.is_empty() {
+                let _ = self.clear_fs_cache().await;
+                return Ok(());
+            }
+
+            let opt_info = config_res.option.ok_or_else(|| {
+                format!("Remote configuration returned state '{}' without option details", config_res.state)
+            })?;
+
+            let answer = resolve_config_answer(&opt_info.name, &opt_info.default_str, &opt_info.examples);
+            state = Some(config_res.state);
+            result = Some(answer);
         }
 
-        let _ = self.clear_fs_cache().await;
-        Ok(())
+        Err("OAuth configuration exceeded maximum negotiation steps".to_string())
     }
 
     pub async fn delete_remote(&self, name: &str) -> Result<(), String> {
@@ -791,6 +853,42 @@ mod tests {
         let info: HttpServerInfo = serde_json::from_str(json).expect("deserialize http server info");
         assert_eq!(info.addr, "127.0.0.1:57104");
         assert_eq!(info.id, "http-60e63eb7");
+    }
+
+    #[test]
+    fn test_resolve_config_answer_defaults() {
+        assert_eq!(resolve_config_answer("config_is_local", "true", &[]), "true");
+        assert_eq!(resolve_config_answer("config_shared_client_id", "false", &[]), "true");
+        assert_eq!(resolve_config_answer("teamdrive", "false", &[]), "false");
+        assert_eq!(resolve_config_answer("choose_type", "onedrive", &[]), "onedrive");
+
+        let examples = vec![
+            RcloneConfigExample { value: "0".into(), help: "Personal".into() },
+            RcloneConfigExample { value: "1".into(), help: "Business".into() },
+        ];
+        assert_eq!(resolve_config_answer("choose_drive", "", &examples), "0");
+    }
+
+    #[test]
+    fn test_rclone_config_response_deserialization() {
+        let json = r#"{
+            "State": "*oauth-islocal,choose_type,,",
+            "Option": {
+                "Name": "config_is_local",
+                "DefaultStr": "true",
+                "Examples": [
+                    {"Value": "true", "Help": "Yes"},
+                    {"Value": "false", "Help": "No"}
+                ]
+            },
+            "Error": ""
+        }"#;
+        let resp: RcloneConfigResponse = serde_json::from_str(json).expect("deserialize config response");
+        assert_eq!(resp.state, "*oauth-islocal,choose_type,,");
+        let opt = resp.option.unwrap();
+        assert_eq!(opt.name, "config_is_local");
+        assert_eq!(opt.default_str, "true");
+        assert_eq!(opt.examples.len(), 2);
     }
 }
 
