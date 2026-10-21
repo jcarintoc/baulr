@@ -388,6 +388,47 @@ describe("Vault Navigation & Media Components", () => {
       expect(onClose).toHaveBeenCalled();
       expect(onCreateFolder).toHaveBeenCalledWith("Finances", undefined);
     });
+
+    it("displays error and prevents submission when folder name already exists in current directory", async () => {
+      useRemoteFilesStore.setState({
+        files: [
+          {
+            Path: "Projects",
+            Name: "Projects",
+            Size: 0,
+            MimeType: "inode/directory",
+            ModTime: null,
+            IsDir: true,
+            provider: "gdrive",
+          },
+        ],
+      });
+
+      const onClose = vi.fn();
+      const onCreateFolder = vi.fn().mockResolvedValue("gdrive");
+
+      render(
+        <CreateFolderModal
+          open={true}
+          onClose={onClose}
+          currentPath=""
+          onCreateFolder={onCreateFolder}
+        />
+      );
+
+      const input = screen.getByPlaceholderText(/e\.g\. Invoices/i);
+      const submitBtn = screen.getByRole("button", { name: /Create folder/i });
+
+      // Enter duplicate name (case-insensitive)
+      fireEvent.change(input, { target: { value: "projects" } });
+      fireEvent.click(submitBtn);
+
+      expect(
+        screen.getByText("A folder with this name already exists here.")
+      ).toBeInTheDocument();
+      expect(onCreateFolder).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+    });
   });
 
   describe("VaultBrowserToolbar", () => {

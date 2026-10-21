@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DestinationCloudDropdown } from "@/components/offloader/DestinationCloudDropdown";
 import { useVaultStore } from "@/store/useVaultStore";
+import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 
 interface CreateFolderModalProps {
   open: boolean;
@@ -36,6 +37,7 @@ export function CreateFolderModal({
   const quota = useVaultStore((s) => s.quota);
   const accounts = (quota?.accounts ?? []).filter((a) => a.isConnected && !a.needsAuth);
   const totalFreeBytes = quota?.freeBytes;
+  const existingFiles = useRemoteFilesStore((s) => s.files);
 
   useEffect(() => {
     if (open) {
@@ -55,6 +57,13 @@ export function CreateFolderModal({
 
     if (INVALID_CHARS.some((char) => trimmed.includes(char))) {
       setError('Folder names cannot contain special characters (/ \\ : * ? " < > |).');
+      return;
+    }
+
+    const lower = trimmed.toLowerCase();
+    const isDuplicate = existingFiles.some((f) => f.Name.toLowerCase() === lower);
+    if (isDuplicate) {
+      setError("A folder with this name already exists here.");
       return;
     }
 
@@ -118,20 +127,10 @@ export function CreateFolderModal({
           )}
 
           <AlertDialogFooter className="mt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={!folderName.trim()}
-              className="gap-2"
-            >
+            <Button type="submit" size="sm" disabled={!folderName.trim()} className="gap-2">
               <span>Create folder</span>
             </Button>
           </AlertDialogFooter>
