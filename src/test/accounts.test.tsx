@@ -115,4 +115,36 @@ describe("OAuthModal", () => {
     fireEvent.click(cancelBtn);
     expect(handleCancel).toHaveBeenCalled();
   });
+
+  it("renders modal in finalizing state when browser auth completes", () => {
+    render(
+      <OAuthModal
+        isOpen={true}
+        provider="onedrive"
+        onCancel={vi.fn()}
+        isFinalizing={true}
+      />
+    );
+
+    expect(screen.getByText(/Finishing setup.../i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Authorization received. Setting up your cloud storage now/i)
+    ).toBeInTheDocument();
+
+    const cancelBtn = screen.getByRole("button", { name: /Cancel/i });
+    expect(cancelBtn).toBeDisabled();
+  });
+
+  it("renders with human-friendly copy and zero banned technical jargon", () => {
+    render(
+      <OAuthModal
+        isOpen={true}
+        provider="gdrive"
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText(/token|payload|endpoint|daemon|hash/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Waiting for authorization in browser")).toBeInTheDocument();
+  });
 });

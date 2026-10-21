@@ -1,3 +1,4 @@
+import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { commands, VaultQuota } from "../bindings";
 
 /**
@@ -26,4 +27,13 @@ export async function disconnectAccount(provider: string): Promise<VaultQuota> {
 export async function cancelOAuth(): Promise<void> {
   const res = await commands.cancelOauth();
   if (res.status === "error") throw new Error(res.error);
+}
+
+/**
+ * Listens for backend notification that browser OAuth completed and setup is finalizing.
+ */
+export function onOAuthFinalizing(callback: (provider: string) => void): Promise<UnlistenFn> {
+  return listen<string>("oauth:finalizing", (event) => {
+    callback(event.payload);
+  });
 }

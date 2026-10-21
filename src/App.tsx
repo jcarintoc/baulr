@@ -19,6 +19,7 @@ export function App() {
     daemonStatus,
     isLoading,
     isAuthenticating,
+    isFinalizing,
     authenticatingProvider,
     error,
     loadQuota,
@@ -109,6 +110,7 @@ export function App() {
         isOpen={isAuthenticating}
         provider={authenticatingProvider}
         onCancel={cancelOAuth}
+        isFinalizing={isFinalizing}
       />
     </div>
   );

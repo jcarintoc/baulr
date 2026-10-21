@@ -6,6 +6,7 @@ import {
   connectAccount as apiConnectAccount,
   disconnectAccount as apiDisconnectAccount,
   cancelOAuth as apiCancelOAuth,
+  onOAuthFinalizing,
 } from "../lib/api/accounts";
 import { useRemoteFilesStore } from "./useRemoteFilesStore";
 
@@ -14,6 +15,7 @@ interface VaultState {
   daemonStatus: DaemonStatus | null;
   isLoading: boolean;
   isAuthenticating: boolean;
+  isFinalizing: boolean;
   authenticatingProvider: string | null;
   error: string | null;
   loadQuota: () => Promise<void>;
@@ -28,6 +30,7 @@ export const useVaultStore = create<VaultState>((set) => ({
   daemonStatus: null,
   isLoading: false,
   isAuthenticating: false,
+  isFinalizing: false,
   authenticatingProvider: null,
   error: null,
   loadQuota: async () => {
@@ -50,17 +53,26 @@ export const useVaultStore = create<VaultState>((set) => ({
   },
   connectAccount: async (provider: string) => {
     const wasEmpty = !useVaultStore.getState().quota?.accounts?.some((a) => a.isConnected);
-    set({ isAuthenticating: true, authenticatingProvider: provider, error: null });
+    set({ isAuthenticating: true, isFinalizing: false, authenticatingProvider: provider, error: null });
+
+    const unlistenPromise = onOAuthFinalizing((p) => {
+      if (p === provider || !p) {
+        set({ isFinalizing: true });
+      }
+    }).catch(() => null);
+
     try {
       const updatedQuota = await apiConnectAccount(provider);
-      set({ quota: updatedQuota, isAuthenticating: false, authenticatingProvider: null });
+      set({ quota: updatedQuota, isAuthenticating: false, isFinalizing: false, authenticatingProvider: null });
       useRemoteFilesStore.setState({ mediaBaseUrl: null });
       if (wasEmpty) {
         useRemoteFilesStore.getState().clearFiles();
       }
       useRemoteFilesStore.getState().fetchFiles().catch(() => {});
     } catch (err) {
-      set({ error: String(err), isAuthenticating: false, authenticatingProvider: null });
+      set({ error: String(err), isAuthenticating: false, isFinalizing: false, authenticatingProvider: null });
+    } finally {
+      unlistenPromise.then((unlisten) => unlisten?.()).catch(() => {});
     }
   },
   disconnectAccount: async (provider: string) => {
@@ -83,7 +95,7 @@ export const useVaultStore = create<VaultState>((set) => ({
     } catch (err) {
       console.warn("OAuth cancellation error:", err);
     } finally {
-      set({ isAuthenticating: false, authenticatingProvider: null });
+      set({ isAuthenticating: false, isFinalizing: false, authenticatingProvider: null });
     }
   },
 }));
