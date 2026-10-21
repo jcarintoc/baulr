@@ -20,7 +20,7 @@ interface DestinationCloudDropdownProps {
   selectedProvider: string;
   onSelectProvider: (provider: string) => void;
   disabled?: boolean;
-  totalFreeBytes?: number;
+  totalFreeBytes?: number | null;
   triggerClassName?: string;
 }
 
@@ -64,7 +64,7 @@ export function DestinationCloudDropdown({
         <DropdownMenuItem onClick={() => onSelectProvider("auto")}>
           <div className="flex items-center justify-between w-full gap-2">
             <span>Let Baulr decide (Auto)</span>
-            {totalFreeBytes !== undefined && (
+            {totalFreeBytes != null && (
               <span className="text-[11px] text-muted-foreground font-normal">
                 {formatBytes(totalFreeBytes)} free
               </span>
