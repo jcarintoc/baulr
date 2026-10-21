@@ -176,6 +176,16 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
       const cleanName = name.trim();
       const folderPath = currentPath ? `${currentPath}/${cleanName}` : cleanName;
 
+      // Prevent duplicate folder in active path (case-insensitive)
+      const isDuplicate = get().files.some(
+        (f) => f.Name.toLowerCase() === cleanName.toLowerCase()
+      );
+      if (isDuplicate) {
+        const errorMsg = "A folder with this name already exists here.";
+        set({ error: errorMsg });
+        throw new Error(errorMsg);
+      }
+
       // Determine resolved provider for optimistic attribution
       const accounts =
         useVaultStore.getState().quota?.accounts?.filter((a) => a.isConnected) ?? [];
