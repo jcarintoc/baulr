@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies and build outputs
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor and IDE configurations
+.vscode/*
+!.vscode/extensions.json
+.idea
+.cursor/
+.windsurf/
+.DS_Store
+._*
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Tauri and Rust build artifacts
+src-tauri/binaries/*
+!src-tauri/binaries/.gitkeep
+target/
+src-tauri/target/
+
+# Local AI tooling and private scratchpads (kept locally, ignored from git)
+.agents/
+BRAIN.md
+.impeccable/
+.superpowers/
+docs/superpowers/
+docs/PROJECT_LOGS.md
+test-files/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
