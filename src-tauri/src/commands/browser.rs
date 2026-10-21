@@ -168,6 +168,49 @@ pub async fn stop_media_server(state: &AppState) {
     }
 }
 
+pub fn validate_folder_name(name: &str) -> Result<&str, String> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("Folder name cannot be empty".to_string());
+    }
+    const INVALID_CHARS: &[char] = &['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
+    if trimmed.chars().any(|c| INVALID_CHARS.contains(&c)) {
+        return Err("Folder name cannot contain special characters (/ \\ : * ? \" < > |)".to_string());
+    }
+    Ok(trimmed)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn create_vault_folder(
+    state: tauri::State<'_, AppState>,
+    folder_path: String,
+) -> Result<(), String> {
+    let client_guard = state.client.read().await;
+    let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
+
+    let clean_path = folder_path.trim().trim_matches('/');
+    if clean_path.is_empty() {
+        return Err("Folder path cannot be empty".to_string());
+    }
+
+    let leaf_name = clean_path.split('/').next_back().unwrap_or(clean_path);
+    validate_folder_name(leaf_name)?;
+
+    let config = client.dump_config().await.unwrap_or_default();
+    let upstreams = build_union_upstreams(&config);
+    if upstreams.is_empty() {
+        return Err("No cloud accounts connected to create folder".to_string());
+    }
+
+    for upstream in upstreams {
+        client.mkdir(&upstream, clean_path).await?;
+    }
+
+    let _ = client.clear_fs_cache().await;
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_vault_item(
@@ -453,5 +496,25 @@ mod tests {
         assert_eq!(resolve_unique_destination_name(&tmp, "report.pdf", false), "report (2).pdf");
 
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_validate_folder_name() {
+        assert_eq!(validate_folder_name("Projects").unwrap(), "Projects");
+        assert_eq!(validate_folder_name("  My Folder 2026  ").unwrap(), "My Folder 2026");
+
+        // Empty checks
+        assert!(validate_folder_name("").is_err());
+        assert!(validate_folder_name("   ").is_err());
+
+        // Banned characters
+        assert!(validate_folder_name("Project/Sub").is_err());
+        assert!(validate_folder_name("Project\\Sub").is_err());
+        assert!(validate_folder_name("Doc:Name").is_err());
+        assert!(validate_folder_name("Starred*").is_err());
+        assert!(validate_folder_name("What?").is_err());
+        assert!(validate_folder_name("\"Quotes\"").is_err());
+        assert!(validate_folder_name("<Angle>").is_err());
+        assert!(validate_folder_name("Pipe|Line").is_err());
     }
 }

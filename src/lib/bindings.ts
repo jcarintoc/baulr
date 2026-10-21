@@ -10,7 +10,7 @@ export const commands = {
 	disconnectAccount: (provider: string) => typedError<VaultQuota, string>(__TAURI_INVOKE("disconnect_account", { provider })),
 	cancelOauth: () => typedError<null, string>(__TAURI_INVOKE("cancel_oauth")),
 	inspectPath: (path: string) => typedError<InspectPathResult, string>(__TAURI_INVOKE("inspect_path", { path })),
-	startOffload: (localPath: string, targetProvider: string | null) => typedError<OffloadJobInfo, string>(__TAURI_INVOKE("start_offload", { localPath, targetProvider })),
+	startOffload: (localPath: string, targetProvider: string | null, targetDirectory: string | null) => typedError<OffloadJobInfo, string>(__TAURI_INVOKE("start_offload", { localPath, targetProvider, targetDirectory })),
 	cancelOffload: (jobId: number) => typedError<null, string>(__TAURI_INVOKE("cancel_offload", { jobId })),
 	pickOffloadFolder: () => typedError<{
 	path: string,
@@ -22,6 +22,7 @@ export const commands = {
 	reclaimPaths: (paths: string[]) => typedError<ReclaimResult, string>(__TAURI_INVOKE("reclaim_paths", { paths })),
 	listVaultFiles: (path: string | null) => typedError<RcloneItem[], string>(__TAURI_INVOKE("list_vault_files", { path })),
 	listProviderVaultFiles: (provider: string, path: string | null) => typedError<RcloneItem[], string>(__TAURI_INVOKE("list_provider_vault_files", { provider, path })),
+	createVaultFolder: (folderPath: string) => typedError<null, string>(__TAURI_INVOKE("create_vault_folder", { folderPath })),
 	getVaultMediaBaseUrl: () => typedError<string | null, string>(__TAURI_INVOKE("get_vault_media_base_url")),
 	deleteVaultItem: (itemPath: string, isDir: boolean, provider: string | null) => typedError<null, string>(__TAURI_INVOKE("delete_vault_item", { itemPath, isDir, provider })),
 	downloadVaultItem: (itemPath: string, itemName: string, isDir: boolean, destinationDir: string, provider: string | null) => typedError<number | null, string>(__TAURI_INVOKE("download_vault_item", { itemPath, itemName, isDir, destinationDir, provider })),

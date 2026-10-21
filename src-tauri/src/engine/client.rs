@@ -519,6 +519,24 @@ impl RcloneClient {
         Ok(())
     }
 
+    pub async fn mkdir(&self, fs: &str, remote: &str) -> Result<(), String> {
+        let url = format!("{}/operations/mkdir", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({ "fs": fs, "remote": remote }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to create folder: {e}"))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Failed to create folder: {body}"));
+        }
+
+        Ok(())
+    }
+
     pub async fn check_hashes(
         &self,
         src_fs: &str,
