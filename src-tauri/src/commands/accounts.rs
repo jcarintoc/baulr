@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use tauri::Emitter;
 use crate::commands::vault::fetch_vault_quota_internal;
 use crate::engine::{sync_vault_union, VaultQuota};
 use crate::AppState;
@@ -67,6 +68,7 @@ pub async fn auto_configure_onedrive(client: &crate::engine::RcloneClient) -> Re
 #[tauri::command]
 #[specta::specta]
 pub async fn connect_account(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     provider: String,
 ) -> Result<VaultQuota, String> {
@@ -78,6 +80,8 @@ pub async fn connect_account(
     let _ = client.clear_fs_cache().await;
 
     client.create_oauth_remote(name, remote_type, &params).await?;
+
+    let _ = app.emit("oauth:finalizing", &provider);
 
     if name == "onedrive" {
         if let Err(e) = auto_configure_onedrive(&client).await {
