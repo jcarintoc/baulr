@@ -479,10 +479,7 @@ pub async fn pick_offload_files(
     .await
     .map_err(|e| format!("Dialog task failed: {e}"))?;
 
-    let Some(files) = files_opt else {
-        return Ok(None);
-    };
-    Ok(Some(files.into_iter().map(|f| f.to_string()).collect()))
+    Ok(files_opt.map(|files| files.into_iter().map(|f| f.to_string()).collect()))
 }
 
 #[tauri::command]

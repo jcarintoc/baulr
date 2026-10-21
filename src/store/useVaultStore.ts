@@ -71,10 +71,7 @@ export const useVaultStore = create<VaultState>((set) => ({
       useRemoteFilesStore.getState().fetchFiles().catch(() => {});
     } catch (err) {
       const errStr = String(err);
-      const isCancelled =
-        errStr.toLowerCase().includes("access_denied") ||
-        errStr.toLowerCase().includes("cancelled") ||
-        errStr.toLowerCase().includes("canceled");
+      const isCancelled = /access_denied|cancell?ed/i.test(errStr);
 
       set({
         error: isCancelled ? null : errStr,
