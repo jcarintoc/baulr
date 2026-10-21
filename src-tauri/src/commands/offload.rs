@@ -18,6 +18,8 @@ pub struct InspectPathResult {
     #[specta(type = f64)]
     pub size_bytes: u64,
     pub is_dir: bool,
+    #[specta(type = f64)]
+    pub max_file_bytes: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -76,46 +78,132 @@ pub struct ReclaimResult {
     pub count: u32,
 }
 
-pub fn calculate_path_size(path: &Path) -> Result<(u64, bool), String> {
+pub fn format_bytes_human(bytes: u64) -> String {
+    const KB: f64 = 1024.0;
+    const MB: f64 = KB * 1024.0;
+    const GB: f64 = MB * 1024.0;
+    const TB: f64 = GB * 1024.0;
+
+    let b = bytes as f64;
+    if b >= TB {
+        format!("{:.1} TB", b / TB)
+    } else if b >= GB {
+        format!("{:.1} GB", b / GB)
+    } else if b >= MB {
+        format!("{:.1} MB", b / MB)
+    } else if b >= KB {
+        format!("{:.1} KB", b / KB)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
+pub fn calculate_path_size(path: &Path) -> Result<(u64, bool, u64), String> {
     let metadata = std::fs::metadata(path)
         .map_err(|e| format!("Cannot read file info for {:?}: {e}", path))?;
 
     if metadata.is_file() {
-        return Ok((metadata.len(), false));
+        let len = metadata.len();
+        return Ok((len, false, len));
     }
 
     if metadata.is_dir() {
         let mut total_size = 0u64;
+        let mut max_file_size = 0u64;
         let entries = std::fs::read_dir(path)
             .map_err(|e| format!("Cannot read directory {:?}: {e}", path))?;
 
         for entry in entries.flatten() {
             let entry_path = entry.path();
-            if let Ok((child_size, _)) = calculate_path_size(&entry_path) {
+            if let Ok((child_size, _, child_max_file)) = calculate_path_size(&entry_path) {
                 total_size = total_size.saturating_add(child_size);
+                max_file_size = max_file_size.max(child_max_file);
             }
         }
-        return Ok((total_size, true));
+        return Ok((total_size, true, max_file_size));
     }
 
     Err("Unsupported filesystem entry".to_string())
 }
 
-pub fn check_capacity(required_bytes: u64, available_bytes: u64) -> Result<(), String> {
-    if required_bytes > available_bytes {
+pub fn check_capacity(
+    inspected: &InspectPathResult,
+    target_provider: Option<&str>,
+    quota: &crate::engine::VaultQuota,
+) -> Result<(String, Option<String>), String> {
+    let connected_accounts: Vec<_> = quota
+        .accounts
+        .iter()
+        .filter(|a| a.is_connected && !a.needs_auth)
+        .collect();
+
+    if connected_accounts.is_empty() {
+        return Err("No cloud accounts connected. Please connect a cloud storage account before offloading files.".to_string());
+    }
+
+    let is_auto = target_provider.map_or(true, |p| p.is_empty() || p == "auto");
+
+    if !is_auto {
+        let req_prov = target_provider.unwrap();
+        let account = connected_accounts
+            .iter()
+            .find(|a| a.provider.eq_ignore_ascii_case(req_prov) || a.name.eq_ignore_ascii_case(req_prov))
+            .ok_or_else(|| format!("Target cloud account '{req_prov}' is not connected"))?;
+
+        let prov_free = account.total_bytes.saturating_sub(account.used_bytes);
+        if inspected.size_bytes > prov_free {
+            return Err(format!(
+                "Not enough space in {}. This upload requires {}, but only {} is free.",
+                account.name,
+                format_bytes_human(inspected.size_bytes),
+                format_bytes_human(prov_free)
+            ));
+        }
+
+        return Ok((format!("{}:{VAULT_SUBDIR}", account.provider), Some(account.name.clone())));
+    }
+
+    // Auto / pooled mode
+    if inspected.size_bytes > quota.free_bytes {
         return Err(format!(
-            "Not enough cloud storage space. Selected item requires {} bytes, but only {} bytes are available.",
-            required_bytes, available_bytes
+            "Not enough cloud storage space. This upload requires {}, but your combined cloud pool only has {} free.",
+            format_bytes_human(inspected.size_bytes),
+            format_bytes_human(quota.free_bytes)
         ));
     }
-    Ok(())
+
+    let max_single_account = connected_accounts
+        .iter()
+        .max_by_key(|a| a.total_bytes.saturating_sub(a.used_bytes))
+        .unwrap();
+    let max_single_free = max_single_account.total_bytes.saturating_sub(max_single_account.used_bytes);
+
+    if inspected.max_file_bytes > max_single_free {
+        if inspected.is_dir {
+            return Err(format!(
+                "This folder contains a file ({}) that is too large for your cloud accounts. Your largest available account ({}) has {} free.",
+                format_bytes_human(inspected.max_file_bytes),
+                max_single_account.name,
+                format_bytes_human(max_single_free)
+            ));
+        } else {
+            return Err(format!(
+                "This file ({}) is too large for any single cloud account. Your largest available account ({}) has {} free.",
+                format_bytes_human(inspected.size_bytes),
+                max_single_account.name,
+                format_bytes_human(max_single_free)
+            ));
+        }
+    }
+
+    Ok((format!("{VAULT_UNION_NAME}:"), Some(max_single_account.name.clone())))
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn inspect_path(path: String) -> Result<InspectPathResult, String> {
     let p = PathBuf::from(&path);
-    let (size_bytes, is_dir) = calculate_path_size(&p)?;
+    let (size_bytes, is_dir, max_file_bytes) = calculate_path_size(&p)?;
     let name = p
         .file_name()
         .map(|s| s.to_string_lossy().to_string())
@@ -126,6 +214,7 @@ pub async fn inspect_path(path: String) -> Result<InspectPathResult, String> {
         name,
         size_bytes,
         is_dir,
+        max_file_bytes,
     })
 }
 
@@ -183,34 +272,9 @@ pub async fn start_offload(
         }
     };
 
-    // Determine target provider, destination base fs, and available bytes
-    let is_auto = target_provider.as_deref().map_or(true, |p| p.is_empty() || p == "auto");
-
-    let (dst_base_fs, chosen_provider_name, available_bytes) = if is_auto {
-        let auto_account = quota
-            .accounts
-            .iter()
-            .filter(|a| a.is_connected && !a.needs_auth)
-            .max_by_key(|a| a.total_bytes.saturating_sub(a.used_bytes));
-        let provider_name = auto_account.map(|a| a.name.clone());
-        (format!("{VAULT_UNION_NAME}:"), provider_name, quota.free_bytes)
-    } else {
-        let req_prov = target_provider.as_deref().unwrap();
-        let account = quota
-            .accounts
-            .iter()
-            .find(|a| a.provider.eq_ignore_ascii_case(req_prov) || a.name.eq_ignore_ascii_case(req_prov))
-            .ok_or_else(|| format!("Target cloud provider '{req_prov}' is not connected"))?;
-
-        if !account.is_connected || account.needs_auth {
-            return Err(format!("Target cloud provider '{}' requires authentication", account.name));
-        }
-
-        let prov_free = account.total_bytes.saturating_sub(account.used_bytes);
-        (format!("{}:{VAULT_SUBDIR}", account.provider), Some(account.name.clone()), prov_free)
-    };
-
-    check_capacity(inspected.size_bytes, available_bytes)?;
+    // Determine target destination and check capacity
+    let (dst_base_fs, chosen_provider_name) =
+        check_capacity(&inspected, target_provider.as_deref(), &quota)?;
 
     // Pre-flight Cloud Duplicate Disambiguation (ISSUE-05 & ISSUE-08)
     let existing_items = client.list_files(&dst_base_fs, "").await.unwrap_or_default();
@@ -392,7 +456,7 @@ pub async fn reclaim_paths(paths: Vec<String>) -> Result<ReclaimResult, String> 
         for path_str in paths {
             let path = PathBuf::from(&path_str);
             if path.exists() {
-                let size = calculate_path_size(&path).map(|(s, _)| s).unwrap_or(0);
+                let size = calculate_path_size(&path).map(|(s, _, _)| s).unwrap_or(0);
                 trash::delete(&path)
                     .map_err(|e| format!("Failed to move {:?} to Trash: {e}", path))?;
                 count += 1;
@@ -420,9 +484,10 @@ mod tests {
         let file_path = dir.path().join("test.txt");
         std::fs::write(&file_path, b"hello world 12345").expect("write test file");
 
-        let (size, is_dir) = calculate_path_size(&file_path).expect("calculate size");
+        let (size, is_dir, max_file) = calculate_path_size(&file_path).expect("calculate size");
         assert_eq!(size, 17);
         assert!(!is_dir);
+        assert_eq!(max_file, 17);
     }
 
     #[test]
@@ -431,28 +496,147 @@ mod tests {
         let sub = dir.path().join("subdir");
         std::fs::create_dir(&sub).expect("create dir");
         std::fs::write(sub.join("a.txt"), b"12345").expect("write file a");
-        std::fs::write(sub.join("b.txt"), b"67890").expect("write file b");
+        std::fs::write(sub.join("b.txt"), b"6789012").expect("write file b");
 
-        let (size, is_dir) = calculate_path_size(&sub).expect("calculate dir size");
-        assert_eq!(size, 10);
+        let (size, is_dir, max_file) = calculate_path_size(&sub).expect("calculate dir size");
+        assert_eq!(size, 12);
         assert!(is_dir);
+        assert_eq!(max_file, 7);
     }
 
     #[test]
-    fn test_capacity_check_fails_when_exceeding_free_space() {
-        let free_space = 1000;
-        let required_space = 2000;
-        let result = check_capacity(required_space, free_space);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Not enough cloud storage space"));
+    fn test_format_bytes_human() {
+        assert_eq!(format_bytes_human(500), "500 B");
+        assert_eq!(format_bytes_human(1024), "1.0 KB");
+        assert_eq!(format_bytes_human(1536 * 1024), "1.5 MB");
+        assert_eq!(format_bytes_human(2 * 1024 * 1024 * 1024), "2.0 GB");
+        assert_eq!(format_bytes_human(3 * 1024 * 1024 * 1024 * 1024), "3.0 TB");
+    }
+
+    #[test]
+    fn test_capacity_check_fails_when_single_file_exceeds_largest_provider() {
+        let quota = crate::engine::VaultQuota {
+            total_bytes: 5 * 1024 * 1024 * 1024,
+            used_bytes: 0,
+            free_bytes: 5 * 1024 * 1024 * 1024,
+            accounts: vec![
+                crate::engine::CloudAccount {
+                    name: "Google Drive".into(),
+                    provider: "gdrive".into(),
+                    total_bytes: 2 * 1024 * 1024 * 1024,
+                    used_bytes: 0,
+                    is_connected: true,
+                    needs_auth: false,
+                },
+                crate::engine::CloudAccount {
+                    name: "OneDrive".into(),
+                    provider: "onedrive".into(),
+                    total_bytes: 3 * 1024 * 1024 * 1024,
+                    used_bytes: 0,
+                    is_connected: true,
+                    needs_auth: false,
+                },
+            ],
+        };
+
+        let inspected_large_file = InspectPathResult {
+            path: "/path/video.mp4".into(),
+            name: "video.mp4".into(),
+            size_bytes: 4 * 1024 * 1024 * 1024,
+            is_dir: false,
+            max_file_bytes: 4 * 1024 * 1024 * 1024,
+        };
+
+        // Even though combined pool is 5 GB, 4 GB exceeds largest single account (3 GB OneDrive)
+        let res = check_capacity(&inspected_large_file, None, &quota);
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(err.contains("too large for any single cloud account"));
+        assert!(err.contains("OneDrive"));
+        assert!(err.contains("3.0 GB"));
+    }
+
+    #[test]
+    fn test_capacity_check_fails_when_folder_contains_oversized_file() {
+        let quota = crate::engine::VaultQuota {
+            total_bytes: 10 * 1024 * 1024 * 1024,
+            used_bytes: 0,
+            free_bytes: 10 * 1024 * 1024 * 1024,
+            accounts: vec![
+                crate::engine::CloudAccount {
+                    name: "OneDrive".into(),
+                    provider: "onedrive".into(),
+                    total_bytes: 2 * 1024 * 1024 * 1024,
+                    used_bytes: 0,
+                    is_connected: true,
+                    needs_auth: false,
+                },
+            ],
+        };
+
+        let inspected_folder = InspectPathResult {
+            path: "/path/my_folder".into(),
+            name: "my_folder".into(),
+            size_bytes: 3 * 1024 * 1024 * 1024,
+            is_dir: true,
+            max_file_bytes: 2500 * 1024 * 1024,
+        };
+
+        let res = check_capacity(&inspected_folder, None, &quota);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("contains a file"));
+    }
+
+    #[test]
+    fn test_capacity_check_fails_when_no_accounts_connected() {
+        let quota = crate::engine::VaultQuota {
+            total_bytes: 0,
+            used_bytes: 0,
+            free_bytes: 0,
+            accounts: vec![],
+        };
+
+        let inspected = InspectPathResult {
+            path: "/path/doc.pdf".into(),
+            name: "doc.pdf".into(),
+            size_bytes: 1024,
+            is_dir: false,
+            max_file_bytes: 1024,
+        };
+
+        let res = check_capacity(&inspected, None, &quota);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("No cloud accounts connected"));
     }
 
     #[test]
     fn test_capacity_check_succeeds_when_within_free_space() {
-        let free_space = 5000;
-        let required_space = 2000;
-        let result = check_capacity(required_space, free_space);
-        assert!(result.is_ok());
+        let quota = crate::engine::VaultQuota {
+            total_bytes: 10 * 1024 * 1024 * 1024,
+            used_bytes: 0,
+            free_bytes: 10 * 1024 * 1024 * 1024,
+            accounts: vec![
+                crate::engine::CloudAccount {
+                    name: "OneDrive".into(),
+                    provider: "onedrive".into(),
+                    total_bytes: 10 * 1024 * 1024 * 1024,
+                    used_bytes: 0,
+                    is_connected: true,
+                    needs_auth: false,
+                },
+            ],
+        };
+
+        let inspected = InspectPathResult {
+            path: "/path/doc.pdf".into(),
+            name: "doc.pdf".into(),
+            size_bytes: 1024,
+            is_dir: false,
+            max_file_bytes: 1024,
+        };
+
+        let res = check_capacity(&inspected, None, &quota);
+        assert!(res.is_ok());
     }
 
     #[tokio::test]
