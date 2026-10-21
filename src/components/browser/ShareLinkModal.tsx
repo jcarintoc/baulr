@@ -64,6 +64,16 @@ export function ShareLinkModal({ item, open, onClose }: ShareLinkModalProps) {
     } catch {}
   };
 
+  const handleOpenInBrowser = async () => {
+    if (!url) return;
+    try {
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(url);
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
+
   if (!item) return null;
 
   return (
@@ -103,7 +113,14 @@ export function ShareLinkModal({ item, open, onClose }: ShareLinkModalProps) {
                   {copied ? <IconCheck /> : <IconCopy />}
                   <span>{copied ? "Copied!" : "Copy"}</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => window.open(url, "_blank")} title="Open in web browser" className="h-8 size-8 p-0 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenInBrowser}
+                  title="Open in web browser"
+                  aria-label="Open in web browser"
+                  className="h-8 size-8 p-0 shrink-0"
+                >
                   <IconExternalLink />
                 </Button>
               </div>
