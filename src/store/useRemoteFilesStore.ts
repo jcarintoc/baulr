@@ -191,14 +191,14 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         useVaultStore.getState().quota?.accounts?.filter((a) => a.isConnected) ?? [];
       let resolvedProvider = provider;
       if (!resolvedProvider || resolvedProvider === "auto") {
-        if (accounts.length > 0) {
-          const sorted = [...accounts].sort((a, b) => {
-            const freeA = (a.totalBytes ?? 0) - (a.usedBytes ?? 0);
-            const freeB = (b.totalBytes ?? 0) - (b.usedBytes ?? 0);
-            return freeB - freeA;
-          });
-          resolvedProvider = sorted[0]?.provider;
-        }
+        resolvedProvider = accounts.reduce(
+          (best, a) =>
+            (a.totalBytes ?? 0) - (a.usedBytes ?? 0) >
+            (best.totalBytes ?? 0) - (best.usedBytes ?? 0)
+              ? a
+              : best,
+          accounts[0]
+        )?.provider;
       }
 
       const optimisticItem: RemoteVaultItem = {

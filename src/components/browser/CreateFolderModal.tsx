@@ -22,8 +22,6 @@ interface CreateFolderModalProps {
   onCreateFolder: (name: string, provider?: string) => Promise<unknown>;
 }
 
-const INVALID_CHARS = ["/", "\\", ":", "*", "?", '"', "<", ">", "|"];
-
 export function CreateFolderModal({
   open,
   onClose,
@@ -55,19 +53,22 @@ export function CreateFolderModal({
       return;
     }
 
-    if (INVALID_CHARS.some((char) => trimmed.includes(char))) {
+    if (/[/\\:*?"<>|]/.test(trimmed)) {
       setError('Folder names cannot contain special characters (/ \\ : * ? " < > |).');
       return;
     }
 
     const lower = trimmed.toLowerCase();
-    const isDuplicate = existingFiles.some((f) => f.Name.toLowerCase() === lower);
+    const isDuplicate = existingFiles.some(
+      (f) => f.Name.toLowerCase() === lower,
+    );
     if (isDuplicate) {
       setError("A folder with this name already exists here.");
       return;
     }
 
-    const providerArg = selectedProvider === "auto" ? undefined : selectedProvider;
+    const providerArg =
+      selectedProvider === "auto" ? undefined : selectedProvider;
     onClose();
     onCreateFolder(trimmed, providerArg).catch(() => {});
   };
@@ -98,7 +99,10 @@ export function CreateFolderModal({
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="folder-name-input" className="text-xs font-medium text-foreground">
+            <label
+              htmlFor="folder-name-input"
+              className="text-xs font-medium text-foreground"
+            >
               Folder name
             </label>
             <Input
@@ -115,7 +119,9 @@ export function CreateFolderModal({
 
           {accounts.length > 1 && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-foreground">Destination</label>
+              <label className="text-xs font-medium text-foreground">
+                Destination
+              </label>
               <DestinationCloudDropdown
                 accounts={accounts}
                 selectedProvider={selectedProvider}
