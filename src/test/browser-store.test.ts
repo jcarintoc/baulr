@@ -276,7 +276,7 @@ describe("useRemoteFilesStore actions", () => {
   });
 
   it("downloads file when user selects destination", async () => {
-    vi.mocked(browserApi.pickDownloadDestination).mockResolvedValueOnce("/Users/locar/Downloads");
+    vi.mocked(browserApi.pickDownloadDestination).mockResolvedValueOnce("/Users/mockuser/Downloads");
     vi.mocked(browserApi.downloadVaultItemToDirectory).mockResolvedValueOnce(101);
 
     const item = {
@@ -295,7 +295,7 @@ describe("useRemoteFilesStore actions", () => {
       "doc.txt",
       "doc.txt",
       false,
-      "/Users/locar/Downloads",
+      "/Users/mockuser/Downloads",
       undefined
     );
   });

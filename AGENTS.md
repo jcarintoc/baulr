@@ -3,7 +3,7 @@
 ## Project: Baulr (Local-First Unified Cloud Vault & Offloader)
 
 **File:** `AGENTS.md`  
-**Scope:** Universal across all agents, models, and contributors  
+**Scope:** Universal across all AI agents, models, and contributors  
 
 ---
 
@@ -36,27 +36,26 @@ Baulr handles personal media, family photos, and documents. Data loss is fatal.
 - **Verify Before Delete:** NEVER delete a local file until its remote copy passes cryptographic hash verification (MD5, SHA-1, or QuickXOR).
 - **Non-Destructive Deletions:** Local file reclamation MUST move files to the OS Trash / Recycle Bin. Never invoke hard `rm` or `std::fs::remove_file()` on user files.
 - **Capacity Gate:** Always perform a pre-flight capacity check (`file_size <= remaining_space`) before starting any upload.
-- **Cloud is Source of Truth:** Local databases (SQLite) are ephemeral caches and indices. If local state conflicts with remote cloud state, remote state wins.
+- **Cloud is Source of Truth:** Local databases are ephemeral caches and indices. If local state conflicts with remote cloud state, remote state wins.
 
 ---
 
-## 4. Architecture & Technology Boundary
+## 4. Architecture & Technology Boundaries
 
-The project is split into distinct layers governed by specialized rules in `.agents/rules/`:
-
-1. **Rust / Tauri v2 Layer (`.agents/rules/tauri-rust.md`):**
+1. **Rust / Tauri v2 Layer (`src-tauri/`):**
    - Serves as a thin, safe Backend-for-Frontend (BFF).
    - Manages OS keychain, filesystem dialogs, and subprocess supervision.
-   - Zero panics allowed (`.unwrap()` and `.expect()` strictly forbidden in production).
-2. **Rclone Sidecar Engine (`.agents/rules/rclone.md`):**
+   - Zero panics allowed in production paths (`.unwrap()` and `.expect()` strictly forbidden).
+   - Type-safe IPC bridge generated via `tauri-specta`.
+2. **Rclone Sidecar Engine:**
    - Persistent daemon (`rclone rcd`) over loopback HTTP JSON-RPC.
    - Dynamic port allocation (`127.0.0.1:0`).
    - Zero one-off CLI execs; zero plaintext secrets in logs.
-3. **Frontend Layer (`.agents/rules/frontend.md`):**
-   - React 19 + TypeScript + Tailwind CSS + Zustand.
+3. **Frontend Layer (`src/`):**
+   - React 19 + TypeScript + Tailwind CSS v4 + Zustand.
    - Strict API boundary (`src/lib/api/`) separating UI from Tauri IPC.
-   - Modular components under 150 lines.
-   - Strict shadcn-first protocol ([`.agents/rules/component-shadcn.md`](.agents/rules/component-shadcn.md)): local check -> MCP registry -> install -> custom fallback.
+   - Modular components strictly under 150 lines.
+   - Uses Base UI primitives and Tailwind CSS variables for theming.
 
 ---
 
@@ -64,15 +63,5 @@ The project is split into distinct layers governed by specialized rules in `.age
 
 - **Explain Less, Verify More:** Before claiming a task is done, run verification commands (typecheck, lint, build, or tests).
 - **Graceful Error Handling:** Every user-facing action must report errors through UI toasts or alerts; never swallow errors silently in `catch` blocks or empty `match` arms.
+- **Human-Friendly Copy:** Microcopy must be written strictly from the user's perspective. No mechanical jargon (`hash`, `checksum`, `payload`, `thread`, `serialized`).
 - **Clean Diffs:** Avoid reformatting unrelated files or making sweeping style changes across the codebase.
-
----
-
-## 6. Central Knowledge Hub & Agent Memory (BRAIN.md)
-
-All agents must traverse the project knowledge path starting from [`BRAIN.md`](BRAIN.md).
-- **Agent Memory:** Follow [`.agents/skills/project-logs/SKILL.md`](.agents/skills/project-logs/SKILL.md) to log requests, decisions, and shipped deliverables in [`docs/PROJECT_LOGS.md`](docs/PROJECT_LOGS.md).
-- **Roadmap & Sprints:** Follow [`.agents/skills/roadmap/SKILL.md`](.agents/skills/roadmap/SKILL.md) to manage tasks in [`docs/ROADMAP.md`](docs/ROADMAP.md).
-
-
-
