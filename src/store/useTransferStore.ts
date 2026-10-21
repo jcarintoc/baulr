@@ -13,6 +13,7 @@ export interface TransferQueueItem {
   status: "queued" | "preparing" | "uploading" | "verifying" | "verified" | "error";
   error?: string;
   targetProvider?: string;
+  targetDirectory?: string;
 }
 
 interface TransferState {
@@ -20,8 +21,8 @@ interface TransferState {
   isTransferring: boolean;
   isVerified: boolean;
   error: string | null;
-  startOffload: (localPath: string, targetProvider?: string) => Promise<void>;
-  enqueuePaths: (localPaths: string[], targetProvider?: string) => Promise<void>;
+  startOffload: (localPath: string, targetProvider?: string, targetDirectory?: string) => Promise<void>;
+  enqueuePaths: (localPaths: string[], targetProvider?: string, targetDirectory?: string) => Promise<void>;
   cancelOffload: (jobId: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   processNext: () => Promise<void>;
@@ -36,11 +37,11 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   isVerified: false,
   error: null,
 
-  startOffload: async (localPath: string, targetProvider?: string) => {
-    await get().enqueuePaths([localPath], targetProvider);
+  startOffload: async (localPath: string, targetProvider?: string, targetDirectory?: string) => {
+    await get().enqueuePaths([localPath], targetProvider, targetDirectory);
   },
 
-  enqueuePaths: async (localPaths: string[], targetProvider?: string) => {
+  enqueuePaths: async (localPaths: string[], targetProvider?: string, targetDirectory?: string) => {
     if (localPaths.length === 0) return;
     set({ error: null });
 
@@ -54,6 +55,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
       etaSeconds: 0,
       status: "queued",
       targetProvider: targetProvider && targetProvider !== "auto" ? targetProvider : undefined,
+      targetDirectory: targetDirectory?.trim() || undefined,
     }));
 
     set((state) => ({
@@ -86,7 +88,11 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     }));
 
     try {
-      const job = await startOffloadJob(nextItem.path, nextItem.targetProvider);
+      const job = await startOffloadJob(
+        nextItem.path,
+        nextItem.targetProvider,
+        nextItem.targetDirectory
+      );
       set((s) => ({
         items: s.items.map((i) =>
           i.id === nextItem.id

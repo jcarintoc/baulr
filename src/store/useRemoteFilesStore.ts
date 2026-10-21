@@ -6,6 +6,7 @@ import {
   fetchProviderVaultFiles,
   fetchVaultMediaBaseUrl,
   removeVaultItem,
+  createVaultFolder,
   downloadVaultItemToDirectory,
   pickDownloadDestination,
   clearShareLinkCache,
@@ -62,6 +63,7 @@ export interface RemoteFilesState {
   removeProviderFiles: (provider: string) => void;
   prefetchFiles: () => void;
   clearFiles: () => void;
+  createFolder: (name: string) => Promise<void>;
   deleteFile: (path: string, isDir: boolean, provider?: string) => Promise<void>;
   downloadFile: (item: RemoteVaultItem) => Promise<void>;
   handleDownloadProgress: (progress: DownloadProgress) => void;
@@ -167,6 +169,21 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         currentPath: "",
         mediaBaseUrl: null,
       }),
+
+    createFolder: async (name: string) => {
+      set({ error: null });
+      const currentPath = get().currentPath;
+      const cleanName = name.trim();
+      const folderPath = currentPath ? `${currentPath}/${cleanName}` : cleanName;
+      try {
+        await createVaultFolder(folderPath);
+        await get().fetchFiles();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        set({ error: msg });
+        throw err;
+      }
+    },
 
     removeProviderFiles: (provider: string) =>
       set((state) => {

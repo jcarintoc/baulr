@@ -34,9 +34,14 @@ export async function selectOffloadFolder(): Promise<InspectPathResult | null> {
 
 export async function startOffloadJob(
   localPath: string,
-  targetProvider?: string | null
+  targetProvider?: string | null,
+  targetDirectory?: string | null
 ): Promise<OffloadJobInfo> {
-  const res = await commands.startOffload(localPath, targetProvider ?? null);
+  const res = await commands.startOffload(
+    localPath,
+    targetProvider ?? null,
+    targetDirectory ?? null
+  );
   if (res.status === "error") throw new Error(res.error);
   return res.data;
 }

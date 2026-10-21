@@ -71,6 +71,13 @@ export async function removeVaultItem(
   }
 }
 
+export async function createVaultFolder(folderPath: string): Promise<void> {
+  const result = await commands.createVaultFolder(folderPath);
+  if (result.status === "error") {
+    throw new Error(result.error);
+  }
+}
+
 export async function downloadVaultItemToDirectory(
   itemPath: string,
   itemName: string,
