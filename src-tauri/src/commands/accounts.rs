@@ -80,7 +80,9 @@ pub async fn connect_account(
     client.create_oauth_remote(name, remote_type, &params).await?;
 
     if name == "onedrive" {
-        auto_configure_onedrive(&client).await?;
+        if let Err(e) = auto_configure_onedrive(&client).await {
+            eprintln!("Warning: OneDrive secondary auto-configuration notice: {e}");
+        }
     }
 
     let _ = sync_vault_union(&client).await;

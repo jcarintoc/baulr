@@ -79,7 +79,13 @@ pub async fn fetch_vault_quota_internal(
 
     let gdrive_fut = async {
         if config.contains_key("gdrive") {
-            Some(("gdrive".to_string(), client.get_about("gdrive:").await))
+            let res = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                client.get_about("gdrive:"),
+            )
+            .await
+            .unwrap_or_else(|_| Err("Storage quota request timed out".to_string()));
+            Some(("gdrive".to_string(), res))
         } else {
             None
         }
@@ -87,7 +93,13 @@ pub async fn fetch_vault_quota_internal(
 
     let onedrive_fut = async {
         if config.contains_key("onedrive") {
-            Some(("onedrive".to_string(), client.get_about("onedrive:").await))
+            let res = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                client.get_about("onedrive:"),
+            )
+            .await
+            .unwrap_or_else(|_| Err("Storage quota request timed out".to_string()));
+            Some(("onedrive".to_string(), res))
         } else {
             None
         }
@@ -267,5 +279,20 @@ mod tests {
 
         // Combined pool must only sum gdrive
         assert_eq!(quota.total_bytes, 15 * 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_calculate_vault_quota_with_timed_out_account() {
+        let mut config = HashMap::new();
+        config.insert("onedrive".to_string(), HashMap::new());
+
+        let mut about_map = HashMap::new();
+        about_map.insert("onedrive".to_string(), Err("Storage quota request timed out".to_string()));
+
+        let quota = calculate_vault_quota(&config, &about_map, None);
+        let onedrive = quota.accounts.iter().find(|a| a.provider == "onedrive").unwrap();
+        assert!(!onedrive.is_connected);
+        assert!(!onedrive.needs_auth);
+        assert_eq!(quota.total_bytes, 0);
     }
 }
