@@ -25,9 +25,24 @@ pub fn resolve_config_answer(name: &str, default_str: &str, examples: &[RcloneCo
         "config_shared_client_id" => "true".to_string(),
         "teamdrive" => "false".to_string(),
         "config_refresh_token" => "true".to_string(),
+        "config_drive_ok" => "true".to_string(),
         "config_type" | "choose_type" => "onedrive".to_string(),
-        "choose_drive" => {
-            if let Some(first) = examples.first() {
+        "config_driveid" | "choose_drive" => {
+            // Find the primary personal "OneDrive" drive, avoiding internal/system containers
+            if let Some(onedrive_ex) = examples.iter().find(|ex| {
+                let h = ex.help.to_lowercase();
+                h.starts_with("onedrive") || h.contains("onedrive")
+            }) {
+                onedrive_ex.value.clone()
+            } else if let Some(clean_ex) = examples.iter().find(|ex| {
+                let h = ex.help.to_lowercase();
+                !h.contains("archive")
+                    && !h.contains("metadata")
+                    && !h.contains("bundle")
+                    && !ex.value.starts_with("b!")
+            }) {
+                clean_ex.value.clone()
+            } else if let Some(first) = examples.first() {
                 first.value.clone()
             } else if !default_str.is_empty() {
                 default_str.to_string()
@@ -863,10 +878,13 @@ mod tests {
         assert_eq!(resolve_config_answer("choose_type", "onedrive", &[]), "onedrive");
 
         let examples = vec![
-            RcloneConfigExample { value: "0".into(), help: "Personal".into() },
-            RcloneConfigExample { value: "1".into(), help: "Business".into() },
+            RcloneConfigExample { value: "b!system_container_123".into(), help: "C022FB8E-9907-45F9 (personal)".into() },
+            RcloneConfigExample { value: "02C1CD0E661CC2D0".into(), help: "OneDrive (personal)".into() },
+            RcloneConfigExample { value: "b!archive_456".into(), help: "ODCMetadataArchive (personal)".into() },
         ];
-        assert_eq!(resolve_config_answer("choose_drive", "", &examples), "0");
+        assert_eq!(resolve_config_answer("config_driveid", "", &examples), "02C1CD0E661CC2D0");
+        assert_eq!(resolve_config_answer("choose_drive", "", &examples), "02C1CD0E661CC2D0");
+        assert_eq!(resolve_config_answer("config_drive_ok", "true", &[]), "true");
     }
 
     #[test]
