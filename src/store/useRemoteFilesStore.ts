@@ -6,6 +6,7 @@ import {
   fetchProviderVaultFiles,
   fetchVaultMediaBaseUrl,
   removeVaultItem,
+  createVaultFolder,
   downloadVaultItemToDirectory,
   pickDownloadDestination,
   clearShareLinkCache,
@@ -62,6 +63,7 @@ export interface RemoteFilesState {
   removeProviderFiles: (provider: string) => void;
   prefetchFiles: () => void;
   clearFiles: () => void;
+  createFolder: (name: string, provider?: string) => Promise<string>;
   deleteFile: (path: string, isDir: boolean, provider?: string) => Promise<void>;
   downloadFile: (item: RemoteVaultItem) => Promise<void>;
   handleDownloadProgress: (progress: DownloadProgress) => void;
@@ -167,6 +169,110 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         currentPath: "",
         mediaBaseUrl: null,
       }),
+
+    createFolder: async (name: string, provider?: string) => {
+      set({ error: null });
+      const currentPath = get().currentPath;
+      const cleanName = name.trim();
+      const folderPath = currentPath ? `${currentPath}/${cleanName}` : cleanName;
+
+      // Determine resolved provider for optimistic attribution
+      const accounts =
+        useVaultStore.getState().quota?.accounts?.filter((a) => a.isConnected) ?? [];
+      let resolvedProvider = provider;
+      if (!resolvedProvider || resolvedProvider === "auto") {
+        if (accounts.length > 0) {
+          const sorted = [...accounts].sort((a, b) => {
+            const freeA = (a.totalBytes ?? 0) - (a.usedBytes ?? 0);
+            const freeB = (b.totalBytes ?? 0) - (b.usedBytes ?? 0);
+            return freeB - freeA;
+          });
+          resolvedProvider = sorted[0]?.provider;
+        }
+      }
+
+      const optimisticItem: RemoteVaultItem = {
+        Path: folderPath,
+        Name: cleanName,
+        Size: 0,
+        MimeType: "inode/directory",
+        ModTime: new Date().toISOString(),
+        IsDir: true,
+        provider: resolvedProvider,
+      };
+
+      // 1. Optimistic insertion
+      set((state) => {
+        const nextFiles = [...state.files, optimisticItem].sort((a, b) =>
+          a.Name.localeCompare(b.Name)
+        );
+        const nextFilesByProvider = { ...state.filesByProvider };
+        if (resolvedProvider) {
+          const existing = nextFilesByProvider[resolvedProvider] ?? [];
+          nextFilesByProvider[resolvedProvider] = [...existing, optimisticItem].sort((a, b) =>
+            a.Name.localeCompare(b.Name)
+          );
+        }
+        return {
+          files: nextFiles,
+          filesByProvider: nextFilesByProvider,
+        };
+      });
+
+      // 2. Asynchronous backend call
+      try {
+        const actualProvider = await createVaultFolder(
+          folderPath,
+          provider === "auto" ? undefined : provider
+        );
+        // If backend resolved to a different provider than optimistic guess, update attribution
+        if (actualProvider && actualProvider !== resolvedProvider) {
+          set((state) => {
+            const updatedFiles = state.files.map((f) =>
+              f.Path === folderPath && f.provider === resolvedProvider
+                ? { ...f, provider: actualProvider }
+                : f
+            );
+            const nextFilesByProvider = { ...state.filesByProvider };
+            if (resolvedProvider && nextFilesByProvider[resolvedProvider]) {
+              nextFilesByProvider[resolvedProvider] = nextFilesByProvider[
+                resolvedProvider
+              ].filter((f) => f.Path !== folderPath);
+            }
+            const existingActual = nextFilesByProvider[actualProvider] ?? [];
+            nextFilesByProvider[actualProvider] = [
+              ...existingActual,
+              { ...optimisticItem, provider: actualProvider },
+            ].sort((a, b) => a.Name.localeCompare(b.Name));
+            return {
+              files: updatedFiles,
+              filesByProvider: nextFilesByProvider,
+            };
+          });
+        }
+        return actualProvider;
+      } catch (err) {
+        // 3. Rollback on failure
+        const msg = err instanceof Error ? err.message : String(err);
+        set((state) => {
+          const rolledBackFiles = state.files.filter(
+            (f) => !(f.Path === folderPath && f.provider === resolvedProvider)
+          );
+          const nextFilesByProvider = { ...state.filesByProvider };
+          if (resolvedProvider && nextFilesByProvider[resolvedProvider]) {
+            nextFilesByProvider[resolvedProvider] = nextFilesByProvider[
+              resolvedProvider
+            ].filter((f) => f.Path !== folderPath);
+          }
+          return {
+            files: rolledBackFiles,
+            filesByProvider: nextFilesByProvider,
+            error: msg,
+          };
+        });
+        throw err;
+      }
+    },
 
     removeProviderFiles: (provider: string) =>
       set((state) => {

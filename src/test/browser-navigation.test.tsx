@@ -1,10 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { VaultBreadcrumbs } from "@/components/browser/VaultBreadcrumbs";
 import { MediaGridView } from "@/components/browser/MediaGridView";
 import { VaultItemRow } from "@/components/browser/VaultItemRow";
+import { VaultBrowserToolbar } from "@/components/browser/VaultBrowserToolbar";
+import { CreateFolderModal } from "@/components/browser/CreateFolderModal";
 import { Table, TableBody } from "@/components/ui/table";
 import { useRemoteFilesStore, RemoteVaultItem } from "@/store/useRemoteFilesStore";
+import { useTransferStore } from "@/store/useTransferStore";
+import { useViewStore } from "@/store/useViewStore";
+import { useVaultStore } from "@/store/useVaultStore";
+import * as offloadApi from "@/lib/api/offload";
+import * as browserApi from "@/lib/api/browser";
+
+vi.mock("@/lib/api/offload", () => ({
+  selectOffloadFolder: vi.fn(),
+  startOffloadJob: vi.fn(),
+  cancelOffloadJob: vi.fn(),
+  listenOffloadProgress: vi.fn(() => Promise.resolve(() => {})),
+  reclaimPaths: vi.fn(),
+}));
+
+vi.mock("@/lib/api/browser", async (importOriginal) => {
+  const actual = await importOriginal<typeof browserApi>();
+  return {
+    ...actual,
+    createVaultFolder: vi.fn(),
+  };
+});
 
 describe("Vault Navigation & Media Components", () => {
   describe("VaultBreadcrumbs", () => {
@@ -263,6 +286,174 @@ describe("Vault Navigation & Media Components", () => {
 
       store.clearFiles();
       expect(useRemoteFilesStore.getState().currentPath).toBe("");
+    });
+
+    it("creates folder at root and inside nested directories", async () => {
+      vi.mocked(browserApi.createVaultFolder).mockResolvedValue("gdrive");
+
+      // Root creation
+      await useRemoteFilesStore.getState().createFolder("Projects");
+      expect(browserApi.createVaultFolder).toHaveBeenCalledWith("Projects", undefined);
+
+      // Subdirectory creation
+      useRemoteFilesStore.setState({ currentPath: "Projects/Q4" });
+      await useRemoteFilesStore.getState().createFolder("Taxes");
+      expect(browserApi.createVaultFolder).toHaveBeenCalledWith("Projects/Q4/Taxes", undefined);
+    });
+  });
+
+  describe("CreateFolderModal", () => {
+    it("renders modal with parent path context and validates input", async () => {
+      const onClose = vi.fn();
+      const onCreateFolder = vi.fn().mockResolvedValue(undefined);
+
+      const { rerender } = render(
+        <CreateFolderModal
+          open={true}
+          onClose={onClose}
+          currentPath=""
+          onCreateFolder={onCreateFolder}
+        />
+      );
+
+      expect(screen.getByText("New folder")).toBeInTheDocument();
+      expect(screen.getByText("Inside: Vault")).toBeInTheDocument();
+
+      const input = screen.getByPlaceholderText(/e\.g\. Invoices/i);
+      const submitBtn = screen.getByRole("button", { name: /Create folder/i });
+
+      // Special characters validation
+      fireEvent.change(input, { target: { value: "Invalid/Name" } });
+      fireEvent.click(submitBtn);
+
+      expect(
+        screen.getByText(/Folder names cannot contain special characters/i)
+      ).toBeInTheDocument();
+      expect(onCreateFolder).not.toHaveBeenCalled();
+
+      // Valid submission
+      fireEvent.change(input, { target: { value: "Valid Folder" } });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(onCreateFolder).toHaveBeenCalledWith("Valid Folder", undefined);
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      // Context in subdirectory
+      rerender(
+        <CreateFolderModal
+          open={true}
+          onClose={onClose}
+          currentPath="Documents/Work"
+          onCreateFolder={onCreateFolder}
+        />
+      );
+      expect(screen.getByText("Inside: Vault / Documents/Work")).toBeInTheDocument();
+    });
+
+    it("renders destination cloud selection when multiple accounts are connected and closes immediately on submit", async () => {
+      useVaultStore.setState({
+        quota: {
+          totalBytes: 30000000000,
+          usedBytes: 10000000000,
+          freeBytes: 20000000000,
+          accounts: [
+            { name: "Google Drive", provider: "gdrive", usedBytes: 2000, totalBytes: 10000, isConnected: true, needsAuth: false },
+            { name: "OneDrive", provider: "onedrive", usedBytes: 3000, totalBytes: 10000, isConnected: true, needsAuth: false },
+          ],
+        },
+      });
+
+      const onClose = vi.fn();
+      const onCreateFolder = vi.fn().mockReturnValue(new Promise(() => {})); // Never resolves
+
+      render(
+        <CreateFolderModal
+          open={true}
+          onClose={onClose}
+          currentPath=""
+          onCreateFolder={onCreateFolder}
+        />
+      );
+
+      expect(screen.getByText("Destination")).toBeInTheDocument();
+      const input = screen.getByPlaceholderText(/e\.g\. Invoices/i);
+      fireEvent.change(input, { target: { value: "Finances" } });
+
+      const submitBtn = screen.getByRole("button", { name: /Create folder/i });
+      fireEvent.click(submitBtn);
+
+      // Modal must close immediately (0ms perceived latency)
+      expect(onClose).toHaveBeenCalled();
+      expect(onCreateFolder).toHaveBeenCalledWith("Finances", undefined);
+    });
+  });
+
+  describe("VaultBrowserToolbar", () => {
+    it("renders New Folder and Upload here buttons", () => {
+      render(
+        <VaultBrowserToolbar
+          currentPath="Documents"
+          onNavigatePath={vi.fn()}
+          viewMode="table"
+          onViewModeChange={vi.fn()}
+        />
+      );
+
+      expect(screen.getByRole("button", { name: /New folder/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Upload here/i })).toBeInTheDocument();
+    });
+
+    it("opens New Folder modal when clicking New folder button", () => {
+      render(
+        <VaultBrowserToolbar
+          currentPath="Documents"
+          onNavigatePath={vi.fn()}
+          viewMode="table"
+          onViewModeChange={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /New folder/i }));
+      expect(screen.getByText("Inside: Vault / Documents")).toBeInTheDocument();
+    });
+
+    it("triggers file picker and enqueues upload to currentPath when clicking Upload here", async () => {
+      vi.mocked(offloadApi.selectOffloadFolder).mockResolvedValueOnce({
+        path: "/local/my_file.pdf",
+        name: "my_file.pdf",
+        sizeBytes: 1024,
+        isDir: false,
+        maxFileBytes: 1024,
+      });
+
+      const enqueueSpy = vi.spyOn(useTransferStore.getState(), "enqueuePaths").mockResolvedValue();
+      const setViewSpy = vi.spyOn(useViewStore.getState(), "setActiveView");
+
+      render(
+        <VaultBrowserToolbar
+          currentPath="Documents/Projects"
+          onNavigatePath={vi.fn()}
+          viewMode="table"
+          onViewModeChange={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Upload here/i }));
+
+      await waitFor(() => {
+        expect(offloadApi.selectOffloadFolder).toHaveBeenCalled();
+        expect(enqueueSpy).toHaveBeenCalledWith(
+          ["/local/my_file.pdf"],
+          undefined,
+          "Documents/Projects"
+        );
+        expect(setViewSpy).toHaveBeenCalledWith("dashboard");
+      });
+
+      enqueueSpy.mockRestore();
+      setViewSpy.mockRestore();
     });
   });
 });

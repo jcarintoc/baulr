@@ -246,6 +246,20 @@ pub fn resolve_unique_cloud_name(existing_names: &[&str], item_name: &str, is_di
         .unwrap_or_else(|| item_name.to_string())
 }
 
+pub fn resolve_offload_destination_fs(dst_base_fs: &str, target_directory: Option<&str>) -> String {
+    let clean_target_dir = target_directory
+        .map(|d| d.trim().trim_matches('/'))
+        .filter(|d| !d.is_empty());
+
+    match clean_target_dir {
+        Some(dir) => {
+            let sep = if dst_base_fs.ends_with(':') { "" } else { "/" };
+            format!("{dst_base_fs}{sep}{dir}")
+        }
+        None => dst_base_fs.to_string(),
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn start_offload(
@@ -253,6 +267,7 @@ pub async fn start_offload(
     state: tauri::State<'_, AppState>,
     local_path: String,
     target_provider: Option<String>,
+    target_directory: Option<String>,
 ) -> Result<OffloadJobInfo, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
@@ -273,8 +288,10 @@ pub async fn start_offload(
     };
 
     // Determine target destination and check capacity
-    let (dst_base_fs, chosen_provider_name) =
+    let (base_fs, chosen_provider_name) =
         check_capacity(&inspected, target_provider.as_deref(), &quota)?;
+
+    let dst_base_fs = resolve_offload_destination_fs(&base_fs, target_directory.as_deref());
 
     // Pre-flight Cloud Duplicate Disambiguation (ISSUE-05 & ISSUE-08)
     let existing_items = client.list_files(&dst_base_fs, "").await.unwrap_or_default();
@@ -729,6 +746,42 @@ mod tests {
         assert_eq!(
             resolve_unique_cloud_name(&existing_multiple, "Photos", true),
             "Photos (2)"
+        );
+    }
+
+    #[test]
+    fn test_resolve_offload_destination_fs() {
+        assert_eq!(
+            resolve_offload_destination_fs("baulr_vault:", None),
+            "baulr_vault:"
+        );
+        assert_eq!(
+            resolve_offload_destination_fs("baulr_vault:", Some("")),
+            "baulr_vault:"
+        );
+        assert_eq!(
+            resolve_offload_destination_fs("baulr_vault:", Some("   ")),
+            "baulr_vault:"
+        );
+        assert_eq!(
+            resolve_offload_destination_fs("baulr_vault:", Some("Documents")),
+            "baulr_vault:Documents"
+        );
+        assert_eq!(
+            resolve_offload_destination_fs("baulr_vault:", Some("/Documents/Work/")),
+            "baulr_vault:Documents/Work"
+        );
+        assert_eq!(
+            resolve_offload_destination_fs("gdrive:BaulrVault", None),
+            "gdrive:BaulrVault"
+        );
+        assert_eq!(
+            resolve_offload_destination_fs("gdrive:BaulrVault", Some("Documents")),
+            "gdrive:BaulrVault/Documents"
+        );
+        assert_eq!(
+            resolve_offload_destination_fs("gdrive:BaulrVault", Some("/Documents/Work/")),
+            "gdrive:BaulrVault/Documents/Work"
         );
     }
 }

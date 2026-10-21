@@ -4,6 +4,7 @@ import {
   clearShareLinkCache,
   fetchProviderVaultFiles,
   fetchVaultMediaBaseUrl,
+  createVaultFolder,
 } from "@/lib/api/browser";
 import { commands } from "@/lib/bindings";
 
@@ -12,6 +13,7 @@ vi.mock("@/lib/bindings", () => ({
     getFileShareLink: vi.fn(),
     listProviderVaultFiles: vi.fn(),
     getVaultMediaBaseUrl: vi.fn(),
+    createVaultFolder: vi.fn(),
   },
 }));
 
@@ -127,6 +129,41 @@ describe("Browser API module", () => {
 
       const url = await fetchVaultMediaBaseUrl();
       expect(url).toBe("http://127.0.0.1:57104");
+    });
+  });
+
+  describe("createVaultFolder", () => {
+    it("creates vault folder successfully without provider", async () => {
+      vi.mocked(commands.createVaultFolder).mockResolvedValueOnce({
+        status: "ok",
+        data: "gdrive",
+      });
+
+      const res = await createVaultFolder("Documents/Projects");
+      expect(commands.createVaultFolder).toHaveBeenCalledWith("Documents/Projects", null);
+      expect(res).toBe("gdrive");
+    });
+
+    it("creates vault folder targeted to specific provider", async () => {
+      vi.mocked(commands.createVaultFolder).mockResolvedValueOnce({
+        status: "ok",
+        data: "onedrive",
+      });
+
+      const res = await createVaultFolder("Documents/Projects", "onedrive");
+      expect(commands.createVaultFolder).toHaveBeenCalledWith("Documents/Projects", "onedrive");
+      expect(res).toBe("onedrive");
+    });
+
+    it("throws error when creating folder fails", async () => {
+      vi.mocked(commands.createVaultFolder).mockResolvedValueOnce({
+        status: "error",
+        error: "Folder name contains special characters",
+      });
+
+      await expect(createVaultFolder("Documents/Invalid:Name")).rejects.toThrow(
+        "Folder name contains special characters"
+      );
     });
   });
 });

@@ -20,7 +20,8 @@ interface DestinationCloudDropdownProps {
   selectedProvider: string;
   onSelectProvider: (provider: string) => void;
   disabled?: boolean;
-  totalFreeBytes?: number;
+  totalFreeBytes?: number | null;
+  triggerClassName?: string;
 }
 
 export function DestinationCloudDropdown({
@@ -29,6 +30,7 @@ export function DestinationCloudDropdown({
   onSelectProvider,
   disabled,
   totalFreeBytes,
+  triggerClassName,
 }: DestinationCloudDropdownProps) {
   if (accounts.length <= 1) return null;
 
@@ -47,7 +49,7 @@ export function DestinationCloudDropdown({
             variant="outline"
             size="sm"
             disabled={disabled}
-            className="gap-1.5 text-xs text-muted-foreground"
+            className={triggerClassName ?? "gap-1.5 text-xs text-muted-foreground"}
             title="Choose cloud destination"
           >
             <IconCloudUpload />
@@ -62,7 +64,7 @@ export function DestinationCloudDropdown({
         <DropdownMenuItem onClick={() => onSelectProvider("auto")}>
           <div className="flex items-center justify-between w-full gap-2">
             <span>Let Baulr decide (Auto)</span>
-            {totalFreeBytes !== undefined && (
+            {totalFreeBytes != null && (
               <span className="text-[11px] text-muted-foreground font-normal">
                 {formatBytes(totalFreeBytes)} free
               </span>
