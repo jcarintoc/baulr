@@ -1,4 +1,4 @@
-- [ ] If the same cloud have same file name of files. Its not showing both. I think its good to have a new column in the table for provider column. So user can see what cloud is that file uploaded
+- [x] (Resolved) If the same cloud have same file name of files. Its not showing both. I think its good to have a new column in the table for provider column. So user can see what cloud is that file uploaded
 - [x] (Resolved) sometimes this happen. I disconnected all providers, then i tried connecting one provider (google drive) but it shows the one drive storage pool and files in vault files
 - [ ] if the user uploaded a file that is too large and not available to any provider, what will it do?
 - [ ] how will user categorize its uploaded files? for example the user wants to put the file on a nested folder inside the BaulrVault folder. Since there’s no creation of folder in our app how will user do that?

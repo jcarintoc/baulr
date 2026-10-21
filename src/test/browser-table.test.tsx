@@ -55,9 +55,42 @@ describe("VaultBrowserTable", () => {
     render(<VaultBrowserTable />);
 
     expect(screen.getByText("report.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Cloud")).toBeInTheDocument();
     expect(screen.getByText("1 MB")).toBeInTheDocument();
     expect(screen.getByText("photos")).toBeInTheDocument();
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders Cloud column and distinguishes duplicate file names across providers", () => {
+    useRemoteFilesStore.setState({
+      files: [
+        {
+          Path: "report.pdf",
+          Name: "report.pdf",
+          Size: 1024,
+          MimeType: "application/pdf",
+          ModTime: null,
+          IsDir: false,
+          provider: "gdrive",
+        },
+        {
+          Path: "report.pdf",
+          Name: "report.pdf",
+          Size: 2048,
+          MimeType: "application/pdf",
+          ModTime: null,
+          IsDir: false,
+          provider: "onedrive",
+        },
+      ],
+    });
+
+    render(<VaultBrowserTable />);
+
+    expect(screen.getByText("Cloud")).toBeInTheDocument();
+    expect(screen.getAllByText("report.pdf").length).toBe(2);
+    expect(screen.getByText("Google Drive")).toBeInTheDocument();
+    expect(screen.getByText("OneDrive")).toBeInTheDocument();
   });
 
   it("filters items based on search input", () => {
@@ -147,7 +180,7 @@ describe("VaultBrowserTable", () => {
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(deleteSpy).toHaveBeenCalledWith("delete_me.txt", false);
+      expect(deleteSpy).toHaveBeenCalledWith("delete_me.txt", false, undefined);
     });
   });
 

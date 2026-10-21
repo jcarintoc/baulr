@@ -9,6 +9,7 @@ import {
 } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
+import { GoogleDriveIcon, OneDriveIcon } from "@/components/common/ProviderIcons";
 import type { RemoteVaultItem } from "@/store/useRemoteFilesStore";
 
 function isImageItem(name: string, mime?: string | null): boolean {
@@ -47,7 +48,7 @@ export function MediaGridView({
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 p-3.5">
-      {items.map((item) => {
+      {items.map((item, idx) => {
         const isImg = !item.IsDir && isImageItem(item.Name, item.MimeType);
         const isVid = !item.IsDir && isVideoItem(item.Name, item.MimeType);
         const ext = item.Name.split(".").pop()?.toUpperCase() || "FILE";
@@ -55,14 +56,16 @@ export function MediaGridView({
         if (item.IsDir) {
           return (
             <div
-              key={item.Path}
+              key={`${item.provider ?? "vault"}:${item.Path}:${idx}`}
               onClick={() => onOpenFolder(item)}
               className="relative group cursor-pointer aspect-square -translate-y-5"
             >
               <IconFolder className="group-hover:opacity-0 absolute inset-0 w-full h-full text-vault-accent-text fill-current scale-105 stroke-1 transition-opacity duration-300" />
               <IconFolderOpen className="group-hover:opacity-100 opacity-0 absolute inset-0 w-full h-full text-vault-accent-text fill-vault-accent scale-105 stroke-1 transition-opacity duration-300" />
 
-              <div className="absolute bottom-0 left-6">
+              <div className="absolute bottom-0 left-6 flex items-center gap-1.5 max-w-[calc(100%-2rem)]">
+                {item.provider === "gdrive" && <GoogleDriveIcon className="size-3.5 shrink-0" />}
+                {item.provider === "onedrive" && <OneDriveIcon className="size-3.5 shrink-0" />}
                 <p className="text-foreground truncate font-medium">
                   {item.Name}
                 </p>
@@ -106,7 +109,7 @@ export function MediaGridView({
 
         return (
           <div
-            key={item.Path}
+            key={`${item.provider ?? "vault"}:${item.Path}:${idx}`}
             onClick={() => onOpenFile(item)}
             className="group relative flex flex-col rounded-xl border border-border/70 bg-card/40 hover:bg-card/80 hover:border-vault-accent/40 hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer aspect-square"
           >
@@ -174,7 +177,11 @@ export function MediaGridView({
                 {item.Name}
               </p>
               <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
-                <span>{formatBytes(item.Size ?? 0)}</span>
+                <div className="flex items-center gap-1.5">
+                  {item.provider === "gdrive" && <GoogleDriveIcon className="size-3.5 shrink-0" />}
+                  {item.provider === "onedrive" && <OneDriveIcon className="size-3.5 shrink-0" />}
+                  <span>{formatBytes(item.Size ?? 0)}</span>
+                </div>
                 <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground/70">
                   {ext}
                 </span>

@@ -68,20 +68,29 @@ pub fn format_download_targets(
     item_name: &str,
     is_dir: bool,
     destination_dir: &str,
+    provider: Option<&str>,
 ) -> (String, String, String) {
     let dest_path = Path::new(destination_dir);
     let resolved_name = resolve_unique_destination_name(dest_path, item_name, is_dir);
 
+    let base_remote = match provider.filter(|p| !p.trim().is_empty()) {
+        Some(p) => format!("{p}:{VAULT_SUBDIR}"),
+        None => format!("{VAULT_UNION_NAME}:"),
+    };
+
     if is_dir {
-        let src_fs = format!("{}:{}/", VAULT_UNION_NAME, item_path);
+        let src_fs = if base_remote.ends_with(':') {
+            format!("{base_remote}{item_path}/")
+        } else {
+            format!("{base_remote}/{item_path}/")
+        };
         let dst_fs = dest_path
             .join(&resolved_name)
             .to_string_lossy()
             .to_string();
         (src_fs, dst_fs, resolved_name)
     } else {
-        let src_fs = format!("{}:", VAULT_UNION_NAME);
-        (src_fs, destination_dir.to_string(), resolved_name)
+        (base_remote, destination_dir.to_string(), resolved_name)
     }
 }
 
@@ -165,10 +174,14 @@ pub async fn delete_vault_item(
     state: tauri::State<'_, AppState>,
     item_path: String,
     is_dir: bool,
+    provider: Option<String>,
 ) -> Result<(), String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
-    let fs = format!("{}:", VAULT_UNION_NAME);
+    let fs = match provider.as_deref().filter(|p| !p.trim().is_empty()) {
+        Some(p) => format!("{p}:{VAULT_SUBDIR}"),
+        None => format!("{VAULT_UNION_NAME}:"),
+    };
 
     if is_dir {
         client.purge_dir(&fs, &item_path).await
@@ -186,6 +199,7 @@ pub async fn download_vault_item(
     item_name: String,
     is_dir: bool,
     destination_dir: String,
+    provider: Option<String>,
 ) -> Result<f64, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
@@ -198,7 +212,7 @@ pub async fn download_vault_item(
     );
 
     let (src_fs, dst_fs, resolved_name) =
-        format_download_targets(&item_path, &item_name, is_dir, &destination_dir);
+        format_download_targets(&item_path, &item_name, is_dir, &destination_dir, provider.as_deref());
 
     let dest_display = if is_dir {
         dst_fs.clone()
@@ -326,16 +340,22 @@ pub async fn pick_destination_folder(app: tauri::AppHandle) -> Result<Option<Str
 pub async fn get_file_share_link(
     state: tauri::State<'_, AppState>,
     path: String,
+    provider: Option<String>,
 ) -> Result<String, String> {
     let client_guard = state.client.read().await;
     let client = client_guard.as_ref().ok_or("Vault engine is not running")?;
+    let clean_path = path.trim_start_matches('/').to_string();
+
+    if let Some(p) = provider.as_deref().filter(|p| !p.trim().is_empty()) {
+        let upstream = format!("{p}:{VAULT_SUBDIR}");
+        return client.get_public_link(&upstream, &clean_path).await;
+    }
+
     let config = client.dump_config().await?;
     let upstreams = build_union_upstreams(&config);
     if upstreams.is_empty() {
         return Err("No cloud accounts connected".to_string());
     }
-
-    let clean_path = path.trim_start_matches('/').to_string();
 
     let mut set = tokio::task::JoinSet::new();
     for upstream in upstreams {
@@ -376,14 +396,29 @@ mod tests {
     #[test]
     fn test_format_download_targets_no_collision() {
         let (src_dir, dst_dir, name) =
-            format_download_targets("photos", "photos", true, "/nonexistent_dir/downloads");
+            format_download_targets("photos", "photos", true, "/nonexistent_dir/downloads", None);
         assert_eq!(src_dir, "baulr_vault:photos/");
         assert_eq!(dst_dir, "/nonexistent_dir/downloads/photos");
         assert_eq!(name, "photos");
 
         let (src_file, dst_file, file_name) =
-            format_download_targets("doc.pdf", "doc.pdf", false, "/nonexistent_dir/downloads");
+            format_download_targets("doc.pdf", "doc.pdf", false, "/nonexistent_dir/downloads", None);
         assert_eq!(src_file, "baulr_vault:");
+        assert_eq!(dst_file, "/nonexistent_dir/downloads");
+        assert_eq!(file_name, "doc.pdf");
+    }
+
+    #[test]
+    fn test_format_download_targets_with_specific_provider() {
+        let (src_dir, dst_dir, name) =
+            format_download_targets("photos", "photos", true, "/nonexistent_dir/downloads", Some("onedrive"));
+        assert_eq!(src_dir, "onedrive:BaulrVault/photos/");
+        assert_eq!(dst_dir, "/nonexistent_dir/downloads/photos");
+        assert_eq!(name, "photos");
+
+        let (src_file, dst_file, file_name) =
+            format_download_targets("doc.pdf", "doc.pdf", false, "/nonexistent_dir/downloads", Some("gdrive"));
+        assert_eq!(src_file, "gdrive:BaulrVault");
         assert_eq!(dst_file, "/nonexistent_dir/downloads");
         assert_eq!(file_name, "doc.pdf");
     }

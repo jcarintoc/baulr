@@ -25,12 +25,17 @@ function getInitialViewMode(): "table" | "grid" {
 export function mergeProviderFiles(
   filesByProvider: Record<string, RemoteVaultItem[]>
 ): RemoteVaultItem[] {
-  const map = new Map(
-    Object.values(filesByProvider)
-      .flat()
-      .map((item) => [item.Path, item])
-  );
-  return Array.from(map.values()).sort((a, b) => a.Name.localeCompare(b.Name));
+  const merged: RemoteVaultItem[] = [];
+  for (const [provider, items] of Object.entries(filesByProvider)) {
+    for (const item of items) {
+      merged.push({ ...item, provider: item.provider ?? provider });
+    }
+  }
+  return merged.sort((a, b) => {
+    const nameCmp = a.Name.localeCompare(b.Name);
+    if (nameCmp !== 0) return nameCmp;
+    return (a.provider ?? "").localeCompare(b.provider ?? "");
+  });
 }
 
 export interface RemoteFilesState {
@@ -57,7 +62,7 @@ export interface RemoteFilesState {
   removeProviderFiles: (provider: string) => void;
   prefetchFiles: () => void;
   clearFiles: () => void;
-  deleteFile: (path: string, isDir: boolean) => Promise<void>;
+  deleteFile: (path: string, isDir: boolean, provider?: string) => Promise<void>;
   downloadFile: (item: RemoteVaultItem) => Promise<void>;
   handleDownloadProgress: (progress: DownloadProgress) => void;
   dismissDownload: (path: string) => void;
@@ -306,18 +311,26 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
     state.fetchFiles().catch(() => {});
   },
 
-  deleteFile: async (path: string, isDir: boolean) => {
+  deleteFile: async (path: string, isDir: boolean, provider?: string) => {
     set({ error: null });
     try {
-      await removeVaultItem(path, isDir);
-      clearShareLinkCache(path);
+      await removeVaultItem(path, isDir, provider);
+      clearShareLinkCache(path, provider);
       set((state) => {
         const nextFilesByProvider: Record<string, RemoteVaultItem[]> = {};
         for (const [p, list] of Object.entries(state.filesByProvider)) {
-          nextFilesByProvider[p] = list.filter((f) => f.Path !== path);
+          if (!provider || p === provider) {
+            nextFilesByProvider[p] = list.filter((f) => f.Path !== path);
+          } else {
+            nextFilesByProvider[p] = list;
+          }
         }
         return {
-          files: state.files.filter((f) => f.Path !== path),
+          files: state.files.filter((f) => {
+            if (f.Path !== path) return true;
+            if (provider && f.provider && f.provider !== provider) return true;
+            return false;
+          }),
           filesByProvider: nextFilesByProvider,
         };
       });
@@ -355,7 +368,8 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         item.Path,
         item.Name,
         item.IsDir,
-        destination
+        destination,
+        item.provider
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

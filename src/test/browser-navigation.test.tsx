@@ -200,7 +200,6 @@ describe("Vault Navigation & Media Components", () => {
       );
 
       expect(screen.getByText("Albums")).toBeInTheDocument();
-      expect(screen.getByText("Folder")).toBeInTheDocument();
       expect(screen.getByText("beach.jpg")).toBeInTheDocument();
       expect(screen.getByText("drone.mp4")).toBeInTheDocument();
       expect(screen.getByText("notes.txt")).toBeInTheDocument();

@@ -407,7 +407,7 @@ describe("useVaultStore", () => {
     expect(useVaultStore.getState().quota).toEqual(remainingQuota);
     expect(useRemoteFilesStore.getState().filesByProvider["onedrive"]).toBeUndefined();
     expect(useRemoteFilesStore.getState().files).toEqual([
-      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false, provider: "gdrive" },
     ]);
   });
 

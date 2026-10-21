@@ -47,7 +47,7 @@ export function VaultBrowserTable() {
     if (!pendingDelete) return;
     setIsDeleting(true);
     try {
-      await deleteFile(pendingDelete.Path, pendingDelete.IsDir);
+      await deleteFile(pendingDelete.Path, pendingDelete.IsDir, pendingDelete.provider);
       setPendingDelete(null);
     } finally {
       setIsDeleting(false);
@@ -113,15 +113,16 @@ export function VaultBrowserTable() {
             <TableHeader className="bg-muted/40">
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground">Name</TableHead>
+                <TableHead className="text-muted-foreground">Cloud</TableHead>
                 <TableHead className="text-muted-foreground">Size</TableHead>
                 <TableHead className="text-muted-foreground">Modified</TableHead>
                 <TableHead className="text-muted-foreground text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border/60">
-              {filtered.map((item) => (
+              {filtered.map((item, idx) => (
                 <VaultItemRow
-                  key={item.Path} item={item} isDownloading={downloadingPath === item.Path}
+                  key={`${item.provider ?? "vault"}:${item.Path}:${idx}`} item={item} isDownloading={downloadingPath === item.Path}
                   activeDownload={activeDownloads[item.Path]} onDownload={handleDownload}
                   onDelete={setPendingDelete} onShare={setSharingItem} onOpenFolder={(f) => setVaultPath(f.Path)}
                   onOpenFile={handleOpenFile}
@@ -129,7 +130,7 @@ export function VaultBrowserTable() {
               ))}
               {isCheckingCloud && (
                 <TableRow className="border-border hover:bg-transparent bg-muted/15">
-                  <TableCell colSpan={4} className="py-2.5 text-center text-xs text-muted-foreground">
+                  <TableCell colSpan={5} className="py-2.5 text-center text-xs text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <Spinner className="text-vault-accent" />
                       <span>Checking {checkingTarget} for additional files...</span>

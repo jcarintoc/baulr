@@ -1,7 +1,9 @@
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { commands, RcloneItem } from "@/lib/bindings";
 
-export type RemoteVaultItem = RcloneItem;
+export type RemoteVaultItem = RcloneItem & {
+  provider?: string;
+};
 
 export interface DownloadProgress {
   jobId: number;
@@ -18,8 +20,13 @@ export interface DownloadProgress {
 
 const shareLinkCache = new Map<string, string>();
 
-export function clearShareLinkCache(path?: string): void {
+function getShareCacheKey(path: string, provider?: string | null): string {
+  return `${provider ?? "vault"}:${path}`;
+}
+
+export function clearShareLinkCache(path?: string, provider?: string | null): void {
   if (path) {
+    shareLinkCache.delete(getShareCacheKey(path, provider));
     shareLinkCache.delete(path);
   } else {
     shareLinkCache.clear();
@@ -55,9 +62,10 @@ export async function fetchVaultMediaBaseUrl(): Promise<string | null> {
 
 export async function removeVaultItem(
   itemPath: string,
-  isDir: boolean
+  isDir: boolean,
+  provider?: string | null
 ): Promise<void> {
-  const result = await commands.deleteVaultItem(itemPath, isDir);
+  const result = await commands.deleteVaultItem(itemPath, isDir, provider ?? null);
   if (result.status === "error") {
     throw new Error(result.error);
   }
@@ -67,13 +75,15 @@ export async function downloadVaultItemToDirectory(
   itemPath: string,
   itemName: string,
   isDir: boolean,
-  destinationDir: string
+  destinationDir: string,
+  provider?: string | null
 ): Promise<number | null> {
   const result = await commands.downloadVaultItem(
     itemPath,
     itemName,
     isDir,
-    destinationDir
+    destinationDir,
+    provider ?? null
   );
   if (result.status === "error") {
     throw new Error(result.error);
@@ -97,15 +107,19 @@ export function listenToDownloadProgress(
   });
 }
 
-export async function fetchFileShareLink(path: string): Promise<string> {
-  const cached = shareLinkCache.get(path);
+export async function fetchFileShareLink(
+  path: string,
+  provider?: string | null
+): Promise<string> {
+  const cacheKey = getShareCacheKey(path, provider);
+  const cached = shareLinkCache.get(cacheKey);
   if (cached) {
     return cached;
   }
-  const result = await commands.getFileShareLink(path);
+  const result = await commands.getFileShareLink(path, provider ?? null);
   if (result.status === "error") {
     throw new Error(result.error);
   }
-  shareLinkCache.set(path, result.data);
+  shareLinkCache.set(cacheKey, result.data);
   return result.data;
 }

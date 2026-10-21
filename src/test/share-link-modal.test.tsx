@@ -20,6 +20,7 @@ const mockItem: RemoteVaultItem = {
   IsDir: false,
   MimeType: "image/jpeg",
   ModTime: "2026-10-17T12:00:00Z",
+  provider: "gdrive",
 };
 
 describe("ShareLinkModal", () => {
@@ -43,7 +44,7 @@ describe("ShareLinkModal", () => {
       expect(screen.getByDisplayValue("https://drive.google.com/file/d/sample123/view")).toBeInTheDocument();
     });
 
-    expect(browserApi.fetchFileShareLink).toHaveBeenCalledWith("Photos/beach.jpg");
+    expect(browserApi.fetchFileShareLink).toHaveBeenCalledWith("Photos/beach.jpg", "gdrive");
   });
 
   it("copies link to clipboard with feedback", async () => {

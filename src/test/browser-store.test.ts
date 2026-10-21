@@ -268,8 +268,8 @@ describe("useRemoteFilesStore actions", () => {
 
     await useRemoteFilesStore.getState().deleteFile("doc.txt", false);
 
-    expect(browserApi.removeVaultItem).toHaveBeenCalledWith("doc.txt", false);
-    expect(browserApi.clearShareLinkCache).toHaveBeenCalledWith("doc.txt");
+    expect(browserApi.removeVaultItem).toHaveBeenCalledWith("doc.txt", false, undefined);
+    expect(browserApi.clearShareLinkCache).toHaveBeenCalledWith("doc.txt", undefined);
     const files = useRemoteFilesStore.getState().files;
     expect(files.length).toBe(1);
     expect(files[0].Path).toBe("photos");
@@ -295,7 +295,8 @@ describe("useRemoteFilesStore actions", () => {
       "doc.txt",
       "doc.txt",
       false,
-      "/Users/locar/Downloads"
+      "/Users/locar/Downloads",
+      undefined
     );
   });
 
@@ -338,7 +339,7 @@ describe("useRemoteFilesStore actions", () => {
     expect(state.providerErrors["onedrive"]).toBeUndefined();
     expect(state.providerLoading["onedrive"]).toBeUndefined();
     expect(state.files).toEqual([
-      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false, provider: "gdrive" },
     ]);
   });
 
@@ -377,7 +378,7 @@ describe("useRemoteFilesStore actions", () => {
     const state = useRemoteFilesStore.getState();
     expect(state.filesByProvider["onedrive"]).toBeUndefined();
     expect(state.files).toEqual([
-      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false },
+      { Path: "doc.txt", Name: "doc.txt", Size: 10, MimeType: "text/plain", ModTime: null, IsDir: false, provider: "gdrive" },
     ]);
   });
 
@@ -432,5 +433,93 @@ describe("useRemoteFilesStore actions", () => {
 
     useRemoteFilesStore.getState().dismissDownload("photo.jpg");
     expect(useRemoteFilesStore.getState().activeDownloads["photo.jpg"]).toBeUndefined();
+  });
+
+  it("preserves duplicate filenames across different cloud providers with their respective providers", async () => {
+    useVaultStore.setState({
+      quota: {
+        totalBytes: 2000,
+        usedBytes: 300,
+        freeBytes: 1700,
+        accounts: [
+          { name: "Google Drive", provider: "gdrive", isConnected: true, needsAuth: false, usedBytes: 100, totalBytes: 1000 },
+          { name: "OneDrive", provider: "onedrive", isConnected: true, needsAuth: false, usedBytes: 200, totalBytes: 1000 },
+        ],
+      },
+    });
+
+    vi.mocked(browserApi.fetchProviderVaultFiles).mockImplementation((provider) => {
+      if (provider === "gdrive") {
+        return Promise.resolve([
+          { Path: "report.pdf", Name: "report.pdf", Size: 100, MimeType: "application/pdf", ModTime: null, IsDir: false },
+        ]);
+      }
+      return Promise.resolve([
+        { Path: "report.pdf", Name: "report.pdf", Size: 200, MimeType: "application/pdf", ModTime: null, IsDir: false },
+      ]);
+    });
+
+    await useRemoteFilesStore.getState().fetchFiles();
+
+    const files = useRemoteFilesStore.getState().files;
+    expect(files.length).toBe(2);
+    expect(files[0]).toEqual(
+      expect.objectContaining({ Name: "report.pdf", Size: 100, provider: "gdrive" })
+    );
+    expect(files[1]).toEqual(
+      expect.objectContaining({ Name: "report.pdf", Size: 200, provider: "onedrive" })
+    );
+  });
+
+  it("preserves duplicate filenames within the same cloud provider", async () => {
+    useVaultStore.setState({
+      quota: {
+        totalBytes: 1000,
+        usedBytes: 300,
+        freeBytes: 700,
+        accounts: [
+          { name: "Google Drive", provider: "gdrive", isConnected: true, needsAuth: false, usedBytes: 300, totalBytes: 1000 },
+        ],
+      },
+    });
+
+    vi.mocked(browserApi.fetchProviderVaultFiles).mockResolvedValueOnce([
+      { Path: "report.pdf", Name: "report.pdf", Size: 100, MimeType: "application/pdf", ModTime: null, IsDir: false },
+      { Path: "report.pdf", Name: "report.pdf", Size: 200, MimeType: "application/pdf", ModTime: null, IsDir: false },
+    ]);
+
+    await useRemoteFilesStore.getState().fetchFiles();
+
+    const files = useRemoteFilesStore.getState().files;
+    expect(files.length).toBe(2);
+    expect(files[0].Size).toBe(100);
+    expect(files[1].Size).toBe(200);
+    expect(files[0].provider).toBe("gdrive");
+    expect(files[1].provider).toBe("gdrive");
+  });
+
+  it("deleting a file with a specific provider only deletes that provider's copy", async () => {
+    useRemoteFilesStore.setState({
+      filesByProvider: {
+        gdrive: [{ Path: "report.pdf", Name: "report.pdf", Size: 100, MimeType: "application/pdf", ModTime: null, IsDir: false, provider: "gdrive" }],
+        onedrive: [{ Path: "report.pdf", Name: "report.pdf", Size: 200, MimeType: "application/pdf", ModTime: null, IsDir: false, provider: "onedrive" }],
+      },
+      files: [
+        { Path: "report.pdf", Name: "report.pdf", Size: 100, MimeType: "application/pdf", ModTime: null, IsDir: false, provider: "gdrive" },
+        { Path: "report.pdf", Name: "report.pdf", Size: 200, MimeType: "application/pdf", ModTime: null, IsDir: false, provider: "onedrive" },
+      ],
+    });
+
+    vi.mocked(browserApi.removeVaultItem).mockResolvedValueOnce();
+
+    await useRemoteFilesStore.getState().deleteFile("report.pdf", false, "onedrive");
+
+    expect(browserApi.removeVaultItem).toHaveBeenCalledWith("report.pdf", false, "onedrive");
+    expect(browserApi.clearShareLinkCache).toHaveBeenCalledWith("report.pdf", "onedrive");
+
+    const files = useRemoteFilesStore.getState().files;
+    expect(files.length).toBe(1);
+    expect(files[0].provider).toBe("gdrive");
+    expect(files[0].Size).toBe(100);
   });
 });

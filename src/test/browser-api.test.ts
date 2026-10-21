@@ -30,7 +30,18 @@ describe("Browser API module", () => {
 
       const link = await fetchFileShareLink("Photos/summer.jpg");
       expect(link).toBe("https://drive.google.com/file/d/test1234/view?usp=sharing");
-      expect(commands.getFileShareLink).toHaveBeenCalledWith("Photos/summer.jpg");
+      expect(commands.getFileShareLink).toHaveBeenCalledWith("Photos/summer.jpg", null);
+    });
+
+    it("fetches public share link targeted to specific provider", async () => {
+      vi.mocked(commands.getFileShareLink).mockResolvedValue({
+        status: "ok",
+        data: "https://onedrive.live.com/test1234",
+      });
+
+      const link = await fetchFileShareLink("Photos/summer.jpg", "onedrive");
+      expect(link).toBe("https://onedrive.live.com/test1234");
+      expect(commands.getFileShareLink).toHaveBeenCalledWith("Photos/summer.jpg", "onedrive");
     });
 
     it("throws error when fetching public share link fails", async () => {

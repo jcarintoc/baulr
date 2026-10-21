@@ -38,7 +38,7 @@ export function ShareLinkModal({ item, open, onClose }: ShareLinkModalProps) {
     setIsLoading(true);
     setError(null);
     try {
-      const link = await fetchFileShareLink(item.Path);
+      const link = await fetchFileShareLink(item.Path, item.provider);
       setUrl(link);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -53,7 +53,7 @@ export function ShareLinkModal({ item, open, onClose }: ShareLinkModalProps) {
       setCopied(false);
       loadLink();
     }
-  }, [open, item?.Path]);
+  }, [open, item?.Path, item?.provider]);
 
   const handleCopy = async () => {
     if (!url) return;
