@@ -31,10 +31,20 @@ export function AccountCard({
           <div className="size-10 rounded-lg bg-muted text-foreground border border-border flex items-center justify-center">
             <ProviderIcon provider={account.provider} className="size-5" />
           </div>
-          <div>
-            <h4 className="font-medium text-sm text-foreground">
-              {account.name}
-            </h4>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="font-medium text-sm text-foreground">
+                {account.name}
+              </h4>
+              {account.accountEmail && (
+                <span
+                  className="text-[11px] text-muted-foreground font-mono truncate max-w-[180px] sm:max-w-[240px]"
+                  title={account.accountEmail}
+                >
+                  {account.accountEmail}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground tabular-nums">
               {formatBytes(account.usedBytes ?? 0)} /{" "}
               {formatBytes(account.totalBytes ?? 0)}

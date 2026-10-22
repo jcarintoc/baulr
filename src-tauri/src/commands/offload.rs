@@ -563,6 +563,7 @@ mod tests {
                     used_bytes: 0,
                     is_connected: true,
                     needs_auth: false,
+                    account_email: None,
                 },
                 crate::engine::CloudAccount {
                     name: "OneDrive".into(),
@@ -571,6 +572,7 @@ mod tests {
                     used_bytes: 0,
                     is_connected: true,
                     needs_auth: false,
+                    account_email: None,
                 },
             ],
         };
@@ -606,6 +608,7 @@ mod tests {
                     used_bytes: 0,
                     is_connected: true,
                     needs_auth: false,
+                    account_email: None,
                 },
             ],
         };
@@ -659,6 +662,7 @@ mod tests {
                     used_bytes: 0,
                     is_connected: true,
                     needs_auth: false,
+                    account_email: None,
                 },
             ],
         };

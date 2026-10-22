@@ -379,4 +379,56 @@ describe("VaultBrowserTable", () => {
     expect(screen.getByText(/Checking OneDrive for additional files.../i)).toBeInTheDocument();
     expect(screen.getByText("gdoc.pdf")).toBeInTheDocument();
   });
+
+  it("renders provider filter pills and filters files when clicked", () => {
+    useRemoteFilesStore.setState({
+      selectedProvider: "all",
+      files: [
+        { Path: "gdrive-file.pdf", Name: "gdrive-file.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false, provider: "gdrive" },
+        { Path: "onedrive-file.docx", Name: "onedrive-file.docx", Size: 200, MimeType: "", ModTime: null, IsDir: false, provider: "onedrive" },
+      ],
+      filesByProvider: {
+        gdrive: [{ Path: "gdrive-file.pdf", Name: "gdrive-file.pdf", Size: 100, MimeType: "", ModTime: null, IsDir: false, provider: "gdrive" }],
+        onedrive: [{ Path: "onedrive-file.docx", Name: "onedrive-file.docx", Size: 200, MimeType: "", ModTime: null, IsDir: false, provider: "onedrive" }],
+      },
+    });
+
+    render(<VaultBrowserTable />);
+    expect(screen.getByText("gdrive-file.pdf")).toBeInTheDocument();
+    expect(screen.getByText("onedrive-file.docx")).toBeInTheDocument();
+
+    const gdrivePill = screen.getByTestId("provider-pill-gdrive");
+    const onedrivePill = screen.getByTestId("provider-pill-onedrive");
+    expect(gdrivePill).toBeInTheDocument();
+    expect(onedrivePill).toBeInTheDocument();
+
+    fireEvent.click(gdrivePill);
+    expect(screen.getByText("gdrive-file.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("onedrive-file.docx")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("provider-pill-all"));
+    expect(screen.getByText("gdrive-file.pdf")).toBeInTheDocument();
+    expect(screen.getByText("onedrive-file.docx")).toBeInTheDocument();
+  });
+
+  it("toggles sorting when column headers are clicked", () => {
+    const setSortingSpy = vi.fn();
+    useRemoteFilesStore.setState({
+      files: [
+        { Path: "b.txt", Name: "b.txt", Size: 200, MimeType: "", ModTime: null, IsDir: false },
+        { Path: "a.txt", Name: "a.txt", Size: 100, MimeType: "", ModTime: null, IsDir: false },
+      ],
+      setSorting: setSortingSpy,
+    });
+
+    render(<VaultBrowserTable />);
+    fireEvent.click(screen.getByText("Name"));
+    expect(setSortingSpy).toHaveBeenCalledWith("name");
+
+    fireEvent.click(screen.getByText("Size"));
+    expect(setSortingSpy).toHaveBeenCalledWith("size");
+
+    fireEvent.click(screen.getByText("Modified"));
+    expect(setSortingSpy).toHaveBeenCalledWith("modified");
+  });
 });

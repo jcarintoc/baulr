@@ -47,6 +47,7 @@ export type CloudAccount = {
 	totalBytes: number | null,
 	isConnected: boolean,
 	needsAuth: boolean,
+	accountEmail?: string | null,
 };
 
 export type DaemonStatus = {

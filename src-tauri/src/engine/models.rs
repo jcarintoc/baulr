@@ -70,6 +70,8 @@ pub struct CloudAccount {
     pub total_bytes: u64,
     pub is_connected: bool,
     pub needs_auth: bool,
+    #[serde(default)]
+    pub account_email: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]

@@ -10,11 +10,11 @@ import {
 import { formatBytes } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { ProviderIcon } from "@/components/common/ProviderIcons";
+import { PROVIDER_NAMES } from "@/components/browser/ProviderSyncAlert";
 import type { RemoteVaultItem } from "@/store/useRemoteFilesStore";
 
 const isImage = (n: string, m?: string | null) =>
   Boolean(m?.startsWith("image/") || /\.(jpe?g|png|gif|webp|svg|heic|heif|avif|bmp)$/i.test(n));
-
 const isVideo = (n: string, m?: string | null) =>
   Boolean(m?.startsWith("video/") || /\.(mp4|mov|webm|mkv|avi|m4v)$/i.test(n));
 
@@ -134,7 +134,7 @@ export function MediaGridView({
                 {item.Name}
               </p>
               <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5" title={item.provider ? PROVIDER_NAMES[item.provider] || item.provider : undefined}>
                   <ProviderIcon provider={item.provider} className="size-3.5 shrink-0" />
                   <span>{formatBytes(item.Size ?? 0)}</span>
                 </div>
