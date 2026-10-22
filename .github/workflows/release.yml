@@ -86,3 +86,40 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Upload unversioned permalink asset (macOS)
+        if: matrix.platform == 'macos-latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          DMG_FILE=$(ls src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg 2>/dev/null | head -n 1)
+          if [ -z "$DMG_FILE" ]; then
+            DMG_FILE=$(find src-tauri/target -name "*.dmg" ! -name "Baulr-mac-arm64.dmg" | head -n 1)
+          fi
+          if [ -z "$DMG_FILE" ]; then
+            echo "Error: Could not locate built .dmg file" >&2
+            exit 1
+          fi
+          echo "Found DMG: $DMG_FILE"
+          cp "$DMG_FILE" Baulr-mac-arm64.dmg
+          gh release upload "$TAG" Baulr-mac-arm64.dmg --clobber
+
+      - name: Upload unversioned permalink asset (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ inputs.tag || github.ref_name }}"
+          $setupExe = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis/*-setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $setupExe) {
+            $setupExe = Get-ChildItem -Path "src-tauri/target" -Filter "*-setup.exe" -Recurse | Select-Object -First 1
+          }
+          if (-not $setupExe) {
+            Write-Error "Could not locate built *-setup.exe file"
+            exit 1
+          }
+          Write-Host "Found NSIS installer: $($setupExe.FullName)"
+          Copy-Item -Path $setupExe.FullName -Destination "Baulr-windows-x64.exe" -Force
+          gh release upload "$tag" Baulr-windows-x64.exe --clobber

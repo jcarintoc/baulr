@@ -8,6 +8,8 @@ pub fn resolve_provider_config(provider: &str) -> Result<(&'static str, &'static
     match provider.to_lowercase().as_str() {
         "gdrive" | "drive" | "google" => Ok(("gdrive", "drive", HashMap::from([("scope".into(), "drive".into())]))),
         "onedrive" | "microsoft" => Ok(("onedrive", "onedrive", HashMap::from([("drive_type".into(), "personal".into())]))),
+        "dropbox" => Ok(("dropbox", "dropbox", HashMap::new())),
+        "box" => Ok(("box", "box", HashMap::from([("box_sub_type".into(), "user".into())]))),
         other => Err(format!("Unsupported cloud provider: '{other}'")),
     }
 }
@@ -79,7 +81,11 @@ pub async fn connect_account(
     let _ = client.delete_remote(name).await;
     let _ = client.clear_fs_cache().await;
 
-    client.create_oauth_remote(name, remote_type, &params).await?;
+    if let Err(e) = client.create_oauth_remote(name, remote_type, &params).await {
+        let _ = client.delete_remote(name).await;
+        let _ = client.clear_fs_cache().await;
+        return Err(e);
+    }
 
     let _ = app.emit("oauth:finalizing", &provider);
 
@@ -151,6 +157,22 @@ mod tests {
         assert_eq!(name, "onedrive");
         assert_eq!(rtype, "onedrive");
         assert_eq!(params.get("drive_type").map(String::as_str), Some("personal"));
+    }
+
+    #[test]
+    fn test_resolve_provider_config_dropbox() {
+        let (name, rtype, params) = resolve_provider_config("dropbox").unwrap();
+        assert_eq!(name, "dropbox");
+        assert_eq!(rtype, "dropbox");
+        assert!(params.is_empty());
+    }
+
+    #[test]
+    fn test_resolve_provider_config_box() {
+        let (name, rtype, params) = resolve_provider_config("box").unwrap();
+        assert_eq!(name, "box");
+        assert_eq!(rtype, "box");
+        assert_eq!(params.get("box_sub_type").map(String::as_str), Some("user"));
     }
 
     #[test]

@@ -8,7 +8,7 @@ import {
 import { formatBytes } from "@/lib/formatters";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { GoogleDriveIcon, OneDriveIcon } from "@/components/common/ProviderIcons";
+import { ProviderIcon } from "@/components/common/ProviderIcons";
 import { PROVIDER_NAMES } from "@/components/browser/ProviderSyncAlert";
 import type {
   RemoteVaultItem,
@@ -73,18 +73,11 @@ export function VaultItemRow({
         </div>
       </TableCell>
       <TableCell className="text-muted-foreground text-xs">
-        {item.provider === "gdrive" ? (
-          <div className="flex items-center gap-1.5" title="Google Drive">
-            <GoogleDriveIcon className="size-3.5 shrink-0" />
-            <span className="truncate">Google Drive</span>
+        {item.provider ? (
+          <div className="flex items-center gap-1.5" title={PROVIDER_NAMES[item.provider] || item.provider}>
+            <ProviderIcon provider={item.provider} className="size-3.5 shrink-0" />
+            <span className="truncate">{PROVIDER_NAMES[item.provider] || item.provider}</span>
           </div>
-        ) : item.provider === "onedrive" ? (
-          <div className="flex items-center gap-1.5" title="OneDrive">
-            <OneDriveIcon className="size-3.5 shrink-0" />
-            <span className="truncate">OneDrive</span>
-          </div>
-        ) : item.provider ? (
-          <span className="truncate">{PROVIDER_NAMES[item.provider] || item.provider}</span>
         ) : (
           "—"
         )}

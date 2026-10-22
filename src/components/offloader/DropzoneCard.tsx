@@ -2,11 +2,19 @@ import { useState } from "react";
 import {
   IconArrowUpCircle,
   IconFolder,
+  IconFile,
   IconDeviceMobile,
+  IconChevronDown,
 } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { selectOffloadFolder } from "@/lib/api/offload";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { selectOffloadFolder, selectOffloadFiles } from "@/lib/api/offload";
 import { useVaultStore } from "@/store/useVaultStore";
 import { useWebviewDrop } from "./useWebviewDrop";
 import { DestinationCloudDropdown } from "./DestinationCloudDropdown";
@@ -39,6 +47,11 @@ export function DropzoneCard({
     disabled,
     onDrop: triggerSelect,
   });
+
+  const handleSelectFiles = async () => {
+    const selected = await selectOffloadFiles().catch(() => null);
+    if (selected && selected.length > 0) triggerSelect(selected);
+  };
 
   const handleSelectFolder = async () => {
     const selected = await selectOffloadFolder().catch(() => null);
@@ -83,25 +96,30 @@ export function DropzoneCard({
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleSelectFolder}
-            disabled={disabled}
-          >
-            <IconFolder />
-            <span>Select Folder/Files to upload</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button type="button" variant="outline" size="sm" disabled={disabled} className="gap-1.5 cursor-pointer">
+                  <IconFolder className="size-4" />
+                  <span>Select Folder/Files to upload</span>
+                  <IconChevronDown className="size-3 opacity-60" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="center" className="w-48">
+              <DropdownMenuItem onClick={handleSelectFiles} className="gap-2 cursor-pointer text-xs">
+                <IconFile className="size-4" />
+                <span>Select Files...</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSelectFolder} className="gap-2 cursor-pointer text-xs">
+                <IconFolder className="size-4" />
+                <span>Select Folder...</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {onOpenMobile && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onOpenMobile}
-              disabled={disabled}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onOpenMobile} disabled={disabled}>
               <IconDeviceMobile />
               <span>Receive from Phone</span>
             </Button>

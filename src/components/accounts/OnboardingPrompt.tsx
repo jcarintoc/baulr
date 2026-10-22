@@ -1,8 +1,5 @@
 import { IconArrowRight, IconShieldLock } from "@tabler/icons-react";
-import {
-  GoogleDriveIcon,
-  OneDriveIcon,
-} from "@/components/common/ProviderIcons";
+import { ProviderIcon } from "@/components/common/ProviderIcons";
 import {
   Card,
   CardHeader,
@@ -28,21 +25,13 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
           {[
-            {
-              id: "gdrive",
-              name: "Google Drive",
-              size: "15 GB free storage",
-              Icon: GoogleDriveIcon,
-            },
-            {
-              id: "onedrive",
-              name: "OneDrive",
-              size: "5 GB free storage",
-              Icon: OneDriveIcon,
-            },
-          ].map(({ id, name, size, Icon }) => (
+            { id: "gdrive", name: "Google Drive", size: "15 GB free storage" },
+            { id: "onedrive", name: "OneDrive", size: "5 GB free storage" },
+            { id: "box", name: "Box", size: "10 GB free storage" },
+            { id: "dropbox", name: "Dropbox", size: "2 GB free storage" },
+          ].map(({ id, name, size }) => (
             <button
               key={id}
               type="button"
@@ -50,7 +39,7 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
               className="p-4 rounded-xl border border-border hover:border-vault-accent-border bg-muted/40 hover:bg-muted/70 flex flex-col items-start text-left gap-3 transition cursor-pointer group"
             >
               <div className="size-9 rounded-lg bg-card text-foreground border border-border flex items-center justify-center">
-                <Icon className="size-5" />
+                <ProviderIcon provider={id} className="size-5" />
               </div>
               <div>
                 <div className="font-semibold text-sm text-foreground group-hover:text-vault-accent-text flex items-center gap-1.5 transition-colors">

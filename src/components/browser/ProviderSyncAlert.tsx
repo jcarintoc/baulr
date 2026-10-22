@@ -6,6 +6,25 @@ import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 export const PROVIDER_NAMES: Record<string, string> = {
   gdrive: "Google Drive",
   onedrive: "OneDrive",
+  dropbox: "Dropbox",
+  box: "Box",
+  blomp: "Blomp",
+  drime: "Drime",
+  filelu: "FileLu",
+  filen: "Filen",
+  huawei: "Huawei Cloud",
+  icloud: "iCloud",
+  internxt: "Internxt",
+  jottacloud: "Jottacloud",
+  koofr: "Koofr",
+  mega: "MEGA",
+  opendrive: "OpenDrive",
+  pcloud: "pCloud",
+  pikpak: "PikPak",
+  proton: "Proton Drive",
+  "proton-drive": "Proton Drive",
+  yandex: "Yandex 360",
+  "yandex-360": "Yandex 360",
 };
 
 export function ProviderSyncAlert() {

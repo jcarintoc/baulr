@@ -13,6 +13,10 @@ vi.mock("@/lib/api/browser", async () => {
   };
 });
 
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openUrl: vi.fn(),
+}));
+
 const mockItem: RemoteVaultItem = {
   Path: "Photos/beach.jpg",
   Name: "beach.jpg",
@@ -109,5 +113,27 @@ describe("ShareLinkModal", () => {
     fireEvent.click(doneBtn);
 
     expect(handleClose).toHaveBeenCalledOnce();
+  });
+
+  it("opens link in browser via openUrl when clicking open in browser button", async () => {
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+    vi.mocked(browserApi.fetchFileShareLink).mockResolvedValue(
+      "https://drive.google.com/file/d/sample123/view"
+    );
+
+    render(
+      <ShareLinkModal item={mockItem} open={true} onClose={vi.fn()} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Open in web browser/i })).toBeInTheDocument();
+    });
+
+    const openBtn = screen.getByRole("button", { name: /Open in web browser/i });
+    fireEvent.click(openBtn);
+
+    await waitFor(() => {
+      expect(openUrl).toHaveBeenCalledWith("https://drive.google.com/file/d/sample123/view");
+    });
   });
 });

@@ -176,19 +176,29 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
       const cleanName = name.trim();
       const folderPath = currentPath ? `${currentPath}/${cleanName}` : cleanName;
 
+      // Prevent duplicate folder in active path (case-insensitive)
+      const isDuplicate = get().files.some(
+        (f) => f.Name.toLowerCase() === cleanName.toLowerCase()
+      );
+      if (isDuplicate) {
+        const errorMsg = "A folder with this name already exists here.";
+        set({ error: errorMsg });
+        throw new Error(errorMsg);
+      }
+
       // Determine resolved provider for optimistic attribution
       const accounts =
         useVaultStore.getState().quota?.accounts?.filter((a) => a.isConnected) ?? [];
       let resolvedProvider = provider;
       if (!resolvedProvider || resolvedProvider === "auto") {
-        if (accounts.length > 0) {
-          const sorted = [...accounts].sort((a, b) => {
-            const freeA = (a.totalBytes ?? 0) - (a.usedBytes ?? 0);
-            const freeB = (b.totalBytes ?? 0) - (b.usedBytes ?? 0);
-            return freeB - freeA;
-          });
-          resolvedProvider = sorted[0]?.provider;
-        }
+        resolvedProvider = accounts.reduce(
+          (best, a) =>
+            (a.totalBytes ?? 0) - (a.usedBytes ?? 0) >
+            (best.totalBytes ?? 0) - (best.usedBytes ?? 0)
+              ? a
+              : best,
+          accounts[0]
+        )?.provider;
       }
 
       const optimisticItem: RemoteVaultItem = {

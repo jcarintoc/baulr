@@ -82,6 +82,24 @@ describe("VaultBrowserTable", () => {
           IsDir: false,
           provider: "onedrive",
         },
+        {
+          Path: "archive.zip",
+          Name: "archive.zip",
+          Size: 4096,
+          MimeType: "application/zip",
+          ModTime: null,
+          IsDir: false,
+          provider: "dropbox",
+        },
+        {
+          Path: "notes.txt",
+          Name: "notes.txt",
+          Size: 512,
+          MimeType: "text/plain",
+          ModTime: null,
+          IsDir: false,
+          provider: "box",
+        },
       ],
     });
 
@@ -91,6 +109,8 @@ describe("VaultBrowserTable", () => {
     expect(screen.getAllByText("report.pdf").length).toBe(2);
     expect(screen.getByText("Google Drive")).toBeInTheDocument();
     expect(screen.getByText("OneDrive")).toBeInTheDocument();
+    expect(screen.getByText("Dropbox")).toBeInTheDocument();
+    expect(screen.getByText("Box")).toBeInTheDocument();
   });
 
   it("filters items based on search input", () => {

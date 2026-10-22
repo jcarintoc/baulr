@@ -15,7 +15,7 @@ use crate::commands::browser::{
 };
 use crate::commands::mobile::{start_mobile_receiver, stop_mobile_receiver};
 use crate::commands::offload::{
-    cancel_offload, inspect_path, pick_offload_folder, reclaim_paths, start_offload,
+    cancel_offload, inspect_path, pick_offload_files, pick_offload_folder, reclaim_paths, start_offload,
 };
 use crate::commands::vault::get_vault_quota;
 pub use crate::engine::{CloudAccount, VaultQuota};
@@ -61,6 +61,7 @@ pub fn create_specta_builder() -> Builder<tauri::Wry> {
         start_offload,
         cancel_offload,
         pick_offload_folder,
+        pick_offload_files,
         reclaim_paths,
         list_vault_files,
         list_provider_vault_files,

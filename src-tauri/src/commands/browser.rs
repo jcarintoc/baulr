@@ -173,8 +173,7 @@ pub fn validate_folder_name(name: &str) -> Result<&str, String> {
     if trimmed.is_empty() {
         return Err("Folder name cannot be empty".to_string());
     }
-    const INVALID_CHARS: &[char] = &['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
-    if trimmed.chars().any(|c| INVALID_CHARS.contains(&c)) {
+    if trimmed.contains(&['/', '\\', ':', '*', '?', '"', '<', '>', '|']) {
         return Err("Folder name cannot contain special characters (/ \\ : * ? \" < > |)".to_string());
     }
     Ok(trimmed)
@@ -193,10 +192,9 @@ pub fn resolve_target_folder_upstream(
 
     if !is_auto {
         let prov = target_provider.unwrap().trim();
-        let expected_prefix = format!("{}:", prov.to_lowercase());
         if let Some(upstream) = connected_upstreams
             .iter()
-            .find(|u| u.to_lowercase().starts_with(&expected_prefix))
+            .find(|u| u.split(':').next().is_some_and(|p| p.eq_ignore_ascii_case(prov)))
         {
             return Ok(upstream.clone());
         }
@@ -210,8 +208,9 @@ pub fn resolve_target_folder_upstream(
             .iter()
             .filter(|a| a.is_connected && !a.needs_auth)
             .filter(|a| {
-                let prefix = format!("{}:", a.provider.to_lowercase());
-                connected_upstreams.iter().any(|u| u.to_lowercase().starts_with(&prefix))
+                connected_upstreams
+                    .iter()
+                    .any(|u| u.split(':').next().is_some_and(|p| p.eq_ignore_ascii_case(&a.provider)))
             })
             .max_by_key(|a| a.total_bytes.saturating_sub(a.used_bytes));
 

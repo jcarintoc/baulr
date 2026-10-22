@@ -26,6 +26,7 @@ pub fn resolve_config_answer(name: &str, default_str: &str, examples: &[RcloneCo
         "teamdrive" => "false".to_string(),
         "config_refresh_token" => "true".to_string(),
         "config_drive_ok" => "true".to_string(),
+        "box_sub_type" => "user".to_string(),
         "config_type" | "choose_type" => "onedrive".to_string(),
         "config_driveid" | "choose_drive" => {
             // Find the primary personal "OneDrive" drive, avoiding internal/system containers
@@ -187,6 +188,9 @@ impl RcloneClient {
 
             if !resp.status().is_success() {
                 let body = resp.text().await.unwrap_or_default();
+                if body.to_lowercase().contains("access_denied") {
+                    return Err(format!("Authentication cancelled for '{name}'"));
+                }
                 return Err(format!("Authentication failed for '{name}': {body}"));
             }
 
@@ -196,6 +200,9 @@ impl RcloneClient {
                 .map_err(|e| format!("Failed to parse config response: {e}"))?;
 
             if !config_res.error.is_empty() {
+                if config_res.error.to_lowercase().contains("access_denied") {
+                    return Err(format!("Authentication cancelled for '{name}'"));
+                }
                 return Err(format!("Authentication error for '{name}': {}", config_res.error));
             }
 
