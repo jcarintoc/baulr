@@ -31,17 +31,14 @@ describe("Settings Surface & Header Integration", () => {
   });
 
   describe("AppHeader decluttered state", () => {
-    it("renders Sync, Engine status badge, and Settings button without Bandwidth or Theme selectors", () => {
+    it("renders Engine status badge and Settings button without Bandwidth or Theme selectors", () => {
       render(
         <AppHeader
-          isLoading={false}
           daemonStatus={{ isRunning: true, port: 5572 }}
-          onSync={vi.fn()}
         />
       );
 
       // Verify essential header controls exist
-      expect(screen.getByRole("button", { name: /Sync/i })).toBeInTheDocument();
       expect(screen.getByText("Vault engine active")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
 
@@ -53,9 +50,7 @@ describe("Settings Surface & Header Integration", () => {
     it("navigates to settings and back when clicking Settings button", () => {
       render(
         <AppHeader
-          isLoading={false}
           daemonStatus={{ isRunning: true, port: 5572 }}
-          onSync={vi.fn()}
         />
       );
 

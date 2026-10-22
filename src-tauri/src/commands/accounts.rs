@@ -87,7 +87,7 @@ pub async fn fetch_and_save_account_identity(
         .ok()?;
 
     let (url, is_post) = match provider {
-        "gdrive" => ("https://www.googleapis.com/oauth2/v2/userinfo", false),
+        "gdrive" => ("https://www.googleapis.com/drive/v3/about?fields=user", false),
         "onedrive" => ("https://graph.microsoft.com/v1.0/me/drive", false),
         "dropbox" => ("https://api.dropboxapi.com/2/users/get_current_account", true),
         "box" => ("https://api.box.com/2.0/users/me", false),
@@ -104,12 +104,19 @@ pub async fn fetch_and_save_account_identity(
 
     let resp = req
         .header("Authorization", format!("Bearer {access_token}"))
+        .header("User-Agent", "Baulr/1.0")
         .send()
         .await
         .ok()?;
+
+    if !resp.status().is_success() {
+        return None;
+    }
+
     let val: serde_json::Value = resp.json().await.ok()?;
 
     let email = match provider {
+        "gdrive" => val.pointer("/user/emailAddress"),
         "onedrive" => val
             .pointer("/owner/user/email")
             .or_else(|| val.pointer("/owner/user/displayName")),
