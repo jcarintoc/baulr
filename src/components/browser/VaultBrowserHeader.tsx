@@ -1,17 +1,14 @@
-import { IconArchive, IconSearch, IconX } from "@tabler/icons-react";
+import { IconSearch, IconX } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
 
 interface VaultBrowserHeaderProps {
   filesCount: number;
   totalBytes: number;
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  isCheckingCloud?: boolean;
-  checkingTarget?: string;
 }
 
 export function VaultBrowserHeader({
@@ -19,40 +16,25 @@ export function VaultBrowserHeader({
   totalBytes,
   searchQuery,
   onSearchChange,
-  isCheckingCloud = false,
-  checkingTarget = "cloud accounts",
 }: VaultBrowserHeaderProps) {
-  const statusLabel = `Checking ${checkingTarget}...`;
-
   return (
     <Card className="bg-card/75 border-border">
-      <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-vault-accent/10 border border-vault-accent/20 flex items-center justify-center text-vault-accent-text shrink-0">
-            <IconArchive className="size-5" />
+      <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="font-semibold text-sm text-foreground tracking-tight">
+              Vault Directory
+            </h2>
+            <Badge
+              variant="secondary"
+              className="text-xs font-normal px-2 py-0 h-5"
+            >
+              {filesCount} {filesCount === 1 ? "item" : "items"}
+            </Badge>
           </div>
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-semibold text-sm text-foreground tracking-tight">
-                Vault Directory
-              </h2>
-              <Badge variant="secondary" className="text-xs font-normal px-2 py-0 h-5">
-                {filesCount} {filesCount === 1 ? "item" : "items"}
-              </Badge>
-              {isCheckingCloud && (
-                <Badge
-                  variant="outline"
-                  className="text-xs font-normal border-sky-500/30 text-sky-400 bg-sky-500/10 gap-1.5 h-5"
-                >
-                  <Spinner className="size-3" />
-                  <span>{statusLabel}</span>
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              Total pooled archive: {formatBytes(totalBytes)}
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground tabular-nums">
+            Total pooled archive: {formatBytes(totalBytes)}
+          </p>
         </div>
 
         <div className="relative w-full sm:w-64 md:w-72">

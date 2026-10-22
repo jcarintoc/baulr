@@ -1,16 +1,14 @@
-import { IconRefresh, IconSettings } from "@tabler/icons-react";
+import { IconSettings } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useViewStore } from "@/store/useViewStore";
 import type { DaemonStatus } from "@/lib/bindings";
 
 interface AppHeaderProps {
-  isLoading: boolean;
   daemonStatus: DaemonStatus | null;
-  onSync: () => void;
 }
 
-export function AppHeader({ isLoading, daemonStatus, onSync }: AppHeaderProps) {
+export function AppHeader({ daemonStatus }: AppHeaderProps) {
   const { activeView, previousView, setActiveView } = useViewStore();
 
   return (
@@ -28,29 +26,7 @@ export function AppHeader({ isLoading, daemonStatus, onSync }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2.5">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onSync}
-          disabled={isLoading}
-        >
-          <IconRefresh className={isLoading ? "animate-spin" : undefined} />
-          <span>Sync</span>
-        </Button>
-
-        <Badge
-          variant="outline"
-          className={
-            daemonStatus?.isRunning
-              ? "gap-1.5 border-vault-accent-border text-vault-accent-text bg-vault-accent-muted"
-              : "gap-1.5 border-amber-500/20 text-amber-400 bg-amber-500/10"
-          }
-        >
-          <span
-            className={`size-1.5 rounded-full ${
-              daemonStatus?.isRunning ? "bg-vault-accent" : "bg-amber-400"
-            }`}
-          />
+        <Badge variant={!daemonStatus?.isRunning ? "secondary" : "ghost"}>
           <span>
             {daemonStatus?.isRunning
               ? "Vault engine active"

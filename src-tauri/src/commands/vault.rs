@@ -100,20 +100,60 @@ async fn check_provider_quota(
     }
 }
 
+async fn resolve_account_email_if_missing(
+    client: &RcloneClient,
+    config: &HashMap<String, HashMap<String, serde_json::Value>>,
+    provider: &'static str,
+) -> Option<(&'static str, String)> {
+    if !config.contains_key(provider) {
+        return None;
+    }
+    let has_email = config
+        .get(provider)
+        .and_then(|cfg| cfg.get("account_email")?.as_str())
+        .is_some_and(|s| !s.trim().is_empty());
+
+    if has_email {
+        return None;
+    }
+
+    crate::commands::accounts::fetch_and_save_account_identity(client, provider)
+        .await
+        .map(|email| (provider, email))
+}
+
 pub async fn fetch_vault_quota_internal(
     client: &RcloneClient,
     prev_quota: Option<&VaultQuota>,
 ) -> Result<VaultQuota, String> {
-    let config = client.dump_config().await?;
+    let mut config = client.dump_config().await?;
 
-    let (g, o, d, b) = tokio::join!(
-        check_provider_quota(client, &config, "gdrive"),
-        check_provider_quota(client, &config, "onedrive"),
-        check_provider_quota(client, &config, "dropbox"),
-        check_provider_quota(client, &config, "box"),
+    let (about_map, emails) = tokio::join!(
+        async {
+            let (g, o, d, b) = tokio::join!(
+                check_provider_quota(client, &config, "gdrive"),
+                check_provider_quota(client, &config, "onedrive"),
+                check_provider_quota(client, &config, "dropbox"),
+                check_provider_quota(client, &config, "box"),
+            );
+            [g, o, d, b].into_iter().flatten().collect::<HashMap<String, Result<AboutFs, String>>>()
+        },
+        async {
+            let (g, o, d, b) = tokio::join!(
+                resolve_account_email_if_missing(client, &config, "gdrive"),
+                resolve_account_email_if_missing(client, &config, "onedrive"),
+                resolve_account_email_if_missing(client, &config, "dropbox"),
+                resolve_account_email_if_missing(client, &config, "box"),
+            );
+            [g, o, d, b].into_iter().flatten().collect::<Vec<(&'static str, String)>>()
+        }
     );
 
-    let about_map = [g, o, d, b].into_iter().flatten().collect();
+    for (id, email) in emails {
+        if let Some(cfg) = config.get_mut(id) {
+            cfg.insert("account_email".to_string(), serde_json::Value::String(email));
+        }
+    }
 
     Ok(calculate_vault_quota(&config, &about_map, prev_quota))
 }
@@ -318,7 +358,22 @@ mod tests {
         + (1 * 1024 * 1024 * 1024)
         + (500 * 1024 * 1024)
         + (1024 * 1024 * 1024);
-    assert_eq!(quota.used_bytes, expected_used);
+        assert_eq!(quota.used_bytes, expected_used);
         assert_eq!(quota.free_bytes, quota.total_bytes - quota.used_bytes);
+    }
+
+    #[test]
+    fn test_calculate_vault_quota_reads_account_email_from_config() {
+        let mut config = HashMap::new();
+        let mut gdrive_cfg = HashMap::new();
+        gdrive_cfg.insert("account_email".to_string(), serde_json::Value::String("user@gmail.com".to_string()));
+        config.insert("gdrive".into(), gdrive_cfg);
+
+        let mut about_map = HashMap::new();
+        about_map.insert("gdrive".into(), Ok(AboutFs { total: Some(15 * 1024 * 1024 * 1024), used: Some(2 * 1024 * 1024 * 1024), ..Default::default() }));
+
+        let quota = calculate_vault_quota(&config, &about_map, None);
+        let gdrive = quota.accounts.iter().find(|a| a.provider == "gdrive").unwrap();
+        assert_eq!(gdrive.account_email.as_deref(), Some("user@gmail.com"));
     }
 }

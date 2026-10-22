@@ -12,6 +12,8 @@ import { OffloadWorkspace } from "./components/offloader/OffloadWorkspace";
 import { VaultBrowserTable } from "./components/browser/VaultBrowserTable";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { Alert, AlertDescription } from "./components/ui/alert";
+import { IconRefresh } from "@tabler/icons-react";
+import { Button } from "./components/ui/button";
 
 export function App() {
   const {
@@ -33,24 +35,19 @@ export function App() {
   useEffect(() => {
     loadQuota();
     loadDaemonStatus();
-    useBandwidthStore.getState().init().catch(() => {});
+    useBandwidthStore
+      .getState()
+      .init()
+      .catch(() => {});
   }, [loadQuota, loadDaemonStatus]);
 
   const hasConnectedAccounts = Boolean(
-    quota?.accounts && quota.accounts.some((a) => a.isConnected)
+    quota?.accounts && quota.accounts.some((a) => a.isConnected),
   );
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans select-none">
-      <AppHeader
-        isLoading={isLoading}
-        daemonStatus={daemonStatus}
-        onSync={() => {
-          loadQuota();
-          loadDaemonStatus();
-          useRemoteFilesStore.getState().fetchFiles().catch(() => {});
-        }}
-      />
+      <AppHeader daemonStatus={daemonStatus} />
 
       {/* Main Workspace */}
       <main className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col gap-6">
@@ -78,9 +75,36 @@ export function App() {
 
                 {hasConnectedAccounts && (
                   <section className="flex flex-col gap-3">
-                    <h3 className="font-semibold text-sm text-foreground">
-                      Cloud Accounts ({quota?.accounts.filter((a) => a.isConnected).length ?? 0} connected)
-                    </h3>
+                    <div className="flex items-center justify-between gap-12">
+                      <h3 className="font-semibold text-sm text-foreground">
+                        Cloud Accounts (
+                        {quota?.accounts.filter((a) => a.isConnected).length ??
+                          0}{" "}
+                        connected)
+                      </h3>
+                      <Button
+                        size="lg"
+                        variant="default"
+                        onClick={() => {
+                          loadQuota();
+                          loadDaemonStatus();
+                          useRemoteFilesStore
+                            .getState()
+                            .fetchFiles()
+                            .catch(() => {});
+                        }}
+                        disabled={isLoading}
+                        className="px-3"
+                      >
+                        <IconRefresh
+                          className={isLoading ? "animate-spin" : undefined}
+                        />
+                        <span>
+                          {isLoading ? "Syncing..." : "Sync Accounts"}
+                        </span>
+                      </Button>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {quota?.accounts.map((acc) => (
                         <AccountCard
