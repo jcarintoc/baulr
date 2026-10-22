@@ -105,10 +105,7 @@ pub async fn fetch_vault_quota_internal(
         check_provider_quota(client, &config, "box"),
     );
 
-    let mut about_map = HashMap::new();
-    for item in [g, o, d, b].into_iter().flatten() {
-        about_map.insert(item.0, item.1);
-    }
+    let about_map = [g, o, d, b].into_iter().flatten().collect();
 
     Ok(calculate_vault_quota(&config, &about_map, prev_quota))
 }

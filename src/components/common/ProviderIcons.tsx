@@ -57,19 +57,3 @@ export function ProviderIcon({
     />
   );
 }
-
-export function GoogleDriveIcon({ className = "size-5" }: { className?: string }) {
-  return <ProviderIcon provider="gdrive" className={className} />;
-}
-
-export function OneDriveIcon({ className = "size-5" }: { className?: string }) {
-  return <ProviderIcon provider="onedrive" className={className} />;
-}
-
-export function DropboxIcon({ className = "size-5" }: { className?: string }) {
-  return <ProviderIcon provider="dropbox" className={className} />;
-}
-
-export function BoxIcon({ className = "size-5" }: { className?: string }) {
-  return <ProviderIcon provider="box" className={className} />;
-}
