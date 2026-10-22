@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
+import {
+  useRemoteFilesStore,
+  sortVaultItems,
+  RemoteVaultItem,
+} from "@/store/useRemoteFilesStore";
 import { useVaultStore } from "@/store/useVaultStore";
 import * as browserApi from "@/lib/api/browser";
 
@@ -593,6 +597,66 @@ describe("useRemoteFilesStore actions", () => {
 
       expect(browserApi.createVaultFolder).not.toHaveBeenCalled();
       expect(useRemoteFilesStore.getState().files).toHaveLength(1);
+    });
+  });
+
+  describe("Vault items sorting & folders-first invariant", () => {
+    const mixedItems: RemoteVaultItem[] = [
+      { Path: "zebra.txt", Name: "zebra.txt", Size: 500, IsDir: false, ModTime: "2026-01-01T00:00:00Z", MimeType: "text/plain" },
+      { Path: "Projects", Name: "Projects", Size: 0, IsDir: true, ModTime: "2026-03-01T00:00:00Z", MimeType: "inode/directory" },
+      { Path: "apple.png", Name: "apple.png", Size: 1000, IsDir: false, ModTime: "2026-02-01T00:00:00Z", MimeType: "image/png" },
+      { Path: "Archive", Name: "Archive", Size: 0, IsDir: true, ModTime: "2026-01-15T00:00:00Z", MimeType: "inode/directory" },
+    ];
+
+    it("always sorts folders first before files by name ascending", () => {
+      const sorted = sortVaultItems(mixedItems, "name", "asc");
+      expect(sorted.map((i) => i.Name)).toEqual(["Archive", "Projects", "apple.png", "zebra.txt"]);
+      expect(sorted[0].IsDir).toBe(true);
+      expect(sorted[1].IsDir).toBe(true);
+      expect(sorted[2].IsDir).toBe(false);
+      expect(sorted[3].IsDir).toBe(false);
+    });
+
+    it("always keeps folders first even when sorting by name descending", () => {
+      const sorted = sortVaultItems(mixedItems, "name", "desc");
+      expect(sorted.map((i) => i.Name)).toEqual(["Projects", "Archive", "zebra.txt", "apple.png"]);
+      expect(sorted[0].IsDir).toBe(true);
+      expect(sorted[1].IsDir).toBe(true);
+      expect(sorted[2].IsDir).toBe(false);
+      expect(sorted[3].IsDir).toBe(false);
+    });
+
+    it("always keeps folders first when sorting by size", () => {
+      const sorted = sortVaultItems(mixedItems, "size", "asc");
+      expect(sorted[0].IsDir).toBe(true);
+      expect(sorted[1].IsDir).toBe(true);
+      expect(sorted[2].Name).toBe("zebra.txt");
+      expect(sorted[3].Name).toBe("apple.png");
+    });
+
+    it("always keeps folders first when sorting by modification date", () => {
+      const sorted = sortVaultItems(mixedItems, "modified", "desc");
+      expect(sorted.map((i) => i.Name)).toEqual(["Projects", "Archive", "apple.png", "zebra.txt"]);
+    });
+
+    it("toggles sorting and direction via setSorting in store", () => {
+      useRemoteFilesStore.setState({ files: mixedItems, sortField: "name", sortDirection: "asc" });
+      useRemoteFilesStore.getState().setSorting("name");
+      expect(useRemoteFilesStore.getState().sortField).toBe("name");
+      expect(useRemoteFilesStore.getState().sortDirection).toBe("desc");
+      expect(useRemoteFilesStore.getState().files[0].Name).toBe("Projects");
+
+      useRemoteFilesStore.getState().setSorting("size");
+      expect(useRemoteFilesStore.getState().sortField).toBe("size");
+      expect(useRemoteFilesStore.getState().sortDirection).toBe("asc");
+    });
+
+    it("updates selectedProvider via setSelectedProvider", () => {
+      expect(useRemoteFilesStore.getState().selectedProvider).toBe("all");
+      useRemoteFilesStore.getState().setSelectedProvider("gdrive");
+      expect(useRemoteFilesStore.getState().selectedProvider).toBe("gdrive");
+      useRemoteFilesStore.getState().setSelectedProvider("all");
+      expect(useRemoteFilesStore.getState().selectedProvider).toBe("all");
     });
   });
 });

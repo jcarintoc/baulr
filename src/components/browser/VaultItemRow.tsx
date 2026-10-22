@@ -9,6 +9,7 @@ import { formatBytes } from "@/lib/formatters";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ProviderIcon } from "@/components/common/ProviderIcons";
+import { useVaultStore } from "@/store/useVaultStore";
 import { PROVIDER_NAMES } from "@/components/browser/ProviderSyncAlert";
 import type {
   RemoteVaultItem,
@@ -47,6 +48,12 @@ export function VaultItemRow({
         )
       : 0;
 
+  const accountEmail = useVaultStore((s) =>
+    s.quota?.accounts.find((a) => a.provider === item.provider)?.accountEmail
+  );
+  const providerName = item.provider ? (PROVIDER_NAMES[item.provider] ?? item.provider) : "";
+  const providerTitle = providerName && accountEmail ? `${providerName} (${accountEmail})` : providerName;
+
   return (
     <TableRow className="border-border/60 hover:bg-muted/30">
       <TableCell className="text-foreground font-medium">
@@ -74,7 +81,7 @@ export function VaultItemRow({
       </TableCell>
       <TableCell className="text-muted-foreground text-xs">
         {item.provider ? (
-          <div className="flex items-center gap-1.5" title={PROVIDER_NAMES[item.provider] || item.provider}>
+          <div className="flex items-center gap-1.5" title={providerTitle}>
             <ProviderIcon provider={item.provider} className="size-3.5 shrink-0" />
             <span className="truncate">{PROVIDER_NAMES[item.provider] || item.provider}</span>
           </div>

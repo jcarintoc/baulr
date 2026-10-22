@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { VaultBreadcrumbs } from "@/components/browser/VaultBreadcrumbs";
 import { CreateFolderModal } from "@/components/browser/CreateFolderModal";
+import { VaultSortMenu } from "@/components/browser/VaultSortMenu";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 import { useTransferStore } from "@/store/useTransferStore";
 import { useViewStore } from "@/store/useViewStore";
@@ -61,6 +62,7 @@ export function VaultBrowserToolbar({
       <VaultBreadcrumbs currentPath={currentPath} onNavigate={onNavigatePath} />
 
       <div className="flex items-center gap-2">
+        <VaultSortMenu />
         <Button
           variant="outline"
           size="sm"

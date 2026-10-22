@@ -67,6 +67,66 @@ pub async fn auto_configure_onedrive(client: &crate::engine::RcloneClient) -> Re
     Ok(())
 }
 
+pub async fn fetch_and_save_account_identity(
+    client: &crate::engine::RcloneClient,
+    provider: &str,
+) -> Option<String> {
+    let config = client.dump_config().await.ok()?;
+    let provider_cfg = config.get(provider)?;
+    if let Some(cached) = provider_cfg.get("account_email").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+        return Some(cached.to_string());
+    }
+
+    let token_raw = provider_cfg.get("token").and_then(|v| v.as_str())?;
+    let token_val: serde_json::Value = serde_json::from_str(token_raw).ok()?;
+    let access_token = token_val.get("access_token").and_then(|v| v.as_str())?;
+
+    let http = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .ok()?;
+
+    let (url, is_post) = match provider {
+        "gdrive" => ("https://www.googleapis.com/oauth2/v2/userinfo", false),
+        "onedrive" => ("https://graph.microsoft.com/v1.0/me/drive", false),
+        "dropbox" => ("https://api.dropboxapi.com/2/users/get_current_account", true),
+        "box" => ("https://api.box.com/2.0/users/me", false),
+        _ => return None,
+    };
+
+    let req = if is_post {
+        http.post(url)
+            .header("Content-Type", "application/json")
+            .body("{}")
+    } else {
+        http.get(url)
+    };
+
+    let resp = req
+        .header("Authorization", format!("Bearer {access_token}"))
+        .send()
+        .await
+        .ok()?;
+    let val: serde_json::Value = resp.json().await.ok()?;
+
+    let email = match provider {
+        "onedrive" => val
+            .pointer("/owner/user/email")
+            .or_else(|| val.pointer("/owner/user/displayName")),
+        "box" => val.get("login").or_else(|| val.get("name")),
+        _ => val.get("email"),
+    }
+    .and_then(|v| v.as_str())
+    .map(String::from);
+
+    if let Some(ref email_str) = email {
+        let params = HashMap::from([("account_email".to_string(), email_str.clone())]);
+        let _ = client.update_remote(provider, &params).await;
+    }
+
+    email
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn connect_account(
@@ -94,6 +154,8 @@ pub async fn connect_account(
             eprintln!("Warning: OneDrive secondary auto-configuration notice: {e}");
         }
     }
+
+    let _ = fetch_and_save_account_identity(&client, name).await;
 
     let _ = sync_vault_union(&client).await;
     crate::commands::browser::stop_media_server(&state).await;

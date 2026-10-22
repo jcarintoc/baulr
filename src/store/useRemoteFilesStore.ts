@@ -23,8 +23,45 @@ function getInitialViewMode(): "table" | "grid" {
   return "table";
 }
 
+export type SortField = "name" | "size" | "modified";
+export type SortDirection = "asc" | "desc";
+
+export function sortVaultItems(
+  items: RemoteVaultItem[],
+  sortBy: SortField = "name",
+  direction: SortDirection = "asc"
+): RemoteVaultItem[] {
+  return [...items].sort((a, b) => {
+    // 1. Folders ALWAYS precede files
+    if (a.IsDir !== b.IsDir) {
+      return a.IsDir ? -1 : 1;
+    }
+
+    // 2. Sort within the same group (folders together, files together)
+    let cmp = 0;
+    if (sortBy === "name") {
+      cmp = a.Name.localeCompare(b.Name, undefined, { numeric: true, sensitivity: "base" });
+    } else if (sortBy === "size") {
+      cmp = (a.Size ?? 0) - (b.Size ?? 0);
+    } else if (sortBy === "modified") {
+      cmp = (a.ModTime ?? "").localeCompare(b.ModTime ?? "");
+    }
+
+    if (cmp !== 0) {
+      return direction === "asc" ? cmp : -cmp;
+    }
+
+    // Tie-breaker: Name, then provider
+    const nameTie = a.Name.localeCompare(b.Name);
+    if (nameTie !== 0) return nameTie;
+    return (a.provider ?? "").localeCompare(b.provider ?? "");
+  });
+}
+
 export function mergeProviderFiles(
-  filesByProvider: Record<string, RemoteVaultItem[]>
+  filesByProvider: Record<string, RemoteVaultItem[]>,
+  sortField: SortField = "name",
+  sortDirection: SortDirection = "asc"
 ): RemoteVaultItem[] {
   const merged: RemoteVaultItem[] = [];
   for (const [provider, items] of Object.entries(filesByProvider)) {
@@ -32,11 +69,7 @@ export function mergeProviderFiles(
       merged.push({ ...item, provider: item.provider ?? provider });
     }
   }
-  return merged.sort((a, b) => {
-    const nameCmp = a.Name.localeCompare(b.Name);
-    if (nameCmp !== 0) return nameCmp;
-    return (a.provider ?? "").localeCompare(b.provider ?? "");
-  });
+  return sortVaultItems(merged, sortField, sortDirection);
 }
 
 export interface RemoteFilesState {
@@ -50,11 +83,16 @@ export interface RemoteFilesState {
   error: string | null;
   lastFetchedAt: number | null;
   searchQuery: string;
+  selectedProvider: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
   activeDownloads: Record<string, DownloadProgress>;
   currentPath: string;
   viewMode: "table" | "grid";
   mediaBaseUrl: string | null;
   setSearchQuery: (searchQuery: string) => void;
+  setSelectedProvider: (provider: string) => void;
+  setSorting: (field: SortField, direction?: SortDirection) => void;
   setVaultPath: (path: string) => Promise<void>;
   setViewMode: (mode: "table" | "grid") => void;
   ensureMediaBaseUrl: (forceRefresh?: boolean) => Promise<string | null>;
@@ -80,7 +118,11 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
           ...state.filesByProvider,
           [provider]: items,
         };
-        const nextMerged = mergeProviderFiles(nextFilesByProvider);
+        const nextMerged = mergeProviderFiles(
+          nextFilesByProvider,
+          state.sortField,
+          state.sortDirection
+        );
         return {
           filesByProvider: nextFilesByProvider,
           files: nextMerged,
@@ -99,7 +141,11 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
         };
         return {
           filesByProvider: nextFilesByProvider,
-          files: mergeProviderFiles(nextFilesByProvider),
+          files: mergeProviderFiles(
+            nextFilesByProvider,
+            state.sortField,
+            state.sortDirection
+          ),
           providerLoading: { ...state.providerLoading, [provider]: false },
           providerErrors: { ...state.providerErrors, [provider]: msg },
         };
@@ -118,12 +164,34 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
     error: null,
     lastFetchedAt: null,
     searchQuery: "",
+    selectedProvider: "all",
+    sortField: "name",
+    sortDirection: "asc",
     activeDownloads: {},
     currentPath: "",
     viewMode: getInitialViewMode(),
     mediaBaseUrl: null,
 
     setSearchQuery: (searchQuery) => set({ searchQuery }),
+
+    setSelectedProvider: (selectedProvider) => set({ selectedProvider }),
+
+    setSorting: (sortField, direction) => {
+      set((state) => {
+        const nextDirection =
+          direction ??
+          (state.sortField === sortField
+            ? state.sortDirection === "asc"
+              ? "desc"
+              : "asc"
+            : "asc");
+        return {
+          sortField,
+          sortDirection: nextDirection,
+          files: sortVaultItems(state.files, sortField, nextDirection),
+        };
+      });
+    },
 
     setVaultPath: async (path: string) => {
       set({
@@ -213,8 +281,10 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
 
       // 1. Optimistic insertion
       set((state) => {
-        const nextFiles = [...state.files, optimisticItem].sort((a, b) =>
-          a.Name.localeCompare(b.Name)
+        const nextFiles = sortVaultItems(
+          [...state.files, optimisticItem],
+          state.sortField,
+          state.sortDirection
         );
         const nextFilesByProvider = { ...state.filesByProvider };
         if (resolvedProvider) {
@@ -297,7 +367,11 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
           filesByProvider: nextFilesByProvider,
           providerErrors: nextErrors,
           providerLoading: nextLoading,
-          files: mergeProviderFiles(nextFilesByProvider),
+          files: mergeProviderFiles(
+            nextFilesByProvider,
+            state.sortField,
+            state.sortDirection
+          ),
           mediaBaseUrl: null,
         };
       }),
@@ -373,7 +447,11 @@ export const useRemoteFilesStore = create<RemoteFilesState>((set, get) => {
           filesByProvider: nextFilesByProvider,
           providerErrors: nextErrors,
           providerLoading: nextLoading,
-          files: mergeProviderFiles(nextFilesByProvider),
+          files: mergeProviderFiles(
+            nextFilesByProvider,
+            state.sortField,
+            state.sortDirection
+          ),
           ...(changed ? { mediaBaseUrl: null } : {}),
         };
       });

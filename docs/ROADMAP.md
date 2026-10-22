@@ -5,6 +5,7 @@
 ## In Progress
 
 ## Done
+- [[Vault UX: Folders First, Provider Filter Pills & Account Identity]]
 - [[Dropbox & Box Providers]]
 - [[Folder Creation & Organization Inside the Vault]]
 - [[Pre-Flight Capacity Gate & Oversized File Handling]]

@@ -52,6 +52,22 @@ describe("AccountCard", () => {
     expect(handleDisconnect).toHaveBeenCalledWith("gdrive");
   });
 
+  it("renders connected account with logged-in email when available", () => {
+    const accountWithEmail: CloudAccount = {
+      name: "Google Drive",
+      provider: "gdrive",
+      usedBytes: 5 * 1024 * 1024 * 1024,
+      totalBytes: 15 * 1024 * 1024 * 1024,
+      isConnected: true,
+      needsAuth: false,
+      accountEmail: "user@example.com",
+    };
+
+    render(<AccountCard account={accountWithEmail} />);
+    expect(screen.getByText("Google Drive")).toBeInTheDocument();
+    expect(screen.getByText("user@example.com")).toBeInTheDocument();
+  });
+
   it("renders disconnected account with connect button", () => {
     const handleConnect = vi.fn();
     render(

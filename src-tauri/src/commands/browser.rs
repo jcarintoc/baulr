@@ -605,6 +605,7 @@ mod tests {
                     used_bytes: 12_000_000_000, // 3 GB free
                     is_connected: true,
                     needs_auth: false,
+                    account_email: None,
                 },
                 CloudAccount {
                     name: "OneDrive".to_string(),
@@ -613,6 +614,7 @@ mod tests {
                     used_bytes: 5_000_000_000, // 10 GB free
                     is_connected: true,
                     needs_auth: false,
+                    account_email: None,
                 },
             ],
         };

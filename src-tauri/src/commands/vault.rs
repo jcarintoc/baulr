@@ -49,6 +49,13 @@ pub fn calculate_vault_quota(
             (false, false, 0, 0)
         };
 
+        let account_email = config
+            .get(id)
+            .and_then(|cfg| cfg.get("account_email")?.as_str())
+            .filter(|s| !s.is_empty())
+            .map(Into::into)
+            .or_else(|| prev_account?.account_email.clone());
+
         accounts.push(CloudAccount {
             name: name.to_string(),
             provider: id.to_string(),
@@ -56,6 +63,7 @@ pub fn calculate_vault_quota(
             total_bytes,
             is_connected,
             needs_auth,
+            account_email,
         });
     }
 
@@ -202,6 +210,7 @@ mod tests {
                     total_bytes: 15 * 1024 * 1024 * 1024,
                     is_connected: true,
                     needs_auth: false,
+                    account_email: Some("test@gmail.com".into()),
                 },
             ],
         };
@@ -245,6 +254,7 @@ mod tests {
                     total_bytes: 15 * 1024 * 1024 * 1024,
                     is_connected: true,
                     needs_auth: false,
+                    account_email: None,
                 },
                 CloudAccount {
                     name: "OneDrive".into(),
@@ -253,6 +263,7 @@ mod tests {
                     total_bytes: 5 * 1024 * 1024 * 1024,
                     is_connected: true,
                     needs_auth: false,
+                    account_email: None,
                 },
             ],
         };
