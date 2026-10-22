@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DestinationCloudDropdown } from "@/components/offloader/DestinationCloudDropdown";
 import { useVaultStore } from "@/store/useVaultStore";
+import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 
 interface CreateFolderModalProps {
   open: boolean;
@@ -20,8 +21,6 @@ interface CreateFolderModalProps {
   currentPath: string;
   onCreateFolder: (name: string, provider?: string) => Promise<unknown>;
 }
-
-const INVALID_CHARS = ["/", "\\", ":", "*", "?", '"', "<", ">", "|"];
 
 export function CreateFolderModal({
   open,
@@ -36,6 +35,7 @@ export function CreateFolderModal({
   const quota = useVaultStore((s) => s.quota);
   const accounts = (quota?.accounts ?? []).filter((a) => a.isConnected && !a.needsAuth);
   const totalFreeBytes = quota?.freeBytes;
+  const existingFiles = useRemoteFilesStore((s) => s.files);
 
   useEffect(() => {
     if (open) {
@@ -53,12 +53,22 @@ export function CreateFolderModal({
       return;
     }
 
-    if (INVALID_CHARS.some((char) => trimmed.includes(char))) {
+    if (/[/\\:*?"<>|]/.test(trimmed)) {
       setError('Folder names cannot contain special characters (/ \\ : * ? " < > |).');
       return;
     }
 
-    const providerArg = selectedProvider === "auto" ? undefined : selectedProvider;
+    const lower = trimmed.toLowerCase();
+    const isDuplicate = existingFiles.some(
+      (f) => f.Name.toLowerCase() === lower,
+    );
+    if (isDuplicate) {
+      setError("A folder with this name already exists here.");
+      return;
+    }
+
+    const providerArg =
+      selectedProvider === "auto" ? undefined : selectedProvider;
     onClose();
     onCreateFolder(trimmed, providerArg).catch(() => {});
   };
@@ -89,7 +99,10 @@ export function CreateFolderModal({
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="folder-name-input" className="text-xs font-medium text-foreground">
+            <label
+              htmlFor="folder-name-input"
+              className="text-xs font-medium text-foreground"
+            >
               Folder name
             </label>
             <Input
@@ -106,7 +119,9 @@ export function CreateFolderModal({
 
           {accounts.length > 1 && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-foreground">Destination</label>
+              <label className="text-xs font-medium text-foreground">
+                Destination
+              </label>
               <DestinationCloudDropdown
                 accounts={accounts}
                 selectedProvider={selectedProvider}
@@ -118,20 +133,10 @@ export function CreateFolderModal({
           )}
 
           <AlertDialogFooter className="mt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={!folderName.trim()}
-              className="gap-2"
-            >
+            <Button type="submit" size="sm" disabled={!folderName.trim()} className="gap-2">
               <span>Create folder</span>
             </Button>
           </AlertDialogFooter>

@@ -4,14 +4,23 @@ import {
   IconLayoutGrid,
   IconFolderPlus,
   IconCloudUpload,
+  IconChevronDown,
+  IconFile,
+  IconFolder,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { VaultBreadcrumbs } from "@/components/browser/VaultBreadcrumbs";
 import { CreateFolderModal } from "@/components/browser/CreateFolderModal";
 import { useRemoteFilesStore } from "@/store/useRemoteFilesStore";
 import { useTransferStore } from "@/store/useTransferStore";
 import { useViewStore } from "@/store/useViewStore";
-import { selectOffloadFolder } from "@/lib/api/offload";
+import { selectOffloadFolder, selectOffloadFiles } from "@/lib/api/offload";
 
 interface VaultBrowserToolbarProps {
   currentPath: string;
@@ -31,10 +40,18 @@ export function VaultBrowserToolbar({
   const { enqueuePaths } = useTransferStore();
   const { setActiveView } = useViewStore();
 
-  const handleUploadHere = async () => {
+  const handleUploadFiles = async () => {
+    const selected = await selectOffloadFiles().catch(() => null);
+    if (selected && selected.length > 0) {
+      await enqueuePaths(selected, undefined, currentPath || undefined);
+      setActiveView("dashboard");
+    }
+  };
+
+  const handleUploadFolder = async () => {
     const selected = await selectOffloadFolder().catch(() => null);
     if (selected) {
-      await enqueuePaths([selected.path], undefined, currentPath);
+      await enqueuePaths([selected.path], undefined, currentPath || undefined);
       setActiveView("dashboard");
     }
   };
@@ -55,16 +72,32 @@ export function VaultBrowserToolbar({
           <span>New folder</span>
         </Button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleUploadHere}
-          title="Upload folder or files to this location"
-          className="gap-1.5 h-7 px-2.5 text-xs cursor-pointer"
-        >
-          <IconCloudUpload className="size-3.5" />
-          <span>Upload here</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                title="Upload folder or files to this location"
+                className="gap-1.5 h-7 px-2.5 text-xs cursor-pointer"
+              >
+                <IconCloudUpload className="size-3.5" />
+                <span>Upload here</span>
+                <IconChevronDown className="size-3 opacity-60" />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={handleUploadFiles} className="gap-2 cursor-pointer text-xs">
+              <IconFile className="size-3.5" />
+              <span>Upload files...</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleUploadFolder} className="gap-2 cursor-pointer text-xs">
+              <IconFolder className="size-3.5" />
+              <span>Upload folder...</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="flex items-center rounded-lg border border-border/70 p-0.5 bg-muted/30 shrink-0">
           <Button

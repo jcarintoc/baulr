@@ -556,5 +556,43 @@ describe("useRemoteFilesStore actions", () => {
       expect(state.filesByProvider.gdrive).toHaveLength(0);
       expect(state.error).toBe("Network timeout");
     });
+
+    it("throws error and prevents creation when folder name already exists in active path", async () => {
+      useRemoteFilesStore.setState({
+        currentPath: "Documents",
+        files: [
+          {
+            Path: "Documents/Invoices",
+            Name: "Invoices",
+            Size: 0,
+            MimeType: "inode/directory",
+            ModTime: null,
+            IsDir: true,
+            provider: "gdrive",
+          },
+        ],
+        filesByProvider: {
+          gdrive: [
+            {
+              Path: "Documents/Invoices",
+              Name: "Invoices",
+              Size: 0,
+              MimeType: "inode/directory",
+              ModTime: null,
+              IsDir: true,
+              provider: "gdrive",
+            },
+          ],
+        },
+      });
+
+      // Case-insensitive duplicate check
+      await expect(
+        useRemoteFilesStore.getState().createFolder("invoices", "gdrive")
+      ).rejects.toThrow("A folder with this name already exists here.");
+
+      expect(browserApi.createVaultFolder).not.toHaveBeenCalled();
+      expect(useRemoteFilesStore.getState().files).toHaveLength(1);
+    });
   });
 });

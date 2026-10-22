@@ -369,6 +369,32 @@ describe("useVaultStore", () => {
     expect(state.error).toBeNull();
   });
 
+  it("connectAccount suppresses error and resets state when user cancels OAuth", async () => {
+    vi.spyOn(accountsApi, "connectAccount").mockRejectedValueOnce(
+      new Error("Authentication failed for 'gdrive': Description: No code returned by remote server: access_denied")
+    );
+
+    await useVaultStore.getState().connectAccount("gdrive");
+
+    const state = useVaultStore.getState();
+    expect(state.isAuthenticating).toBe(false);
+    expect(state.authenticatingProvider).toBeNull();
+    expect(state.error).toBeNull();
+  });
+
+  it("connectAccount sets error when authentication encounters genuine failure", async () => {
+    vi.spyOn(accountsApi, "connectAccount").mockRejectedValueOnce(
+      new Error("Network connection lost")
+    );
+
+    await useVaultStore.getState().connectAccount("gdrive");
+
+    const state = useVaultStore.getState();
+    expect(state.isAuthenticating).toBe(false);
+    expect(state.authenticatingProvider).toBeNull();
+    expect(state.error).toContain("Network connection lost");
+  });
+
   it("disconnectAccount clears files when no accounts remain connected", async () => {
     const emptyQuota = {
       totalBytes: 0,

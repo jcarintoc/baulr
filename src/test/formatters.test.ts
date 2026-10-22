@@ -11,6 +11,12 @@ describe("formatBytes", () => {
     expect(formatBytes(1024 * 1024 * 5)).toBe("5 MB");
     expect(formatBytes(1024 * 1024 * 1024 * 2.5)).toBe("2.5 GB");
   });
+
+  it("preserves up to two decimals for fractional gigabytes while omitting trailing zeroes", () => {
+    expect(formatBytes(1024 * 1024 * 1024 * 3.31)).toBe("3.31 GB");
+    expect(formatBytes(1024 * 1024 * 1024 * 3.01)).toBe("3.01 GB");
+    expect(formatBytes(1024 * 1024 * 1024 * 15)).toBe("15 GB");
+  });
 });
 
 describe("formatSpeed", () => {

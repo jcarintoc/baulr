@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   inspectLocalPath,
   selectOffloadFolder,
+  selectOffloadFiles,
   startOffloadJob,
   cancelOffloadJob,
   reclaimPaths,
@@ -12,6 +13,7 @@ vi.mock("@/lib/bindings", () => ({
   commands: {
     inspectPath: vi.fn(),
     pickOffloadFolder: vi.fn(),
+    pickOffloadFiles: vi.fn(),
     startOffload: vi.fn(),
     cancelOffload: vi.fn(),
     reclaimPaths: vi.fn(),
@@ -52,6 +54,22 @@ describe("Offload API module", () => {
 
     const result = await selectOffloadFolder();
     expect(result).toBeNull();
+  });
+
+  it("picks files and returns path array or null if canceled", async () => {
+    vi.mocked(commands.pickOffloadFiles).mockResolvedValueOnce({
+      status: "ok",
+      data: ["/docs/file1.pdf", "/docs/file2.png"],
+    });
+
+    const result = await selectOffloadFiles();
+    expect(result).toEqual(["/docs/file1.pdf", "/docs/file2.png"]);
+
+    vi.mocked(commands.pickOffloadFiles).mockResolvedValueOnce({
+      status: "ok",
+      data: null,
+    });
+    expect(await selectOffloadFiles()).toBeNull();
   });
 
   it("starts offload job and returns job info", async () => {

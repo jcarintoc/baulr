@@ -188,6 +188,9 @@ impl RcloneClient {
 
             if !resp.status().is_success() {
                 let body = resp.text().await.unwrap_or_default();
+                if body.to_lowercase().contains("access_denied") {
+                    return Err(format!("Authentication cancelled for '{name}'"));
+                }
                 return Err(format!("Authentication failed for '{name}': {body}"));
             }
 
@@ -197,6 +200,9 @@ impl RcloneClient {
                 .map_err(|e| format!("Failed to parse config response: {e}"))?;
 
             if !config_res.error.is_empty() {
+                if config_res.error.to_lowercase().contains("access_denied") {
+                    return Err(format!("Authentication cancelled for '{name}'"));
+                }
                 return Err(format!("Authentication error for '{name}': {}", config_res.error));
             }
 

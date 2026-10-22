@@ -1,9 +1,15 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TransferQueue } from "@/components/offloader/TransferQueue";
 import { DropzoneCard } from "@/components/offloader/DropzoneCard";
 import { DestinationCloudDropdown } from "@/components/offloader/DestinationCloudDropdown";
 import { useVaultStore } from "@/store/useVaultStore";
+import * as offloadApi from "@/lib/api/offload";
+
+vi.mock("@/lib/api/offload", () => ({
+  selectOffloadFolder: vi.fn(),
+  selectOffloadFiles: vi.fn(),
+}));
 
 describe("Offloader Components", () => {
   it("renders active queue with real items and speed", () => {
@@ -124,6 +130,39 @@ describe("Offloader Components", () => {
     fireEvent.drop(zone, { dataTransfer: { files: [file1] } });
 
     expect(onSelectPaths).toHaveBeenCalledWith(["/home/user/vacation.zip"], "onedrive");
+  });
+
+  it("allows selecting files or folder via DropdownMenu in DropzoneCard", async () => {
+    vi.mocked(offloadApi.selectOffloadFiles).mockResolvedValueOnce(["/tmp/file1.png", "/tmp/file2.txt"]);
+    vi.mocked(offloadApi.selectOffloadFolder).mockResolvedValueOnce({
+      path: "/tmp/folder",
+      name: "folder",
+      sizeBytes: 100,
+      isDir: true,
+      maxFileBytes: 100,
+    });
+
+    const onSelectPaths = vi.fn();
+    render(<DropzoneCard onSelectPaths={onSelectPaths} />);
+
+    const triggerBtn = screen.getByRole("button", { name: /Select Folder\/Files to upload/i });
+    expect(triggerBtn).toBeInTheDocument();
+
+    fireEvent.click(triggerBtn);
+    fireEvent.click(screen.getByText(/Select Files\.\.\./i));
+
+    await waitFor(() => {
+      expect(offloadApi.selectOffloadFiles).toHaveBeenCalled();
+      expect(onSelectPaths).toHaveBeenCalledWith(["/tmp/file1.png", "/tmp/file2.txt"], undefined);
+    });
+
+    fireEvent.click(triggerBtn);
+    fireEvent.click(screen.getByText(/Select Folder\.\.\./i));
+
+    await waitFor(() => {
+      expect(offloadApi.selectOffloadFolder).toHaveBeenCalled();
+      expect(onSelectPaths).toHaveBeenCalledWith(["/tmp/folder"], undefined);
+    });
   });
 
   it("displays target provider badge and destination status in TransferQueue", () => {
