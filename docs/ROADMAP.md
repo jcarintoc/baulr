@@ -1,11 +1,11 @@
 # Roadmap
 
 ## Backlog
-- [[Dropbox & Box Providers]]
 
 ## In Progress
 
 ## Done
+- [[Dropbox & Box Providers]]
 - [[Folder Creation & Organization Inside the Vault]]
 - [[Pre-Flight Capacity Gate & Oversized File Handling]]
 - [[Media Preview & Thumbnail Grid]]

@@ -2,9 +2,11 @@ use std::collections::HashMap;
 use crate::engine::{AboutFs, CloudAccount, RcloneClient, VaultQuota};
 use crate::AppState;
 
-const KNOWN_PROVIDERS: &[(&str, &str)] = &[
+pub const KNOWN_PROVIDERS: &[(&str, &str)] = &[
     ("Google Drive", "gdrive"),
     ("OneDrive", "onedrive"),
+    ("Dropbox", "dropbox"),
+    ("Box", "box"),
 ];
 
 /// Pure calculation helper to construct VaultQuota from dumped config and about metrics
@@ -71,48 +73,41 @@ pub fn calculate_vault_quota(
     }
 }
 
+async fn check_provider_quota(
+    client: &RcloneClient,
+    config: &HashMap<String, HashMap<String, serde_json::Value>>,
+    id: &'static str,
+) -> Option<(String, Result<AboutFs, String>)> {
+    if config.contains_key(id) {
+        let remote = format!("{id}:");
+        let res = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            client.get_about(&remote),
+        )
+        .await
+        .unwrap_or_else(|_| Err("Storage quota request timed out".to_string()));
+        Some((id.to_string(), res))
+    } else {
+        None
+    }
+}
+
 pub async fn fetch_vault_quota_internal(
     client: &RcloneClient,
     prev_quota: Option<&VaultQuota>,
 ) -> Result<VaultQuota, String> {
     let config = client.dump_config().await?;
 
-    let gdrive_fut = async {
-        if config.contains_key("gdrive") {
-            let res = tokio::time::timeout(
-                std::time::Duration::from_secs(10),
-                client.get_about("gdrive:"),
-            )
-            .await
-            .unwrap_or_else(|_| Err("Storage quota request timed out".to_string()));
-            Some(("gdrive".to_string(), res))
-        } else {
-            None
-        }
-    };
-
-    let onedrive_fut = async {
-        if config.contains_key("onedrive") {
-            let res = tokio::time::timeout(
-                std::time::Duration::from_secs(10),
-                client.get_about("onedrive:"),
-            )
-            .await
-            .unwrap_or_else(|_| Err("Storage quota request timed out".to_string()));
-            Some(("onedrive".to_string(), res))
-        } else {
-            None
-        }
-    };
-
-    let (gdrive_res, onedrive_res) = tokio::join!(gdrive_fut, onedrive_fut);
+    let (g, o, d, b) = tokio::join!(
+        check_provider_quota(client, &config, "gdrive"),
+        check_provider_quota(client, &config, "onedrive"),
+        check_provider_quota(client, &config, "dropbox"),
+        check_provider_quota(client, &config, "box"),
+    );
 
     let mut about_map = HashMap::new();
-    if let Some((id, res)) = gdrive_res {
-        about_map.insert(id, res);
-    }
-    if let Some((id, res)) = onedrive_res {
-        about_map.insert(id, res);
+    for item in [g, o, d, b].into_iter().flatten() {
+        about_map.insert(item.0, item.1);
     }
 
     Ok(calculate_vault_quota(&config, &about_map, prev_quota))
@@ -144,10 +139,8 @@ mod tests {
         assert_eq!(quota.total_bytes, 0);
         assert_eq!(quota.used_bytes, 0);
         assert_eq!(quota.free_bytes, 0);
-        assert_eq!(quota.accounts.len(), 2);
-        assert!(!quota.accounts[0].is_connected);
-        assert!(!quota.accounts[0].needs_auth);
-        assert!(!quota.accounts[1].is_connected);
+        assert_eq!(quota.accounts.len(), 4);
+        assert!(quota.accounts.iter().all(|a| !a.is_connected && !a.needs_auth));
     }
 
     #[test]
@@ -294,5 +287,30 @@ mod tests {
         assert!(!onedrive.is_connected);
         assert!(!onedrive.needs_auth);
         assert_eq!(quota.total_bytes, 0);
+    }
+
+    #[test]
+    fn test_calculate_vault_quota_all_four_providers() {
+        let mut config = HashMap::new();
+        config.insert("gdrive".into(), HashMap::new());
+        config.insert("onedrive".into(), HashMap::new());
+        config.insert("dropbox".into(), HashMap::new());
+        config.insert("box".into(), HashMap::new());
+
+        let mut about_map = HashMap::new();
+        about_map.insert("gdrive".into(), Ok(AboutFs { total: Some(15 * 1024 * 1024 * 1024), used: Some(2 * 1024 * 1024 * 1024), ..Default::default() }));
+        about_map.insert("onedrive".into(), Ok(AboutFs { total: Some(5 * 1024 * 1024 * 1024), used: Some(1 * 1024 * 1024 * 1024), ..Default::default() }));
+        about_map.insert("dropbox".into(), Ok(AboutFs { total: Some(2 * 1024 * 1024 * 1024), used: Some(500 * 1024 * 1024), ..Default::default() }));
+        about_map.insert("box".into(), Ok(AboutFs { total: Some(10 * 1024 * 1024 * 1024), used: Some(1024 * 1024 * 1024), ..Default::default() }));
+
+        let quota = calculate_vault_quota(&config, &about_map, None);
+        assert_eq!(quota.accounts.len(), 4);
+        assert_eq!(quota.total_bytes, 32 * 1024 * 1024 * 1024);
+        let expected_used: u64 = (2 * 1024 * 1024 * 1024)
+        + (1 * 1024 * 1024 * 1024)
+        + (500 * 1024 * 1024)
+        + (1024 * 1024 * 1024);
+    assert_eq!(quota.used_bytes, expected_used);
+        assert_eq!(quota.free_bytes, quota.total_bytes - quota.used_bytes);
     }
 }

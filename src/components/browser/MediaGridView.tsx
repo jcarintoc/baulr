@@ -9,17 +9,31 @@ import {
 } from "@tabler/icons-react";
 import { formatBytes } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
-import { GoogleDriveIcon, OneDriveIcon } from "@/components/common/ProviderIcons";
+import { ProviderIcon } from "@/components/common/ProviderIcons";
 import type { RemoteVaultItem } from "@/store/useRemoteFilesStore";
 
-function isImageItem(name: string, mime?: string | null): boolean {
-  if (mime?.startsWith("image/")) return true;
-  return /\.(jpe?g|png|gif|webp|svg|heic|heif|avif|bmp)$/i.test(name);
-}
+const isImage = (n: string, m?: string | null) =>
+  Boolean(m?.startsWith("image/") || /\.(jpe?g|png|gif|webp|svg|heic|heif|avif|bmp)$/i.test(n));
 
-function isVideoItem(name: string, mime?: string | null): boolean {
-  if (mime?.startsWith("video/")) return true;
-  return /\.(mp4|mov|webm|mkv|avi|m4v)$/i.test(name);
+const isVideo = (n: string, m?: string | null) =>
+  Boolean(m?.startsWith("video/") || /\.(mp4|mov|webm|mkv|avi|m4v)$/i.test(n));
+
+function CardActions({ onShare, onDownload, onDelete, className = "" }: {
+  onShare: () => void;
+  onDownload: () => void;
+  onDelete: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`absolute z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-background/85 backdrop-blur-md border border-border/60 rounded-lg p-0.5 shadow-sm ${className}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Button variant="ghost" size="icon-xs" title="Share" onClick={onShare} className="size-6 p-0"><IconShare /></Button>
+      <Button variant="ghost" size="icon-xs" title="Download" onClick={onDownload} className="size-6 p-0"><IconDownload /></Button>
+      <Button variant="ghost" size="icon-xs" title="Remove" onClick={onDelete} className="size-6 p-0 hover:text-destructive"><IconTrash /></Button>
+    </div>
+  );
 }
 
 interface MediaGridViewProps {
@@ -42,15 +56,13 @@ export function MediaGridView({
   onShare,
 }: MediaGridViewProps) {
   const getMediaUrl = (path: string) =>
-    mediaBaseUrl
-      ? `${mediaBaseUrl}/${path.split("/").map(encodeURIComponent).join("/")}`
-      : "";
+    mediaBaseUrl ? `${mediaBaseUrl}/${path.split("/").map(encodeURIComponent).join("/")}` : "";
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 p-3.5">
       {items.map((item, idx) => {
-        const isImg = !item.IsDir && isImageItem(item.Name, item.MimeType);
-        const isVid = !item.IsDir && isVideoItem(item.Name, item.MimeType);
+        const isImg = !item.IsDir && isImage(item.Name, item.MimeType);
+        const isVid = !item.IsDir && isVideo(item.Name, item.MimeType);
         const ext = item.Name.split(".").pop()?.toUpperCase() || "FILE";
 
         if (item.IsDir) {
@@ -64,45 +76,16 @@ export function MediaGridView({
               <IconFolderOpen className="group-hover:opacity-100 opacity-0 absolute inset-0 w-full h-full text-vault-accent-text fill-vault-accent scale-105 stroke-1 transition-opacity duration-300" />
 
               <div className="absolute bottom-0 left-6 flex items-center gap-1.5 max-w-[calc(100%-2rem)]">
-                {item.provider === "gdrive" && <GoogleDriveIcon className="size-3.5 shrink-0" />}
-                {item.provider === "onedrive" && <OneDriveIcon className="size-3.5 shrink-0" />}
-                <p className="text-foreground truncate font-medium">
-                  {item.Name}
-                </p>
+                <ProviderIcon provider={item.provider} className="size-3.5 shrink-0" />
+                <p className="text-foreground truncate font-medium">{item.Name}</p>
               </div>
 
-              <div
-                className="absolute top-6.5 right-2.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-background/85 backdrop-blur-md border border-border/60 rounded-lg p-0.5 shadow-sm"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  title="Share"
-                  onClick={() => onShare(item)}
-                  className="size-6 p-0"
-                >
-                  <IconShare />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  title="Download"
-                  onClick={() => onDownload(item)}
-                  className="size-6 p-0"
-                >
-                  <IconDownload />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  title="Remove"
-                  onClick={() => onDelete(item)}
-                  className="size-6 p-0 hover:text-destructive"
-                >
-                  <IconTrash />
-                </Button>
-              </div>
+              <CardActions
+                onShare={() => onShare(item)}
+                onDownload={() => onDownload(item)}
+                onDelete={() => onDelete(item)}
+                className="top-6.5 right-2.5"
+              />
             </div>
           );
         }
@@ -138,38 +121,12 @@ export function MediaGridView({
                 </div>
               )}
 
-              <div
-                className="absolute top-2 right-2 z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-background/85 backdrop-blur-md border border-border/60 rounded-lg p-0.5 shadow-sm"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  title="Share"
-                  onClick={() => onShare(item)}
-                  className="size-6 p-0"
-                >
-                  <IconShare />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  title="Download"
-                  onClick={() => onDownload(item)}
-                  className="size-6 p-0"
-                >
-                  <IconDownload />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  title="Remove"
-                  onClick={() => onDelete(item)}
-                  className="size-6 p-0 hover:text-destructive"
-                >
-                  <IconTrash />
-                </Button>
-              </div>
+              <CardActions
+                onShare={() => onShare(item)}
+                onDownload={() => onDownload(item)}
+                onDelete={() => onDelete(item)}
+                className="top-2 right-2"
+              />
             </div>
 
             <div className="p-2.5 flex flex-col gap-0.5 border-t border-border/50 bg-card/60 shrink-0">
@@ -178,13 +135,10 @@ export function MediaGridView({
               </p>
               <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
                 <div className="flex items-center gap-1.5">
-                  {item.provider === "gdrive" && <GoogleDriveIcon className="size-3.5 shrink-0" />}
-                  {item.provider === "onedrive" && <OneDriveIcon className="size-3.5 shrink-0" />}
+                  <ProviderIcon provider={item.provider} className="size-3.5 shrink-0" />
                   <span>{formatBytes(item.Size ?? 0)}</span>
                 </div>
-                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground/70">
-                  {ext}
-                </span>
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground/70">{ext}</span>
               </div>
             </div>
           </div>

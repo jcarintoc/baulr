@@ -5,7 +5,7 @@ pub const VAULT_UNION_NAME: &str = "baulr_vault";
 pub const VAULT_SUBDIR: &str = "BaulrVault";
 
 /// Supported cloud storage provider backend types in Rclone.
-const SUPPORTED_TYPES: &[&str] = &["drive", "onedrive"];
+const SUPPORTED_TYPES: &[&str] = &["drive", "onedrive", "dropbox", "box"];
 
 /// Inspects the configured remotes and returns sorted upstream strings for the union remote.
 pub fn build_union_upstreams(
@@ -101,6 +101,18 @@ mod tests {
 
         let upstreams = build_union_upstreams(&config);
         assert_eq!(upstreams, vec!["gdrive:BaulrVault", "onedrive:BaulrVault"]);
+    }
+
+    #[test]
+    fn test_build_union_upstreams_combines_all_four_providers() {
+        let mut config = HashMap::new();
+        config.insert("gdrive".into(), HashMap::from([("type".into(), serde_json::json!("drive"))]));
+        config.insert("onedrive".into(), HashMap::from([("type".into(), serde_json::json!("onedrive"))]));
+        config.insert("dropbox".into(), HashMap::from([("type".into(), serde_json::json!("dropbox"))]));
+        config.insert("box".into(), HashMap::from([("type".into(), serde_json::json!("box"))]));
+
+        let upstreams = build_union_upstreams(&config);
+        assert_eq!(upstreams, vec!["box:BaulrVault", "dropbox:BaulrVault", "gdrive:BaulrVault", "onedrive:BaulrVault"]);
     }
 
     #[test]

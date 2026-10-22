@@ -2,6 +2,8 @@ import { IconArrowRight, IconShieldLock } from "@tabler/icons-react";
 import {
   GoogleDriveIcon,
   OneDriveIcon,
+  DropboxIcon,
+  BoxIcon,
 } from "@/components/common/ProviderIcons";
 import {
   Card,
@@ -28,7 +30,7 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
           {[
             {
               id: "gdrive",
@@ -41,6 +43,18 @@ export function OnboardingPrompt({ onConnectDrive }: OnboardingPromptProps) {
               name: "OneDrive",
               size: "5 GB free storage",
               Icon: OneDriveIcon,
+            },
+            {
+              id: "box",
+              name: "Box",
+              size: "10 GB free storage",
+              Icon: BoxIcon,
+            },
+            {
+              id: "dropbox",
+              name: "Dropbox",
+              size: "2 GB free storage",
+              Icon: DropboxIcon,
             },
           ].map(({ id, name, size, Icon }) => (
             <button

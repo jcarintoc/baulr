@@ -4,10 +4,7 @@ import {
   IconExternalLink,
   IconUnlink,
 } from "@tabler/icons-react";
-import {
-  GoogleDriveIcon,
-  OneDriveIcon,
-} from "@/components/common/ProviderIcons";
+import { ProviderIcon } from "@/components/common/ProviderIcons";
 import { formatBytes } from "@/lib/formatters";
 import type { CloudAccount } from "@/lib/bindings";
 import { Badge } from "@/components/ui/badge";
@@ -26,18 +23,13 @@ export function AccountCard({
   onDisconnect,
 }: AccountCardProps) {
   const isConnected = account.isConnected;
-  const isGoogle = account.provider.toLowerCase().includes("gdrive");
 
   return (
     <Card className="bg-card/75 border-border">
       <CardContent className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-lg bg-muted text-foreground border border-border flex items-center justify-center">
-            {isGoogle ? (
-              <GoogleDriveIcon className="size-5" />
-            ) : (
-              <OneDriveIcon className="size-5" />
-            )}
+            <ProviderIcon provider={account.provider} className="size-5" />
           </div>
           <div>
             <h4 className="font-medium text-sm text-foreground">

@@ -8,10 +8,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  GoogleDriveIcon,
-  OneDriveIcon,
-} from "@/components/common/ProviderIcons";
+import { ProviderIcon } from "@/components/common/ProviderIcons";
+import { PROVIDER_NAMES } from "@/components/browser/ProviderSyncAlert";
 
 interface OAuthModalProps {
   isOpen: boolean;
@@ -28,19 +26,14 @@ export function OAuthModal({
 }: OAuthModalProps) {
   if (!isOpen || !provider) return null;
 
-  const isGoogle = provider.toLowerCase().includes("gdrive");
-  const providerLabel = isGoogle ? "Google Drive" : "OneDrive";
+  const providerLabel = PROVIDER_NAMES[provider.toLowerCase()] || provider;
 
   return (
     <AlertDialog open={isOpen}>
       <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader className="flex flex-col items-center text-center gap-3">
           <div className="size-12 rounded-xl bg-muted border border-border/50 flex items-center justify-center text-foreground">
-            {isGoogle ? (
-              <GoogleDriveIcon className="size-6" />
-            ) : (
-              <OneDriveIcon className="size-6" />
-            )}
+            <ProviderIcon provider={provider} className="size-6" />
           </div>
 
           <AlertDialogTitle className="text-base font-semibold">

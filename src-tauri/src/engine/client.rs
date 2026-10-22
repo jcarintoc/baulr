@@ -26,6 +26,7 @@ pub fn resolve_config_answer(name: &str, default_str: &str, examples: &[RcloneCo
         "teamdrive" => "false".to_string(),
         "config_refresh_token" => "true".to_string(),
         "config_drive_ok" => "true".to_string(),
+        "box_sub_type" => "user".to_string(),
         "config_type" | "choose_type" => "onedrive".to_string(),
         "config_driveid" | "choose_drive" => {
             // Find the primary personal "OneDrive" drive, avoiding internal/system containers

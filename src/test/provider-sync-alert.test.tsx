@@ -48,4 +48,18 @@ describe("ProviderSyncAlert", () => {
     const retryBtn = screen.getByRole("button", { name: /Retry Google Drive/i });
     expect(retryBtn).toBeDisabled();
   });
+
+  it("renders human copy for Dropbox and Box errors", () => {
+    useRemoteFilesStore.setState({
+      providerErrors: {
+        dropbox: "Network error",
+        box: "Timeout",
+      },
+      providerLoading: { dropbox: false, box: false },
+    });
+
+    render(<ProviderSyncAlert />);
+    expect(screen.getByText("Unable to load Dropbox files")).toBeInTheDocument();
+    expect(screen.getByText("Unable to load Box files")).toBeInTheDocument();
+  });
 });

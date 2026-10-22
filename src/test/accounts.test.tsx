@@ -84,6 +84,38 @@ describe("AccountCard", () => {
     fireEvent.click(reauthBtn);
     expect(handleConnect).toHaveBeenCalledWith("gdrive");
   });
+
+  it("renders Dropbox and Box accounts and handles connect", () => {
+    const handleConnect = vi.fn();
+    const dropboxAccount: CloudAccount = {
+      name: "Dropbox",
+      provider: "dropbox",
+      usedBytes: 0,
+      totalBytes: 2 * 1024 * 1024 * 1024,
+      isConnected: false,
+      needsAuth: false,
+    };
+    const boxAccount: CloudAccount = {
+      name: "Box",
+      provider: "box",
+      usedBytes: 0,
+      totalBytes: 10 * 1024 * 1024 * 1024,
+      isConnected: false,
+      needsAuth: false,
+    };
+
+    const { rerender } = render(
+      <AccountCard account={dropboxAccount} onConnect={handleConnect} />
+    );
+    expect(screen.getByText("Dropbox")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Connect/i }));
+    expect(handleConnect).toHaveBeenCalledWith("dropbox");
+
+    rerender(<AccountCard account={boxAccount} onConnect={handleConnect} />);
+    expect(screen.getByText("Box")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Connect/i }));
+    expect(handleConnect).toHaveBeenCalledWith("box");
+  });
 });
 
 describe("OAuthModal", () => {
@@ -146,5 +178,15 @@ describe("OAuthModal", () => {
 
     expect(screen.queryByText(/token|payload|endpoint|daemon|hash/i)).not.toBeInTheDocument();
     expect(screen.getByText("Waiting for authorization in browser")).toBeInTheDocument();
+  });
+
+  it("renders OAuthModal correctly for Dropbox and Box", () => {
+    const { rerender } = render(
+      <OAuthModal isOpen={true} provider="dropbox" onCancel={vi.fn()} />
+    );
+    expect(screen.getByText(/Connecting to Dropbox/i)).toBeInTheDocument();
+
+    rerender(<OAuthModal isOpen={true} provider="box" onCancel={vi.fn()} />);
+    expect(screen.getByText(/Connecting to Box/i)).toBeInTheDocument();
   });
 });
